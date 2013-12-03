@@ -1,28 +1,4 @@
 
-* New name: org-publish-meta
-:PROPERTIES:
-:DATE:     <2013-12-02 Mon 00:01>
-:END: 
-
-Why org-publish-meta: Because it extends org-publish.  It is "meta" in the sense of extracting org files from org files, and adding these to projects for publication with org-publish. 
-
-The prefix used for functions in this package will be org-pm- as abbreviation of org-publish-meta-.
-
-** Record of looking for other names
-:PROPERTIES:
-:DATE:     <2013-12-03 Tue 11:33>
-:END:
-org-publish-meta -> org-pm ?
-
-org-meta-project?
-
-
-org-site?
-org-dynsite?
-
-org-publish-auto?
-
-Perhaps org-site is best. 
 
 
 
@@ -34,6 +10,15 @@ Perhaps org-site is best.
 
 (To be written:  A few words about the motivation / background for the project.): 
 
+** Why the name?
+:PROPERTIES:
+:DATE:     <2013-12-02 Mon 00:01>
+:END: 
+
+Because it extends org-publish.  It is "meta" in the sense of extracting org files from org files, and adding these to projects for publication with org-publish. 
+
+The prefix used for functions in this package will be org-pm- as abbreviation of org-publish-meta-.
+
 ** Make it easier to configure projects for org-publish
 
 ** Enable some of the nice features of o-blog
@@ -42,7 +27,29 @@ Perhaps org-site is best.
 
 Advantages:  Better overview and editing.
 
+
 ** Need to copy files or parts of files from current notes to different projects for publishing
+
+* Features
+:PROPERTIES:
+:DATE:     <2013-12-03 Tue 14:25>
+:END:
+
+** Auto-save org-publish-project-alist
+
+** Automatic creation of projects with 0 configuration
+
+** Simple customization of projects using in-file org-mode style nodes
+
+** Multiple projects per file
+
+** Any node in a file can be copied as separate file to any project
+
+** Easy per-file customization of html export with properties and org-mode style nodes
+
+** Inheritance of properties in sub-projects
+
+** Publish same file or node to multiple projects
 
 * Getting started
 :PROPERTIES:
