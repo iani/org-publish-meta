@@ -4,23 +4,6 @@
 :DATE:     <2013-11-20 Wed 20:08>
 :END:
 
-** Rename dynsite to something nicer? 
-:PROPERTIES:
-:DATE:     <2013-12-02 Mon 00:01>
-:END: 
-
-org-publish-meta -> org-pm ?
-
-org-meta-project?
-
-
-org-site?
-org-dynsite?
-
-org-publish-auto?
-
-Perhaps org-site is best. 
-
 ** Note: Current dynsite publishing setup example code
 :PROPERTIES:
 :DATE:     <2013-12-02 Mon 17:49>
@@ -28,7 +11,7 @@ Perhaps org-site is best.
 
 Noting this code down here as example to guide new version, even if the principles of the new version will be very different. 
 
-*** Publish                                                      :noexport:
+*** Publish                                                        :noexport:
 
 #+BEGIN_SRC sh
 cp "/Users/iani2/Dropbox/000WORKFILES/org/work/publications/articleforsoundscapejournal201310_solomos/SoundscapeJournalArticleIZ201310.org" "/Users/iani2/SitesSource/larigot-iani/papers/"
@@ -51,18 +34,6 @@ cp "/Users/iani2/Dropbox/000WORKFILES/org/work/publications/articleforsoundscape
 
 #+RESULTS:
 : project defs created: (all-all AVA940HMI<classes<larigot-iani-static AVA940HMI<classes<larigot-iani-all AVA940HMI<classes<larigot-iani classes<larigot-iani-static classes<larigot-iani-all classes<larigot-iani larigot-iani-static larigot-iani-all larigot-iani)
-
-** Motivation
-:PROPERTIES:
-:DATE:     <2013-12-03 Tue 07:21>
-:END:
-
-(To be written:  A few words about the motivation / background for the project.): 
-
-- To ease the difficulty of configuring sites
-- Second impulse:  o-blog
-- Advantages of keeping the contents of several web-pages in one org-file:  Better overview and editing.
-- Need to copy files or parts of files from current notes to different projects for publishing.
 
 ** Publishing principles, specification, options, format + feature considerations
 :PROPERTIES:

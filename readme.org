@@ -1,0 +1,50 @@
+
+* New name: org-publish-meta
+:PROPERTIES:
+:DATE:     <2013-12-02 Mon 00:01>
+:END: 
+
+Why org-publish-meta: Because it extends org-publish.  It is "meta" in the sense of extracting org files from org files, and adding these to projects for publication with org-publish. 
+
+The prefix used for functions in this package will be org-pm- as abbreviation of org-publish-meta-.
+
+** Record of looking for other names
+:PROPERTIES:
+:DATE:     <2013-12-03 Tue 11:33>
+:END:
+org-publish-meta -> org-pm ?
+
+org-meta-project?
+
+
+org-site?
+org-dynsite?
+
+org-publish-auto?
+
+Perhaps org-site is best. 
+
+
+
+
+* Why org-publish-meta?
+:PROPERTIES:
+:DATE:     <2013-12-03 Tue 07:21>
+:END:
+
+(To be written:  A few words about the motivation / background for the project.): 
+
+** Make it easier to configure projects for org-publish
+
+** Enable some of the nice features of o-blog
+
+** Keep the contents of several web-pages in one org-file
+
+Advantages:  Better overview and editing.
+
+** Need to copy files or parts of files from current notes to different projects for publishing
+
+* Getting started
+:PROPERTIES:
+:DATE:     <2013-12-03 Tue 11:41>
+:END:
