@@ -260,3 +260,21 @@ Draft of all steps:
       )
   )
 #+END_SRC
+* Options for org-pm-dispatch top level function dispatcher
+:PROPERTIES:
+:DATE:     <2013-12-04 Wed 20:12>
+:END:
+
+The interactive command function org-pm-dispatch will open a dispatcher modeled after that of function org-export-dispatch.  
+
+When called with an argument (C-u prefix), the function will automatically publish the related projects when done.  Otherwise it will just create project configs and copy the parts of org files concerned.  The options of the dispatcher refer to which files and which parts of files should be processed and copied to projects.  The options are: 
+
+- f :: file of current buffer and all nodes that belong to the project of this file only
+- a :: file of current buffer and all nodes it contains (also those belonging to other projects)
+- n :: current node and its subnodes only
+- p :: all files belonging to the project that the file of the current buffer belongs to. 
+- * :: all files of all projects
+
+
+
+
