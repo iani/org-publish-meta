@@ -1,0 +1,262 @@
+#+TODO: TODO UNDERWAY NEEDS_REVIEW | DONE
+
+Developing the org-publish-meta application incrementally, step-by-step. 
+
+* DONE Step 1: Auto-save of org-publish-project-alist
+CLOSED: [2013-12-04 Wed 17:59]
+:PROPERTIES:
+:DATE:     <2013-12-04 Wed 12:47>
+:END:
+
+** Utility functions for saving emacs lisp data
+:PROPERTIES:
+:DATE:     <2013-12-04 Wed 12:47>
+:END:
+
+#+BEGIN_SRC elisp
+
+(defun dump-vars-to-file (varlist filename)
+  "simplistic dumping of variables in VARLIST to a file FILENAME"
+  (save-excursion
+    (let ((buf (find-file-noselect filename)))
+      (set-buffer buf)
+      (erase-buffer)
+      (dump varlist buf)
+      (save-buffer)
+      (kill-buffer))))
+
+(defun dump (varlist buffer)
+  "insert into buffer the setq statement to recreate the variables in VARLIST"
+  (loop for var in varlist do
+        (print (list 'setq var (list 'quote (symbol-value var)))
+               buffer)))
+
+(defun checkit ()
+  (interactive)
+  (let ((a '(1 2 3 (4 5)))
+        (b '(a b c))
+        (c (make-vector 3 'a)))
+    (dump-vars-to-file '(a b c) "/Users/iani2/Desktop/TEST.el")))
+#+END_SRC
+
+#+RESULTS:
+: checkit
+
+** The project save and load project alist functions
+:PROPERTIES:
+:DATE:     <2013-12-04 Wed 12:47>
+:ID:       2624DC79-CBF5-413A-8BB5-4FD6B90E4CB9
+:END:
+
+#+BEGIN_SRC elisp
+  
+  (defvar org-pm-auto-save-path nil
+    "Location where org-publish-meta saves and loads the contents of:
+  - org-publish-project-alist,
+  - org-pm-files
+  - org-pm-nodes")
+  
+  (defvar org-pm-files nil
+    "Assoc-list of files belonging to org-publish-projects.
+  Each element of the list is of the form: 
+  (full-file-path 
+   :project projectname 
+   :nodes (nodelist)
+   :config (export config parameters))
+  ")
+  
+  (defvar org-pm-nodes nil
+    "Assoc-list of org-nodes belonging to org-publish-projects.
+  Each element of the list is of the form: 
+  (node-id 
+   :file full-file-path 
+   :configs (export config parameters)
+   :projects 
+   (
+    (projectname :folder folderpath :file filename)
+    (projectname2 :folder folderpath :file filename)
+    )
+  ")
+  
+  (defun org-pm-get-auto-save-path ()
+    "Get the path where org-publish-project-alist should be auto-saved.
+  if ~/.emacs.d is present, use ~/.emacs.d/savefile/org-publish-project-alist
+  else use ~/.org-publish-project-alist.  
+  Create savefile folder if it does not exist. 
+  "
+    (or
+     org-pm-auto-save-path
+    (setq org-pm-auto-save-path 
+     (let* (
+           (home (expand-file-name "~/"))
+           (emacs-d-path (concat home ".emacs.d/"))
+           )
+       (cond
+        ((file-exists-p emacs-d-path)
+         (setq emacs-d-path (concat emacs-d-path "savefile/"))
+         (unless (file-exists-p emacs-d-path) (make-directory emacs-d-path))
+         (concat emacs-d-path "org-publish-meta"))
+        (t (concat home ".org-publish-meta"))
+        )))))
+  
+  (defun org-pm-save-project-configs ()
+    "Save the contents of the following variables to org-pm-auto-save-path:
+  - org-publish-project-alist
+  - org-pm-files
+  - org-pm-nodes.
+  Uses dump-vars-to-file"
+    (dump-vars-to-file 
+     '(org-publish-project-alist org-pm-files org-pm-nodes)
+     (org-pm-get-project-alist-path)))
+  
+  (defun org-pm-load-project-configs ()
+    "Load the contents of the following variables from org-pm-auto-save-path:
+  - org-publish-project-alist
+  - org-pm-files
+  - org-pm-nodes."
+    (load-file (org-pm-get-auto-save-path)))
+#+END_SRC
+
+#+RESULTS:
+: org-pm-load-project-configs
+
+  
+Note: The following should be included in the startup procedure for loading org-publish-meta: 
+
+#+BEGIN_SRC elisp
+(org-pm-load-project-configs)
+#+END_SRC
+* NEEDS_REVIEW Step 2: Construct default project for a file
+:PROPERTIES:
+:ID:       7FA277CA-8253-4BFB-9574-32D29E505BE0
+:END:
+
+#+BEGIN_SRC elisp
+  
+  (require 'cl)
+  
+  (defvar org-pm-default-project-properties 
+    '(
+      :recursive t
+      :publishing-function org-publish-org-to-html
+      :base-extension "org"
+      )
+  "Default properties for org-publish.  These are used by org-pm-make-default-project
+  to construct the default project alist component for a file.
+  The base-directory and publishing-directory properties are provided 
+  by org-pm-make-default-project.
+  ")
+  
+  (defun org-pm-make-default-project (&optional project-name)
+    "Construct a default org-publish-project configuration alist.
+  If project-name is given, use it.
+  Otherwise use the file-name-sans-extension of the current buffer
+  as project name"
+    (let* (
+           (pm-def-file  (buffer-file-name (current-buffer)))
+           (base-dir (file-name-directory pm-def-file))
+           (plist (copy-list org-pm-default-project-properties)))
+      (setq plist (plist-put plist :base-directory (concat base-dir "org/")))
+      (setq plist (plist-put plist :publishing-directory (concat base-dir "html/")))
+      (cons (or project-name 
+                (file-name-nondirectory (file-name-sans-extension pm-def-file))) 
+            plist)
+      ))
+#+END_SRC
+
+#+RESULTS:
+: org-pm-make-default-project
+
+Test: 
+#+BEGIN_SRC elisp
+(org-pm-make-default-project)
+#+END_SRC
+* UNDERWAY Step 3: Try publishing a project with default properties
+
+Under construction
+
+TODO: review [[id:7FA277CA-8253-4BFB-9574-32D29E505BE0][this]] and make new function as described in code below,
+I mean function org-pm-node-get-project-config.
+
+Draft of all steps: 
+
+      ;; Get project config from node 
+      ;; If it exists here, then ALWAYS reinitialize it to update edited changes
+
+    ;; if no config was found, then: 
+    ;; get the name of the project from the file header
+    ;; if not found, provide project name
+    ;; try to find project config from project alist
+    ;; if not found, then create default project with the given project name. 
+
+
+  ;; Get project configs of all nodes in project
+  ;; Get file config of file
+  ;; Get file configs of all nodes in project
+  ;; Resolve inheritances
+  ;; Resolve subfile-ignores
+  ;; Build list of projects contained in file project config
+  ;; and in the configs of all nodes in this file
+  ;; For all projects in the list of projects, 
+  ;; publish project.
+
+
+
+#+BEGIN_SRC elisp
+  
+  ;;; ;;;;;;;;;;; NOT DONE YET ;;;;;;;;;;;;;;;;;;;;;
+  
+  (defun org-pm-publish ()
+    "Create all project files for this file and then publish them."
+    (interactive)
+    (org-pm-load-project-configs)
+    ;; here insert save-excursion etc.
+    ;; 
+    ;; !!!!!!!!!! save-excursion.
+    ;; For the rest of this function.
+    ;; !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    (let* 
+        projects
+        ;; Get project config from node 
+        ;; If it exists here, then ALWAYS reinitialize it to update edited changes
+        ((project-config (org-pm-node-get-project-config)))
+      ;; if no config was found, then: 
+      ;; get the name of the project from the file header
+      ;; if not found, provide project name
+      ;; try to find project config from project alist
+      ;; if not found, then create default project with the given project name. 
+  
+      ;; must rework this into new function: 
+      ;; org-pm-get-file-project-config
+      ;; this function gets the config for this file from scratch.
+      ;; Do this by combining the code below with the code in
+      ;; org-pm-make-default project.
+      ;; link for this is given above.
+      (unless project-config
+        (let ((project-name (org-pm-get-project-name)))
+          (setq project-config (assoc project-name org-publish-project-alist))
+          (unless project-config
+            (setq project-config (org-pm-default-project-config project-name)))
+          )
+       )
+      ;; Get project configs of all nodes in project
+      (org-pm-get-node-configs)
+      ;; Get file config of file
+      (org-pm-get-file-params)
+      ;; Get file configs of all nodes in project
+      (org-pm-get-node-params)
+      ;; Resolve inheritances
+      (org-pm-process-subproject-configs)
+      ;; Resolve subfile-ignores
+      (org-pm-make-subprocess-ignores)
+      ;; Build list of projects contained in file project config
+      ;; and in the configs of all nodes in this file
+      (setq projects (org-pm-collect-projects-for-file))
+  
+      ;; For all projects in the list of projects, 
+      ;; publish project.
+      (dolist (project projects)
+        (org-publish project))
+      )
+  )
+#+END_SRC

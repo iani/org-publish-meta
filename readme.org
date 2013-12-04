@@ -1,7 +1,11 @@
 
+THIS PROJECT IS ONLY AN EARLY DRAFT.
 
+SAVED HERE FOR BACKUP. 
 
+The code and doc may give you an idea of where the project is headed.  Nothing else. 
 
+[2013-12-04 Wed]
 
 * Why org-publish-meta?
 :PROPERTIES:
@@ -19,16 +23,18 @@ Because it extends org-publish.  It is "meta" in the sense of extracting org fil
 
 The prefix used for functions in this package will be org-pm- as abbreviation of org-publish-meta-.
 
-** Make it easier to configure projects for org-publish
+** Motivation 1: Make it easier to configure projects for org-publish
 
-** Enable some of the nice features of o-blog
+** Motivation 2: Enable some of the nice features of o-blog
 
-** Keep the contents of several web-pages in one org-file
+** Motivation 3: Keep the contents of several web-pages in one org-file
 
 Advantages:  Better overview and editing.
 
 
-** Need to copy files or parts of files from current notes to different projects for publishing
+** Motivation 4: Need to copy files or parts of files from current notes to different projects for publishing
+
+Last but not least ... this was a major factor ... 
 
 * Features
 :PROPERTIES:
@@ -55,3 +61,4 @@ Advantages:  Better overview and editing.
 :PROPERTIES:
 :DATE:     <2013-12-03 Tue 11:41>
 :END:
+
