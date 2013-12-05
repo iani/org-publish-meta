@@ -1,4 +1,4 @@
-#+TODO: TODO UNDERWAY NEEDS_REVIEW | DONE
+#+TODO: TODO UNDERWAY NEEDS_REVIEW | DONE CANCELLED
 
 Developing the org-publish-meta application incrementally, step-by-step. 
 
@@ -179,7 +179,16 @@ Note: The following should be included in the startup procedure for loading org-
              (file-name-nondirectory (file-name-sans-extension pm-def-file))))
       plist
       ))
-  
+#+END_SRC
+
+The following must be modified to follow the new scheme described in
+
+[[file:org-publish-meta.org::#id:2C1A8D6A-7A07-4825-9557-D8026FCD3377][Publishing principles]]
+
+Publishing principles, specification, options, format + feature considerations]]
+
+ [[file:org-publish-meta.org][org-publish-meta]
+#+BEGIN_SRC elisp  
   (defun org-pm-get-file-project-config ()
     "Get the project configuration list for the current file.
   Provide essential defaults if missing."
@@ -219,8 +228,9 @@ See also:
 org-cut-subtree
 
 (org-insert-heading "alpha")
-* asdf asdf 
+
 (org-cut-subtree)
+
 * UNDERWAY Step 3: Try publishing a project with default properties
 
 Under construction

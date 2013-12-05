@@ -39,6 +39,7 @@ cp "/Users/iani2/Dropbox/000WORKFILES/org/work/publications/articleforsoundscape
 ** Publishing principles, specification, options, format + feature considerations
 :PROPERTIES:
 :DATE:     <2013-12-02 Mon 08:52>
+:ID:       2C1A8D6A-7A07-4825-9557-D8026FCD3377
 :END:
 
 Publishing principle: Do not convert the source org-mode file directly into an HTML file.  Instead, copy the entire file plus optionally some subnodes of the file as org-mode files into a folder belonging to one or more org-mode publish projects, and then publish those projects.  This makes it possible to selectively publish different files and different parts of files in different projects as needed.  Nodes that are marked with a tag in order to be copied into project folders as separate org files.  These nodes are removed from the original file, if the original file is also published.  (NOTE: Under consideration is an optional [[id:BA6F1997-EC76-4C9E-A33B-0B1D4370829D][summary feature]] for putting a summary of a node in place of that node in the original file).  The default tag for publishing is =publish=.  The name of each file to be published is automatically generated from the heading of the node.  The property :FILE: can be used to customize the file name for saving.  Links between files are converted from org-mode style links on the basis of custom IDs (see http://orgmode.org/manual/Handling-links.html#fn-2, the proper setup for creating IDs is included in the present package).  
@@ -74,10 +75,10 @@ Instead of listing all tags for publishing in a property, use a special marker t
 
 I tried [] and *...* as markers but it seems these tags cannot be searched by the API.  But _..._ as markers work: 
 
-- tag _test_ :: indicates that this node is to be published.
-                The tag minus the _ markers can be used to indicate one of: 
-                - Name of folder to be appended to root org path for copying.
+- tag _test_ :: (a tag enclosed in underscore characters _) indicates that this node is to be published.
+                The tag minus the _ markers can be used to indicate one of:
                 - Name of project
+                - Name of folder to be appended to root org path for copying.
                 Note: The file name is constructed from the heading.
                 Property FILE if present in node overrides the heading as filename.
 
@@ -89,7 +90,7 @@ I tried [] and *...* as markers but it seems these tags cannot be searched by th
 The property =TAG_PUBLISH_MODE= can have one of 3 values: 
 - =project= :: Publish the node marker by the tag to the project whose name is the same as the tag. (This is the default value).
 - =current= :: Publish the node marked by the tag by copying it to the root org folder of the project or to the folder indicated by property =FOLDER=
-- =folder= :: Publish the node marked by the tag, copying it to a subfolder of the project.  The name of the subfolder is the same as the tag. 
+- =folder= :: Publish the node marked by the tag, copying it to a subfolder of the project.  The name of the subfolder is the same as the tag (minus _ chars).
 
 The default value of =TAG_PUBLISH_MODE= is =project=.
 
@@ -901,6 +902,7 @@ For this we need to provide the id link (full or only the link ID???), and a pli
 The first one of these belongs to documentation after the function: org-export-derived-backend-p
 
 
+
 *** Conclusion
 :PROPERTIES:
 :DATE:     <2013-11-29 Fri 11:25>
@@ -915,11 +917,15 @@ One can use the unique ID property of a node to identify links, so that these li
 
 The links created in this way do *not* contain the name of the file to which the node belongs (anyway that would not work when moving the node to another file).  Thus, one should process the files created by dynsite2 to insert the proper file names where needed. How to do this? See next: 
 
-
 **** Providing file references to node-id-links
 :PROPERTIES:
 :DATE:     <2013-11-29 Fri 11:25>
 :ID:       7F10AFC0-078D-40FC-9E75-9DAA8F06932F
+:END:
+
+***** Test id creation (must be custom_id). TMP node
+:PROPERTIES:
+:DATE:     <2013-12-05 Thu 05:15>
 :END:
 
 ***** Setup:
@@ -934,17 +940,96 @@ Links between org files in a project must be provided with a unique id in order 
 (setq org-id-link-to-org-use-id t)
 #+END_SRC
 
+
+***** Function: Inserting the correct CUSTOM_ID links for inter-file linking
+:PROPERTIES:
+:DATE:     <2013-12-05 Thu 05:23>
+:CUSTOM_ID: 83852FF5-E15A-4C81-88D2-2A9E7E207BAE
+:END:
+
+Here is a modified version of the function org-id-get from file org-id.el in standard org-mode distribution.  The modification makes it store the custom id in property "CUSTOM_ID" instead of "ID".  This is necessary for links that are composed of filename+id to work, (as opposed to links that only have *either* a filename *or* an id).  More details are in [[#A13FB84D-4868-4FC7-9EF8-82675AB5BD06][this node]].  The [[#A13FB84D-4868-4FC7-9EF8-82675AB5BD06][link to this same node (repeated here)]] is also a demonstration of this kind of link.  This kind of link will work when the target is in a different file as the one on which the link is. 
+
+IMPORTANT:
+
+When a file has the property CUSTOM_ID defined (*and* does not have a clashing property ID defined!), then C-c l will copy the link together with the file name of the target.  The filename+target can then be inserted at any other location with C-c C-l.
+
+#+BEGIN_SRC elisp
+(defun org-id-get-create (&optional force)
+  "Create an ID for the current entry and return it.
+If the entry already has an ID, just return it.
+With optional argument FORCE, force the creation of a new ID."
+  (interactive "P")
+  (when force
+    (org-entry-put (point) "CUSTOM_ID" nil))
+  (org-id-get (point) 'create))
+
+(defun org-id-get (&optional pom create prefix)
+  "Get the ID property of the entry at point-or-marker POM.
+If POM is nil, refer to the entry at point.
+If the entry does not have an ID, the function returns nil.
+However, when CREATE is non nil, create an ID if none is present already.
+PREFIX will be passed through to `org-id-new'.
+In any case, the ID of the entry is returned."
+  (org-with-point-at pom
+    (let ((id (org-entry-get nil "CUSTOM_ID")))
+      (cond
+       ((and id (stringp id) (string-match "\\S-" id))
+	id)
+       (create
+	(setq id (org-id-new prefix))
+	(org-entry-put pom "CUSTOM_ID" id)
+	(org-id-add-location id (buffer-file-name (buffer-base-buffer)))
+	id)))))
+#+END_SRC
+
+#+RESULTS:
+: org-id-get
+
 ***** Function org-resolve-file-links
 :PROPERTIES:
 :DATE:     <2013-11-30 Sat 09:57>
+:CUSTOM_ID:       A13FB84D-4868-4FC7-9EF8-82675AB5BD06
 :END:
+
 To work when the link is pointing to a node in a different file than the file in which the link is located, the (relative) path to that file must be added to the link.
+
+[[id:A13FB84D-4868-4FC7-9EF8-82675AB5BD06][Function org-resolve-file-links]]
+
+Testing with added file name here:
+[[file:org-publish-meta.org::#A13FB84D-4868-4FC7-9EF8-82675AB5BD06][Function org-resolve-file-links]]
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+IMPORTANT: In order for a link that contains both a file and a custom id in the address to work (file:filename.org::#123451234-THEID123), 
+as in the examples above, the ID of the target must be stored in property named CUSTOM_ID and not ID. If the property is named ID the link will not work. 
+
+Debugging: 
+
+See here: http://www.gnu.org/software/emacs/manual/html_node/org/Handling-links.html
+Footnote 2: The library org-id must first be loaded, either through org-customize by enabling id in org-modules , or by adding (require 'org-id) in your .emacs. Talking about the same library in both cases? Conflicts? 
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
 
 For example:
 
 #+ASCII: [[id:7F10AFC0-078D-40FC-9E75-9DAA8F06932F][test link]]
 Should become:
 #+ASCII: [[file:underway.org::#7F10AFC0-078D-40FC-9E75-9DAA8F06932F][test link]]
+
+The required, tested, final html format is:
+
+For a target:
+#+BEGIN_HTML
+<h2 id="sec-2"><a id="ID-D86EC76A-8599-4B81-8DCD-24E24932DA3C" name="ID-D86EC76A-8599-4B81-8DCD-24E24932DA3C"></a>This heading has plain :ID: property</h2>
+#+END_HTML
+
+For the links pointing to a target: 
+
+#+BEGIN_HTML
+<a href="index3.html#ID-D86EC76A-8599-4B81-8DCD-24E24932DA3C">This heading has plain :ID: property</a>
+#+END_HTML
 
 This conversion should be done on a per-project basis (later perhaps to be extended to directories containing groups of project).  It should be done as a pre-processing function just before the start of the standard org-publish-project function call.  Let's name the function that performs this task =org-resolve-file-links=. 
 
@@ -1022,6 +1107,24 @@ The result of the above process is two lists of this form:
 Then, for each link in the org-link-id-list, replace the id: part with the file:<filename>:: using as <filename> the cdr of the sublist found by searching for the id from org-link-id-list in the org-node-id-list.  When doing this keep track of any links whose ids have not been found in the org-node-id-list, putting them in a list unresolved-links. 
 
 Save the two by-product check lists: duplicate-ids and unresolved-links in a log file for debugging the project publishing process.
+*** One more hint: use wiki? 
+See: http://sachachua.com/blog/2011/11/planning-an-emacs-based-personal-wiki-org-muse-hmm/
+#+BEGIN_QUOTE
+Juan G. • a year ago −
+Another detail for Org-mode personal wikis: Link abbreviations can help to have very simple wikilinks like [[wiki:Topic][topic]], that work like absolute links, the same from any directory (for easy moving of files, or copy/paste). The directory path and the extension .org are added automatically. For example:
+
+This is a normal wikilink to a [[wiki:Topic][topic]] in the main wiki directory.
+
+And this is an optional wikilink to another [[wiki:Subdirectory/Topic][topic]] in a subdirectory.
+
+It works adding something like the following to the .emacs file (changing /long/path/to/wiki, of course):
+
+;; Link abbreviations
+(setq org-link-abbrev-alist
+'(("wiki" . "file:/long/path/to/wiki/%s.org")
+("google" . "http://www.google.com/search?q...")))
+
+Does this convert right when publishing? If yes, it could save some coding.  One could construct the org-link-abbrev-alist from the node id list. 
 
 
 
