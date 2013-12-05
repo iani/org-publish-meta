@@ -947,20 +947,34 @@ Links between org files in a project must be provided with a unique id in order 
 :CUSTOM_ID: 83852FF5-E15A-4C81-88D2-2A9E7E207BAE
 :END:
 
-****** TODO Must use defadvice to provide the file link manually if not inserted
+This [[#761FD20C-6A4E-4AC4-97D8-DBF51FCFBFE7][node]] gives a working fix for inserting file links. 
 
-The [[id:761FD20C-6A4E-4AC4-97D8-DBF51FCFBFE7][next node]] contains an exploration that failed.  
-But some of it may be kept.
-Must try to provide the missing file thingy with defadvice.  
+I now ([2013-12-05 Thu 11:04]) compared the way my modification works with the unmodified original org-mode code, and the original *does not insert file info in the links*.   Even if the target is in a different file than the link.  So the modifications in [[#761FD20C-6A4E-4AC4-97D8-DBF51FCFBFE7][this node]] seem to work for now. 
 
-****** Some of this must be kept?
+Here we tried to create an id and a link from it, again, using ID instead of CUSTOM ID. We tested this in a different file, and confirmed that the original org-mode code does not insert the file info. 
+ [[id:01B5BF3F-E148-404C-9A2F-E8ADFED3EDF7][link test only]]. 
+
+****** link test only
 :PROPERTIES:
-:CUSTOM_ID: 761FD20C-6A4E-4AC4-97D8-DBF51FCFBFE7
+:DATE:     <2013-12-05 Thu 11:03>
+:ID:       01B5BF3F-E148-404C-9A2F-E8ADFED3EDF7
 :END:
 
-The following fix worked for just a while, then broke: The file info was no longer supplied with org-insert-link.  What is going on? 
 
-We need to backtrack once more and try to work just with the standard ID (not CUSTOM_ID), and see if that ID gets copied in the link, and then provide the file info in the link with advice to org-insert-link.  We will have to manage our own assoc list of links, with the ids as keys and the file info as value.  We do not need to rely on the org link creation function to give us the file path, as we can get it from the file path of the current buffer (!)
+
+****** Yes, this works after all (with a little, non-obnoxious caveat)
+:PROPERTIES:
+:CUSTOM_ID: 761FD20C-6A4E-4AC4-97D8-DBF51FCFBFE7
+:ID:       BC2989C9-2ED9-46BB-BCFF-50424ACAFC09
+:END:
+
+Correction: The link insertion works correctly with this version. 
+
+If the link is inserted in the same file, the file name is not included. 
+
+If it is inserted in a different file than the target, then the file path to the target is also included!
+
+Fine then.
 
 ===========================
 
