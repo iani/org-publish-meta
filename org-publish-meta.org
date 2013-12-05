@@ -42,11 +42,11 @@ cp "/Users/iani2/Dropbox/000WORKFILES/org/work/publications/articleforsoundscape
 :ID:       2C1A8D6A-7A07-4825-9557-D8026FCD3377
 :END:
 
-Publishing principle: Do not convert the source org-mode file directly into an HTML file.  Instead, copy the entire file plus optionally some subnodes of the file as org-mode files into a folder belonging to one or more org-mode publish projects, and then publish those projects.  This makes it possible to selectively publish different files and different parts of files in different projects as needed.  Nodes that are marked with a tag in order to be copied into project folders as separate org files.  These nodes are removed from the original file, if the original file is also published.  (NOTE: Under consideration is an optional [[id:BA6F1997-EC76-4C9E-A33B-0B1D4370829D][summary feature]] for putting a summary of a node in place of that node in the original file).  The default tag for publishing is =publish=.  The name of each file to be published is automatically generated from the heading of the node.  The property :FILE: can be used to customize the file name for saving.  Links between files are converted from org-mode style links on the basis of custom IDs (see http://orgmode.org/manual/Handling-links.html#fn-2, the proper setup for creating IDs is included in the present package).  
+Publishing principle: Do not convert the source org-mode file directly into an HTML file.  Instead, copy the entire file plus optionally some subnodes of the file as org-mode files into a folder belonging to one or more org-mode publish projects, and then publish those projects.  This makes it possible to selectively publish different files and different parts of files (node-wise) in different projects as needed.  Nodes can be marked with a tag in order to be copied into project folders as separate org files.  These nodes are removed from the original file, if the original file is also published.  (NOTE: Under consideration is an optional [[id:BA6F1997-EC76-4C9E-A33B-0B1D4370829D][summary feature]] for putting a summary of a node in place of that node in the original file).  The default tag for publishing is =publish=.  The name of each file to be published is automatically generated from the heading of the node.  The property :FILE: can be used to customize the file name for saving.  Links between files are converted from org-mode style links on the basis of custom IDs (see http://orgmode.org/manual/Handling-links.html#fn-2, the proper setup for creating IDs is included in the present package).  
 
-One can customize the manner in which parts of the file are copied through the properties =PUBLISH= and =PUBLISH_TAGS=.  Additionally one can use the property =TAGS_INDICATE_FOLDERS= to indicate that tags should be used as names of folders (subfolders of the org-publish-project folder) into which the published files will be copied.  Finally it is considered to use =TAG_PUBLISH_MODE= to indicate whether the tags should be used as names of folders or projects to copy the node contents into. 
+One can customize the manner in which parts of the file are copied through the properties =PUBLISH= and =TAG_PUBLISH_MODE= to indicate who tags should be used (as names of projects, or of subfolders of the org-publish-project folder) into which the published files will be copied. 
 
-One could even publish one node to several projects by listing these projects in a property =extra_projects= in the node's property list. 
+For further consideration:  One could even publish one node to several projects by listing these projects in a property =extra_projects= in the node's property list. 
 
 *** Property =PUBLISH= : Mode of publishing
 :PROPERTIES:
@@ -96,7 +96,7 @@ The default value of =TAG_PUBLISH_MODE= is =project=.
 
 A command can be written to swiftly add the tag of the project of the current file, or to select from all defined projects and add the tag to the current node. 
 
-*** CANCELLED Alternative (to be considered):  Publish property to indicate 
+*** CANCELLED Alternative (to be considered):  Publish property to indicate inheritance
 CLOSED: [2013-12-05 Thu 03:22]
 :PROPERTIES:
 :DATE:     <2013-12-03 Tue 05:57>
@@ -138,13 +138,6 @@ Still another option for the summary feature: The summary could be saved as auto
 :END:
 
 Since the relationships of the nodes in the document tree (up, next, previous, down) can be deduced from the node structure of the file from which they are extracted, it is possible to use this information to automatically construct navigation links (like those produced for example by texinfo).
-
-** TODO Describe the two main tasks separately: (a) Parse project definitions (b) Parse file/node specifications
-:PROPERTIES:
-:DATE:     <2013-12-03 Tue 07:52>
-:END:
-
-TODO ...
 
 ** How to set or define a project for a file or node
 :PROPERTIES:
@@ -207,19 +200,18 @@ CLOSED: [2013-12-05 Thu 03:22]
 
 But why do this for each config, if we can put them all together as subnodes of one tagged node.  Therefore see next alternative. 
 
-**** Simpler alternative: Project config nodes as subnodes of a node tagged PROJECT_CONFIGS
+**** Simpler alternative: Project config nodes as subnodes of a node tagged PROJECT_DEFS
 :PROPERTIES:
 :DATE:     <2013-12-05 Thu 03:22>
 :END:
 
 Keeps all configs together.  Obviates the need to add tags to each node. 
-Multiple PROJECT CONFIGS nodes can be added if needed
-
-
+Multiple PROJECT_DEFS nodes can be added if needed
 
 - The heading of the node becomes the name of the project.
 
-**** Rejected idea: supernode of config node belongs to project defined by it
+**** CANCELLED Rejected idea: supernode of config node belongs to project defined by it
+CLOSED: [2013-12-05 Thu 18:26]
 :PROPERTIES:
 :DATE:     <2013-12-05 Thu 03:22>
 :END:
@@ -230,10 +222,14 @@ The reason for rejecting this is that it places a constraint on the supernode an
 
 For example: 
 
-**** blog                                                 :project_config:
+**** MUST_REVISIT Description of project definition nodes
 :PROPERTIES:
 :ID:       3C190267-84C4-4AEA-86A1-00130BCFB056
 :END:
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+The following is no longer valid, because project definition nodes are contained in a supernode marked with tag "PROJECT_DEFS"
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 Such a node will do several things: 
 
@@ -337,6 +333,13 @@ Note that the exporter also inserts a ton of other stuff, which can/must be furt
 
 here is the text that will become the string that is the value of html-head property for this file/node.
 It has several lines.
+
+** TODO Describe the two main tasks separately: (a) Parse project definitions (b) Parse file/node specifications
+:PROPERTIES:
+:DATE:     <2013-12-03 Tue 07:52>
+:END:
+
+TODO ...
 
 
 
@@ -915,7 +918,7 @@ One can use the unique ID property of a node to identify links, so that these li
 (setq org-id-link-to-org-use-id t)
 #+END_SRC
 
-The links created in this way do *not* contain the name of the file to which the node belongs (anyway that would not work when moving the node to another file).  Thus, one should process the files created by dynsite2 to insert the proper file names where needed. How to do this? See next: 
+The links created in this way do *not* contain the name of the file to which the node belongs (anyway that would not work when moving the node to another file).  Thus, one should process the files copied for publishing to insert the proper file names where needed. How to do this? See next: 
 
 **** Providing file references to node-id-links
 :PROPERTIES:
@@ -943,11 +946,19 @@ The links inserted will *not* contain the name of the file.  File names must be 
 
 No modification is needed in the id or link code functions of Org-mode.  (Using CUSTOM_ID to make Org-mode insert the files in the links is not useful, since those names change when the files are copied for publishing). 
 
-***** Function org-resolve-file-links
+***** Providing the filename/path to the links. Function org-resolve-file-links
 :PROPERTIES:
 :DATE:     <2013-11-30 Sat 09:57>
 :CUSTOM_ID:       A13FB84D-4868-4FC7-9EF8-82675AB5BD06
 :END:
+
+The format of links that point to a different file than that where the link is must be like this: 
+
+#+BEGIN_ASCII
+[[file:org-publish-meta.org::#A13FB84D-4868-4FC7-9EF8-82675AB5BD06][Function org-resolve-file-links]]
+#+END_ASCII
+
+Here is the same link active: [[file:org-publish-meta.org::#A13FB84D-4868-4FC7-9EF8-82675AB5BD06][Function org-resolve-file-links]]
 
 To work when the link is pointing to a node in a different file than the file in which the link is located, the (relative) path to that file must be added to the link.
 
@@ -955,20 +966,6 @@ To work when the link is pointing to a node in a different file than the file in
 
 Testing with added file name here:
 [[file:org-publish-meta.org::#A13FB84D-4868-4FC7-9EF8-82675AB5BD06][Function org-resolve-file-links]]
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-IMPORTANT: In order for a link that contains both a file and a custom id in the address to work (file:filename.org::#123451234-THEID123), 
-as in the examples above, the ID of the target must be stored in property named CUSTOM_ID and not ID. If the property is named ID the link will not work. 
-
-Debugging: 
-
-See here: http://www.gnu.org/software/emacs/manual/html_node/org/Handling-links.html
-Footnote 2: The library org-id must first be loaded, either through org-customize by enabling id in org-modules , or by adding (require 'org-id) in your .emacs. Talking about the same library in both cases? Conflicts? 
-
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
 
 For example:
 
