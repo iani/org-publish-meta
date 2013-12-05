@@ -1,0 +1,74 @@
+
+* one
+
+
+#+BEGIN_SRC elisp
+  (org-map-entries 
+     '(cadr (org-element-at-point))
+        "_blog_"
+     )
+#+END_SRC
+
+#+RESULTS:
+| :raw-value | an entry | :begin | 509 | :end | 579 | :pre-blank | 0 | :hiddenp | nil | :contents-begin | nil | :contents-end | nil | :level | 1 | :priority | nil | :tags | (_blog_) | :todo-keyword | nil | :todo-type | nil | :post-blank | 0 | :footnote-section-p | nil | :archivedp | nil | :commentedp | nil | :quotedp | nil | :CATEGORY | node-scan-tests | :title | an entry |
+
+
+* an entry                                                   :_blog_:
+* ca two                                                          :not_a_blog_:
+:PROPERTIES:
+:TEST: 1
+:END:
+#+DRAWERS: DESCRIPTION
+
+:DESCRIPTION:
+This is a multiline drawer named description.
+The description may go in place of the full node in the file of origin.
+Etc.
+:END:
+This gives us some necessary info: 
+
+- heading = :raw-value
+- level = :level
+- begin = :begin
+- end = :end
+- contents-begin = :contents-begin
+- contents-end = :contents-end
+- tags = :tags
+- other properties values are also in the plist
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+NOTE: Yet unsolved problem in searching for descriptions in nodes that have 0 lines of content. 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+#+BEGIN_SRC elisp
+  (org-map-entries 
+     '(let (
+            (props (cadr  (org-element-at-point)))
+            (descr-start 
+             (re-search-forward "^:DESCRIPTION:" (plist-get props :end) t))
+            (descr-end))
+        (goto-char (plist-get props :begin))
+        (setq descr-end
+              (re-search-forward "^:END:" (plist-get props :end) t) )
+        (setq 
+         props
+         (plist-put 
+          props 
+          :contents 
+          (buffer-substring 
+           (plist-get props :contents-begin)
+           (plist-get props :contents-end)))
+              )
+        (if (and descr-start descr-end)
+            (setq props
+                  (plist-put 
+                   props :description 
+                   (buffer-substring (+ 1 descr-start) (- descr-end 6))))
+          )
+        props)
+     "blog"
+     )
+#+END_SRC
+
+#+RESULTS:
+| :raw-value | an entry | :begin | 10 | :end | 103 | :pre-blank | 1 | :hiddenp | nil | :contents-begin | 89 | :contents-end | 102 | :level | 1 | :priority | nil | :tags | (blog) | :todo-keyword | nil | :todo-type | nil | :post-blank | 0 | :footnote-section-p | nil | :archivedp | nil | :commentedp | nil | :quotedp | nil | :CATEGORY | node-scan-tests | :title | an entry | :contents | dfasdf asdf \n |

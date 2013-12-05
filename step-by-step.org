@@ -134,6 +134,7 @@ Note: The following should be included in the startup procedure for loading org-
 #+BEGIN_SRC elisp
   
   (require 'cl)
+  (load-file "dash.el")
   
   (defvar org-pm-default-project-properties 
     '(
@@ -147,7 +148,20 @@ Note: The following should be included in the startup procedure for loading org-
   by org-pm-make-default-project.
   ")
   
-  (defun org-pm-make-default-project (&optional project-name)
+  (defun merge-plists (plist-a &rest plist-b)
+    (-reduce-from
+     (lambda (plist-a plist-b)
+       (->> (-partition 2 plist-b)
+         (-reduce-from
+          (lambda (acc it)
+            (let ((key (first it))
+                  (val (second it)))
+              (plist-put acc key val)))
+          plist-a)))
+     plist-a
+     plist-b))
+  
+  (defun org-pm-make-project-defaults ()
     "Construct a default org-publish-project configuration alist.
   If project-name is given, use it.
   Otherwise use the file-name-sans-extension of the current buffer
@@ -158,19 +172,55 @@ Note: The following should be included in the startup procedure for loading org-
            (plist (copy-list org-pm-default-project-properties)))
       (setq plist (plist-put plist :base-directory (concat base-dir "org/")))
       (setq plist (plist-put plist :publishing-directory (concat base-dir "html/")))
-      (cons (or project-name 
-                (file-name-nondirectory (file-name-sans-extension pm-def-file))) 
-            plist)
+      (setq plist (plist-put plist :file pm-def-file))
+      (setq plist 
+            (plist-put 
+             plist :project-name
+             (file-name-nondirectory (file-name-sans-extension pm-def-file))))
+      plist
       ))
+  
+  (defun org-pm-get-file-project-config ()
+    "Get the project configuration list for the current file.
+  Provide essential defaults if missing."
+    (org-pm-load-project-configs)
+    (beginning-of-buffer)
+;; not here ...
+    (let ((config (org-pm-get-node-project-configs)))
+      (setq 
+       config
+       (merge-plists 
+        (unless config
+          (assoc (plist-get config :project-name) org-publish-project-alist)
+          config)
+        (org-pm-make-project-defaults)
+        ))
+      (cons (plist-get config :project-name) plist)))
+
+  (defun org-pm-get-node-project-configs ()
+    "Get *all* project configs contained in this file, 
+by parsing nodes that have the tag: project_config"
+  )
 #+END_SRC
 
 #+RESULTS:
 : org-pm-make-default-project
 
+For the org-pm-get-node-project-config
+see http://orgmode.org/manual/Using-the-mapping-API.html#Using-the-mapping-API
+and http://orgmode.org/manual/Matching-tags-and-properties.html
+
 Test: 
 #+BEGIN_SRC elisp
 (org-pm-make-default-project)
 #+END_SRC
+
+See also: 
+org-cut-subtree
+
+(org-insert-heading "alpha")
+* asdf asdf 
+(org-cut-subtree)
 * UNDERWAY Step 3: Try publishing a project with default properties
 
 Under construction
@@ -274,7 +324,81 @@ When called with an argument (C-u prefix), the function will automatically publi
 - n :: current node and its subnodes only
 - p :: all files belonging to the project that the file of the current buffer belongs to. 
 - * :: all files of all projects
+* getting the project definition from a node
+:PROPERTIES:
+:DATE:     <2013-12-05 Thu 01:44>
+:END:
 
+** Use these functions from dynsite to start:
+:PROPERTIES:
+:DATE:     <2013-12-05 Thu 01:44>
+:END:
 
+#+BEGIN_SRC elisp
+
+(defun org-custom-properties (file)
+  "parse project def data in file and put them in a project-definition alist"
+  (message "working on %s ..." file)
+  (save-excursion
+    (let ((buffer (find-file-noselect file)) def)
+      (set-buffer buffer)
+      (setq buffer-read-only t)
+      (setq def (get-proj-def-from-org-nodes))
+      (kill-buffer buffer)
+      def)))
+
+(defun get-proj-def-from-org-nodes ()
+  (org-map-entries 
+   '(save-excursion 
+      (let* ((heading 
+	      (progn 
+		(re-search-forward (concat "^\\(" outline-regexp "\\)\\([^\n]*$\\)") nil 'move)
+		(match-string-no-properties 2)))
+	     (body 
+	      (buffer-substring-no-properties (point) (org-entry-end-position))))
+      (construct-proj-property heading body)))))
+
+(defun construct-proj-property (heading body)
+  "construct cons pair from heading and body of org node parsed by get-proj-def-from-org-nodes
+   headings of the format <propertyname>: <property> create property-value pair"
+  (let ((property-p (string-match "^\\([^: ]*\\): \\(.*\\)" heading)))
+    (if property-p
+        (cons (match-string 1 heading) (car (read-from-string (match-string 2 heading))))
+      (cons heading body))))
+
+#+END_SRC
+
+** Combine with this, to get header, properties, description and filter with tag
+:PROPERTIES:
+:DATE:     <2013-12-05 Thu 01:44>
+:END:
+
+#+BEGIN_SRC elisp
+        (org-map-entries 
+           '(let (
+                  (props (cadr  (org-element-at-point)))
+                  (descr-start 
+                   (re-search-forward "^:DESCRIPTION:" (plist-get props :contents-end)))
+                  (descr-end
+                   (re-search-forward "^:END:" (plist-get props :contents-end))))
+              (setq 
+               props
+               (plist-put 
+                props 
+                :contents 
+                (buffer-substring 
+                 (plist-get props :contents-begin)
+                 (plist-get props :contents-end)))
+                    )
+              (if (and descr-start descr-end)
+                  (setq props
+                        (plist-put 
+                         props :description 
+                         (buffer-substring (+ 1 descr-start) (- descr-end 6))))
+                )
+              props)
+           "project_config"
+           )
+#+END_SRC
 
 

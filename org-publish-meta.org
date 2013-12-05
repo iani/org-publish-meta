@@ -1,3 +1,4 @@
+#+TODO: TODO UNDERWAY MUST_REVISIT | DONE CANCELLED
 
 * org-publish-meta: Extending org-publish
 :PROPERTIES:
@@ -54,7 +55,8 @@ The property =PUBLISH= can have two values: =all= or =nodes=.  A value of =all= 
 
 - #+PUBLISH: all :: Publish both this file and any nodes marked with tag =publish= (or other custom tags).
 - #+PUBLISH: nodes ::  Publish only nodes that have the tag =publish= (or other custom tags).
-*** Property =PUBLISH_TAGS= : Which tags mark nodes for publishing
+*** CANCELLED Property =PUBLISH_TAGS= : Which tags mark nodes for publishing
+CLOSED: [2013-12-05 Thu 03:04]
 :PROPERTIES:
 :DATE:     <2013-12-03 Tue 06:15>
 :END:
@@ -63,19 +65,38 @@ The property PUBLISH_TAGS optionally specifies which tags indicate to publish a 
 
 - #+PUBLISH_TAGS: blog intro news tutorial :: Tags marked with one of =blog=, =intro=, =news= or =tutorial= will be published as separate files (note: this feature could also be used to indicate which folders or even projects the contents of the nodes should be copied to.  To indicate this, we may use the value of property =TAG_PUBLISH_MODE=)
 
+*** Shorter alternative to =PUBLISH_TAGS= : mark publish tags by enclosing in special chars
+:PROPERTIES:
+:DATE:     <2013-12-05 Thu 02:30>
+:END:
+
+Instead of listing all tags for publishing in a property, use a special marker to indicate that a tag denotes publishing.  
+
+I tried [] and *...* as markers but it seems these tags cannot be searched by the API.  But _..._ as markers work: 
+
+- tag _test_ :: indicates that this node is to be published.
+                The tag minus the _ markers can be used to indicate one of: 
+                - Name of folder to be appended to root org path for copying.
+                - Name of project
+                Note: The file name is constructed from the heading.
+                Property FILE if present in node overrides the heading as filename.
+
 *** Property =TAG_PUBLISH_MODE= : Publishing action of tags
 :PROPERTIES:
 :DATE:     <2013-12-03 Tue 06:16>
 :END:
 
 The property =TAG_PUBLISH_MODE= can have one of 3 values: 
-- =publish= :: Publish the node marked by the tag by copying it to the root org folder of the project or to the folder indicated by property =FOLDER=
+- =project= :: Publish the node marker by the tag to the project whose name is the same as the tag. (This is the default value).
+- =current= :: Publish the node marked by the tag by copying it to the root org folder of the project or to the folder indicated by property =FOLDER=
 - =folder= :: Publish the node marked by the tag, copying it to a subfolder of the project.  The name of the subfolder is the same as the tag. 
-- =project= :: Publish the node marker by the tag to the project whose name is the same as the tag.
 
-The default value of =TAG_PUBLISH_MODE= is =publish=.
+The default value of =TAG_PUBLISH_MODE= is =project=.
 
-*** REJECTED: Alternative (to be considered):  Publish property to indicate 
+A command can be written to swiftly add the tag of the project of the current file, or to select from all defined projects and add the tag to the current node. 
+
+*** CANCELLED Alternative (to be considered):  Publish property to indicate 
+CLOSED: [2013-12-05 Thu 03:22]
 :PROPERTIES:
 :DATE:     <2013-12-03 Tue 05:57>
 :END:
@@ -176,8 +197,34 @@ Next we need to test several things:
 :DATE:     <2013-12-02 Mon 21:32>
 :END:
 
+**** CANCELLED Marking project each config node with a project_config tag
+CLOSED: [2013-12-05 Thu 03:22]
+:PROPERTIES:
+:DATE:     <2013-12-05 Thu 03:15>
+:END:
 - A node with tag "project_config" is parsed as containing the definition of a project (see details below, and examples in old dynsite doc).
+
+But why do this for each config, if we can put them all together as subnodes of one tagged node.  Therefore see next alternative. 
+
+**** Simpler alternative: Project config nodes as subnodes of a node tagged PROJECT_CONFIGS
+:PROPERTIES:
+:DATE:     <2013-12-05 Thu 03:22>
+:END:
+
+Keeps all configs together.  Obviates the need to add tags to each node. 
+Multiple PROJECT CONFIGS nodes can be added if needed
+
+
+
 - The heading of the node becomes the name of the project.
+
+**** Rejected idea: supernode of config node belongs to project defined by it
+:PROPERTIES:
+:DATE:     <2013-12-05 Thu 03:22>
+:END:
+
+The reason for rejecting this is that it places a constraint on the supernode and also requires that config nodes become subnodes, which would hide them in overview.  It seems desirable to have all project configs together as first level nodes, for better overview.  Or one may place them all together as subnodes of a node named "project_configs". 
+
 - The supernode of this node, or if there is no supernode, then the entire file, is assigned to this project.  See detailed description below.
 
 For example: 
@@ -206,6 +253,17 @@ Using the above info, methods will be defined to:
 Important: 
 
 Any previously existing project-alist with the same name is completely erased.  Only one node can contain the definition of a project.  Project properties cannot be added for the same project from two different nodes.  This is to avoid confusion, and also to enable correct re-definition of projects when one edits the definition node and recompiles the project.
+
+
+
+*** How to assign the project of the entire file
+:PROPERTIES:
+:DATE:     <2013-12-05 Thu 03:23>
+:END:
+
+- The name of the project can also be specified in the file's header through property PROJECT.  If that property is not defined, then the name and definition of the project are deduced in the following way:
+- If a node tagged PROJECT_CONFIGS exists, and contains at least one valid project definition as a subnode, then *the first* valid definition becomes the files' project config.
+- If no valid project definition exists in this file, then the name of the project is taken from the name of the file sans extension.  This project is sought in the global project-alist.  If not found, then default properties are provided to make the project publishable.
 
 *** Per-file (or node) publish properties in file or node header
 
