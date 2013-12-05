@@ -957,6 +957,13 @@ Must try to provide the missing file thingy with defadvice.
 :PROPERTIES:
 :CUSTOM_ID: 761FD20C-6A4E-4AC4-97D8-DBF51FCFBFE7
 :END:
+
+The following fix worked for just a while, then broke: The file info was no longer supplied with org-insert-link.  What is going on? 
+
+We need to backtrack once more and try to work just with the standard ID (not CUSTOM_ID), and see if that ID gets copied in the link, and then provide the file info in the link with advice to org-insert-link.  We will have to manage our own assoc list of links, with the ids as keys and the file info as value.  We do not need to rely on the org link creation function to give us the file path, as we can get it from the file path of the current buffer (!)
+
+===========================
+
 Here is a modified version of the function org-id-get from file org-id.el in standard org-mode distribution.  The modification makes it store the custom id in property "CUSTOM_ID" instead of "ID".  This is necessary for links that are composed of filename+id to work, (as opposed to links that only have *either* a filename *or* an id).  More details are in [[#A13FB84D-4868-4FC7-9EF8-82675AB5BD06][this node]].  The [[#A13FB84D-4868-4FC7-9EF8-82675AB5BD06][link to this same node (repeated here)]] is also a demonstration of this kind of link.  This kind of link will work when the target is in a different file as the one on which the link is. 
 
 IMPORTANT:
