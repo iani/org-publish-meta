@@ -11,6 +11,34 @@ Developing the org-publish-meta application incrementally, step-by-step.
 (org-pm-make-file-projects)
 #+END_SRC
 
+#+RESULTS:
+| 344 | 440 |
+
+** project1
+
+#+BEGIN_SRC elisp
+(org-pm-make-file-projects)
+#+END_SRC
+
+#+RESULTS:
+| 344 | 440 |
+
+** project2
+
+* Second Test node for project definitions                  :PROJECT_CONFIGS:
+:PROPERTIES:
+:DATE:     <2013-12-09 Mon 00:58>
+:END:
+
+#+BEGIN_SRC elisp
+(org-pm-make-file-projects)
+#+END_SRC
+
+#+RESULTS:
+| :raw-value | Test node for project definitions        | :begin | 129 | :end | 317 | :pre-blank | 0 | :hiddenp | nil | :contents-begin | 207 | :contents-end | 317 | :level | 1 | :priority | nil | :tags | (PROJECT_CONFIGS) | :todo-keyword | nil | :todo-type | nil | :post-blank | 1 | :footnote-section-p | nil | :archivedp | nil | :commentedp | nil | :quotedp | nil | :DATE | <2013-12-09 Mon 00:58> | :CATEGORY | step-by-step | :title | Test node for project definitions        |
+| :raw-value | Second Test node for project definitions | :begin | 317 | :end | 507 | :pre-blank | 0 | :hiddenp | nil | :contents-begin | 395 | :contents-end | 505 | :level | 1 | :priority | nil | :tags | (PROJECT_CONFIGS) | :todo-keyword | nil | :todo-type | nil | :post-blank | 1 | :footnote-section-p | nil | :archivedp | nil | :commentedp | nil | :quotedp | nil | :DATE | <2013-12-09 Mon 00:58> | :CATEGORY | step-by-step | :title | Second Test node for project definitions |
+
+
 * DONE Step 1: Auto-save of org-publish-project-alist
 CLOSED: [2013-12-04 Wed 17:59]
 :PROPERTIES:
@@ -168,6 +196,18 @@ Note: The following should be included in the startup procedure for loading org-
           plist-a)))
      plist-a
      plist-b))
+
+#+END_SRC
+
+#+BEGIN_SRC elisp
+(org-pm-make-file-projects)
+#+END_SRC
+
+#+RESULTS:
+| :raw-value | Test node for project definitions | :begin | 129 | :end | 318 | :pre-blank | 0 | :hiddenp | nil | :contents-begin | 207 | :contents-end | 317 | :level | 1 | :priority | nil | :tags | (PROJECT_CONFIGS) | :todo-keyword | nil | :todo-type | nil | :post-blank | 0 | :footnote-section-p | nil | :archivedp | nil | :commentedp | nil | :quotedp | nil | :DATE | <2013-12-09 Mon 00:58> | :CATEGORY | step-by-step | :title | Test node for project definitions |
+
+  
+#+BEGIN_SRC elisp
   
   ;; Main function for preparing the projects of the file
   (defun org-pm-make-file-projects ()
@@ -175,12 +215,26 @@ Note: The following should be included in the startup procedure for loading org-
   Parse each node found and create a project from it. 
   Return the list of created projects as project-alist."
     (interactive)
-    (let (
-          (project-supernodes
-           (org-map-entries '(cadr (org-element-at-point)) "PROJECT_CONFIGS")))
-      projet-supernodes
-      )
-  )
+    (save-excursion
+      (save-restriction
+        (widen)
+        (let* 
+            (
+             (project-supernodes
+              (org-map-entries '(cadr (org-element-at-point)) "PROJECT_CONFIGS"))
+             (test (car project-supernodes))
+             projects
+             
+             (test2
+              (list
+               (plist-get test :begin)
+               (plist-get test :end))))
+          ;;    (narrow-to-region (car test2) (cdr test2))
+          ;;    (org-map-entries (lambda () (point)))
+          test2
+          ;;  projects
+          ;;   test
+          ))))
   
   (defun org-pm-make-project-defaults ()
     "Construct a default org-publish-project configuration alist.
@@ -201,6 +255,9 @@ Note: The following should be included in the startup procedure for loading org-
       plist
       ))
 #+END_SRC
+
+#+RESULTS:
+: org-pm-make-project-defaults
 
 The following must be modified to follow the new scheme described in 
 [[file:org-publish-meta.org::#2C1A8D6A-7A07-4825-9557-D8026FCD3377][Publishing principles, specification, options, format + feature considerations]]
