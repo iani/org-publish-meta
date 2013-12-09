@@ -1,4 +1,43 @@
 
+
+
+* getting the tags - wildcard prep                         :_something_else_:sprop:
+
+#+BEGIN_SRC elisp
+  (let (matched-entries (wildcard "^_.*_$"))
+   (org-map-entries 
+    '(let* 
+         ((props (cadr (org-element-at-point))))
+       (dolist 
+           (tag (plist-get props :tags))
+         (if (string-match wildcard tag) 
+             (setq matched-entries (cons props matched-entries)))))
+    )
+   matched-entries)
+#+END_SRC
+
+#+RESULTS:
+| :raw-value | an entry                         | :begin | 1717 | :end | 1787 | :pre-blank | 0 | :hiddenp | nil | :contents-begin | nil | :contents-end |  nil | :level | 1 | :priority | nil | :tags | (_blog_)                 | :todo-keyword | nil | :todo-type | nil | :post-blank | 0 | :footnote-section-p | nil | :archivedp | nil | :commentedp | nil | :quotedp | nil | :CATEGORY | node-scan-tests | :title | an entry                         |
+| :raw-value | zero                             | :begin |  658 | :end | 1210 | :pre-blank | 1 | :hiddenp | nil | :contents-begin | 729 | :contents-end | 1209 | :level | 1 | :priority | nil | :tags | (___)                    | :todo-keyword | nil | :todo-type | nil | :post-blank | 0 | :footnote-section-p | nil | :archivedp | nil | :commentedp | nil | :quotedp | nil | :CATEGORY | node-scan-tests | :title | zero                             |
+| :raw-value | getting the tags - wildcard prep | :begin |    4 | :end |  488 | :pre-blank | 1 | :hiddenp | nil | :contents-begin |  89 | :contents-end |  485 | :level | 1 | :priority | nil | :tags | (_something_else_ sprop) | :todo-keyword | nil | :todo-type | nil | :post-blank | 2 | :footnote-section-p | nil | :archivedp | nil | :commentedp | nil | :quotedp | nil | :CATEGORY | node-scan-tests | :title | getting the tags - wildcard prep |
+
+
+
+* tag beginning with _                                    :_tagbeginningwith:_tag_b:
+
+* tag ending with _                                          :tagendingwith_:tag_e_
+* zero                                                          :___:
+
+#+BEGIN_SRC elisp
+  (org-map-entries 
+     '(cadr (org-element-at-point))
+        "___"
+     )
+#+END_SRC
+
+#+RESULTS:
+| :raw-value | zero | :begin | 2 | :end | 554 | :pre-blank | 1 | :hiddenp | nil | :contents-begin | 73 | :contents-end | 553 | :level | 1 | :priority | nil | :tags | (___) | :todo-keyword | nil | :todo-type | nil | :post-blank | 0 | :footnote-section-p | nil | :archivedp | nil | :commentedp | nil | :quotedp | nil | :CATEGORY | node-scan-tests | :title | zero |
+
 * one
 
 

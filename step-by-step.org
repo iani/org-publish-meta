@@ -2,6 +2,15 @@
 
 Developing the org-publish-meta application incrementally, step-by-step. 
 
+* Test node for project definitions                         :PROJECT_CONFIGS:
+:PROPERTIES:
+:DATE:     <2013-12-09 Mon 00:58>
+:END:
+
+#+BEGIN_SRC elisp
+(org-pm-make-file-projects)
+#+END_SRC
+
 * DONE Step 1: Auto-save of org-publish-project-alist
 CLOSED: [2013-12-04 Wed 17:59]
 :PROPERTIES:
@@ -125,7 +134,7 @@ Note: The following should be included in the startup procedure for loading org-
 #+BEGIN_SRC elisp
 (org-pm-load-project-configs)
 #+END_SRC
-* NEEDS_REVIEW Step 2: Construct default project for a file
+* NEEDS_REVIEW Step 2: Load project defs from file
 :PROPERTIES:
 :ID:       7FA277CA-8253-4BFB-9574-32D29E505BE0
 :END:
@@ -160,6 +169,19 @@ Note: The following should be included in the startup procedure for loading org-
      plist-a
      plist-b))
   
+  ;; Main function for preparing the projects of the file
+  (defun org-pm-make-file-projects ()
+    "Find project definitions contained as subnodes of nodes tagged PROJECT_DEFS.
+  Parse each node found and create a project from it. 
+  Return the list of created projects as project-alist."
+    (interactive)
+    (let (
+          (project-supernodes
+           (org-map-entries '(cadr (org-element-at-point)) "PROJECT_CONFIGS")))
+      projet-supernodes
+      )
+  )
+  
   (defun org-pm-make-project-defaults ()
     "Construct a default org-publish-project configuration alist.
   If project-name is given, use it.
@@ -184,28 +206,14 @@ The following must be modified to follow the new scheme described in
 [[file:org-publish-meta.org::#2C1A8D6A-7A07-4825-9557-D8026FCD3377][Publishing principles, specification, options, format + feature considerations]]
 
 #+BEGIN_SRC elisp  
-
-  (defun org-pm-get-file-project-config ()
-    "Get the project configuration list for the current file.
-  Provide essential defaults if missing."
-    (org-pm-load-project-configs)
-    (beginning-of-buffer)
-;; not here ...
-    (let ((config (org-pm-get-node-project-configs)))
-      (setq 
-       config
-       (merge-plists 
-        (unless config
-          (assoc (plist-get config :project-name) org-publish-project-alist)
-          config)
-        (org-pm-make-project-defaults)
-        ))
-      (cons (plist-get config :project-name) plist)))
-
-  (defun org-pm-get-node-project-configs ()
-    "Get *all* project configs contained in this file, 
-by parsing nodes that have the tag: project_config"
-  )
+  
+  (defun org-pm-get-file-project-configs ()
+    "Get all project configuration lists contained the current file.
+    Provide essential defaults if missing."
+    
+    )
+  
+  
 #+END_SRC
 
 #+RESULTS:
@@ -227,7 +235,7 @@ org-cut-subtree
 
 (org-cut-subtree)
 
-* COMMENT UNDERWAY Step 3: Try publishing a project with default properties
+* UNDERWAY Step 3: Try publishing a project with default properties
 
 Under construction
 
@@ -236,8 +244,8 @@ I mean function org-pm-node-get-project-config.
 
 Draft of all steps: 
 
-      ;; Get project config from node 
-      ;; If it exists here, then ALWAYS reinitialize it to update edited changes
+    ;; Get project config from node 
+    ;; If it exists here, then ALWAYS reinitialize it to update edited changes
 
     ;; if no config was found, then: 
     ;; get the name of the project from the file header
@@ -246,15 +254,15 @@ Draft of all steps:
     ;; if not found, then create default project with the given project name. 
 
 
-  ;; Get project configs of all nodes in project
-  ;; Get file config of file
-  ;; Get file configs of all nodes in project
-  ;; Resolve inheritances
-  ;; Resolve subfile-ignores
-  ;; Build list of projects contained in file project config
-  ;; and in the configs of all nodes in this file
-  ;; For all projects in the list of projects, 
-  ;; publish project.
+    ;; Get project configs of all nodes in project
+    ;; Get file config of file
+    ;; Get file configs of all nodes in project
+    ;; Resolve inheritances
+    ;; Resolve subfile-ignores
+    ;; Build list of projects contained in file project config
+    ;; and in the configs of all nodes in this file
+    ;; For all projects in the list of projects, 
+    ;; publish project.
 
 #+BEGIN_SRC elisp
   
@@ -321,6 +329,31 @@ Draft of all steps:
       
   )
 #+END_SRC
+
+* Finding the nodes that have a tag matching with wildcard "_*_"
+:PROPERTIES:
+:DATE:     <2013-12-06 Fri 23:23>
+:END:
+
+Note: This will insert as many copies of a nodes' entry plist as there are tags in that entry which both begin with _ and end with _. 
+
+To insert only one entry, use the dolist to return true if a match is found, and then cons the plist. 
+
+Alternatively, modify this form to return a list of a-lists with the tag followed by the plist.  This could be useful to copy a node to multiple projects specified by multiple tags.
+
+#+BEGIN_SRC elisp
+  (let (matched-entries (wildcard "^_.*_$"))
+   (org-map-entries 
+    '(let* 
+         ((props (cadr (org-element-at-point))))
+       (dolist 
+           (tag (plist-get props :tags))
+         (if (string-match wildcard tag) 
+             (setq matched-entries (cons props matched-entries)))))
+    )
+   matched-entries)
+#+END_SRC
+
 * Options for org-pm-dispatch top level function dispatcher
 :PROPERTIES:
 :DATE:     <2013-12-04 Wed 20:12>
