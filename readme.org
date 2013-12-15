@@ -23,6 +23,8 @@ Because it extends org-publish.  It is "meta" in the sense of extracting org fil
 
 The prefix used for functions in this package will be org-pm- as abbreviation of org-publish-meta-.
 
+An alternative name - or subtitle - of this package could be "Zero Config", reflecting the premise of making a project publishable with the minimum amount of configuration specifications, and of creating a project for a single file even without any specifications at all.
+
 ** Motivation 1: Make it easier to configure projects for org-publish
 
 ** Motivation 2: Enable some of the nice features of o-blog

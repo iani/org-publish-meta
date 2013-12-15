@@ -45,19 +45,83 @@ cp "/Users/iani2/Dropbox/000WORKFILES/org/work/publications/articleforsoundscape
 
 Publishing principle: Do not convert the source org-mode file directly into an HTML file.  Instead, copy the entire file plus optionally some subnodes of the file as org-mode files into a folder belonging to one or more org-mode publish projects, and then publish those projects.  This makes it possible to selectively publish different files and different parts of files (node-wise) in different projects as needed.  Nodes can be marked with a tag in order to be copied into project folders as separate org files.  These nodes are removed from the original file, if the original file is also published.  (NOTE: Under consideration is an optional [[id:BA6F1997-EC76-4C9E-A33B-0B1D4370829D][summary feature]] for putting a summary of a node in place of that node in the original file).  The default tag for publishing is =publish=.  The name of each file to be published is automatically generated from the heading of the node.  The property :FILE: can be used to customize the file name for saving.  Links between files are converted from org-mode style links on the basis of custom IDs (see http://orgmode.org/manual/Handling-links.html#fn-2, the proper setup for creating IDs is included in the present package).  
 
-One can customize the manner in which parts of the file are copied through the properties =PUBLISH= and =TAG_PUBLISH_MODE= to indicate who tags should be used (as names of projects, or of subfolders of the org-publish-project folder) into which the published files will be copied. 
+One can customize the manner in which parts of the file are copied through the property =TAG_PUBLISH_MODE= to indicate how tags should be used (as names of projects, or of subfolders of the org-publish-project folder) into which the published files will be copied. 
 
 For further consideration:  One could even publish one node to several projects by listing these projects in a property =extra_projects= in the node's property list. 
 
-*** Property =PUBLISH= : Mode of publishing
+*** How to indicate which nodes are published in which projects
+:PROPERTIES:
+:DATE:     <2013-12-15 Sun 18:52>
+:END:
+
+Nodes to be published by copying their contents as files to the source (base) directory of a project are indicated by adding a tag with the name of the project surrounded in underscore ("_").  For example, if a node has a tag called _blog_, then that node will be published in the project named =blog=. Examples: 
+
+**** About this blog                                              :_blog_:
+
+The contents of this node are copied to a file named About_this_blog.org inside the org-folder (source/base folder) of project named "blog".
+
+**** About the author                                     :_blog_:_notes_:
+
+The contents of this node are copied to a file named About_the_author.org inside the base folders of two projects: Project "blog" and project "notes". 
+
+*** How to indicate if the whole file is published, and in what project
+:PROPERTIES:
+:DATE:     <2013-12-15 Sun 19:07>
+:END:
+
+To indicate that an entire file should be part of a project (not just some nodes of the file marked with _this-kind-of_ tags), there are several ways: 
+
+**** 1. Indicate project definition through property include-containing-file
+
+Indicate this in a project definition contained in the same file.  This is done by setting the project property include-containing-file to t.  For example, if we have the following project definition of project "blog", then the file containing the project definition is published as part of the project named blog: 
+
+***** project defs                                         :PROJECT_DEFS:
+
+****** blog
+******* include-containing-file t
+
+**** 2. Indicate the project to which the file belongs through property "PROJECT"
+
+Indicate the name of the project in the header of the file with property "PROJECT"
+
+#+PROJECT: blog
+
+If no project definition with that name is found, then a default project definition is created for this file.  (Possibly after confirming this with the user through a yes-no dialog in the minibuffer). 
+
+Note: If a project definition with that name is found later in some other file, then the file will be attached to that project, thereby possibly altering the location where it is published as well as other properties. 
+
+**** 3. No indication:  org-pm creates default project, or does not publish file
+:PROPERTIES:
+:ID:       7C8918A3-8379-46E9-8DB5-19BE98A212C1
+:END:
+
+If no indication at all is given in the file about the project, then org-pm will only try to publish the file if there are no project definitions in the file.  The procedure is: 
+
+- If there are project definitions in the file, but none of these includes the file (through property include-containing-file), and also there is no PROJECT property in the file indicating the project to which it belongs, then the file is not published in any project. 
+- If there are no project definitions in the file and there is no PROJECT property, then:
+  - Ask the user whether to proceed with creating a default project
+  - If yes, then create the project and insert it (ask again before insertion?)
+
+*** Some cancelled early ideas: PUBLISH and PUBLISH_TAGS properties
+:PROPERTIES:
+:DATE:     <2013-12-15 Sun 18:49>
+:END:
+
+Kept here for the record. 
+
+**** CANCELLED Property =PUBLISH= : Mode of publishing
+CLOSED: [2013-12-15 Sun 18:47]
 :PROPERTIES:
 :DATE:     <2013-12-03 Tue 06:15>
 :END:
+
+This idea has been replaced by a
+
 The property =PUBLISH= can have two values: =all= or =nodes=.  A value of =all= indicates to copy the entire file, while removing only those nodes which are marked with tags for publishing as separate files (see below).  A value of =nodes= indicates that only the nodes marked with a tag (default: =publish=) will be published, as separate files, while the original file to which they belong will not be published.  Thus: 
 
 - #+PUBLISH: all :: Publish both this file and any nodes marked with tag =publish= (or other custom tags).
 - #+PUBLISH: nodes ::  Publish only nodes that have the tag =publish= (or other custom tags).
-*** CANCELLED Property =PUBLISH_TAGS= : Which tags mark nodes for publishing
+**** CANCELLED Property =PUBLISH_TAGS= : Which tags mark nodes for publishing
 CLOSED: [2013-12-05 Thu 03:04]
 :PROPERTIES:
 :DATE:     <2013-12-03 Tue 06:15>
@@ -67,7 +131,21 @@ The property PUBLISH_TAGS optionally specifies which tags indicate to publish a 
 
 - #+PUBLISH_TAGS: blog intro news tutorial :: Tags marked with one of =blog=, =intro=, =news= or =tutorial= will be published as separate files (note: this feature could also be used to indicate which folders or even projects the contents of the nodes should be copied to.  To indicate this, we may use the value of property =TAG_PUBLISH_MODE=)
 
-*** Shorter alternative to =PUBLISH_TAGS= : mark publish tags by enclosing in special chars
+**** CANCELLED Alternative (to be considered):  Publish property to indicate inheritance
+CLOSED: [2013-12-05 Thu 03:22]
+:PROPERTIES:
+:DATE:     <2013-12-03 Tue 05:57>
+:END:
+: #+PUBLISH_PROPERTY: publish
+
+Inherited publish property
+One may inherit the PUBLISH_PROPERTY to subnodes.  Then one has to specify: Do only the last-level nodes get published?  Or nodes at a specified depth level?  This gets a bit complicated.
+???: 
+: #+PUBLISH_INHERIT: t 
+
+There are different ways in which the different variants of this feature can be configured.  I should explore these variants incrementally, starting with the simplest one.  Another feature related with copying nodes of the main file to independent new files, is the "Summary" feature explained in the next section:
+
+** publish tags are marked by by enclosing in special chars "_"
 :PROPERTIES:
 :DATE:     <2013-12-05 Thu 02:30>
 :END:
@@ -83,35 +161,21 @@ I tried [] and *...* as markers but it seems these tags cannot be searched by th
                 Note: The file name is constructed from the heading.
                 Property FILE if present in node overrides the heading as filename.
 
-*** Property =TAG_PUBLISH_MODE= : Publishing action of tags
+** Property =TAG_PUBLISH_MODE= : Publishing action of tags
 :PROPERTIES:
 :DATE:     <2013-12-03 Tue 06:16>
 :END:
 
 The property =TAG_PUBLISH_MODE= can have one of 3 values: 
-- =project= :: Publish the node marker by the tag to the project whose name is the same as the tag. (This is the default value).
-- =current= :: Publish the node marked by the tag by copying it to the root org folder of the project or to the folder indicated by property =FOLDER=
+- =project= :: Publish the node marked by the tag to the project whose name is the same as the tag. (This is the default value).
+- =current= :: Publish the node marked by the tag by copying it to the root org folder of the current project (the project of the file or of the super-node of this node) or to the folder indicated by property =FOLDER=
 - =folder= :: Publish the node marked by the tag, copying it to a subfolder of the project.  The name of the subfolder is the same as the tag (minus _ chars).
 
 The default value of =TAG_PUBLISH_MODE= is =project=.
 
 A command can be written to swiftly add the tag of the project of the current file, or to select from all defined projects and add the tag to the current node. 
 
-*** CANCELLED Alternative (to be considered):  Publish property to indicate inheritance
-CLOSED: [2013-12-05 Thu 03:22]
-:PROPERTIES:
-:DATE:     <2013-12-03 Tue 05:57>
-:END:
-: #+PUBLISH_PROPERTY: publish
-
-Inherited publish property
-One may inherit the PUBLISH_PROPERTY to subnodes.  Then one has to specify: Do only the last-level nodes get published?  Or nodes at a specified depth level?  This gets a bit complicated.
-???: 
-: #+PUBLISH_INHERIT: t 
-
-There are different ways in which the different variants of this feature can be configured.  I should explore these variants incrementally, starting with the simplest one.  Another feature related with copying nodes of the main file to independent new files, is the "Summary" feature explained in the next section:
-
-*** Summary feature
+** Summary feature
 :PROPERTIES:
 :DATE:     <2013-12-02 Mon 14:49>
 :ID:       BA6F1997-EC76-4C9E-A33B-0B1D4370829D
@@ -133,7 +197,7 @@ Still another option for the summary feature: The summary could be saved as auto
 
 (Incidentally: see also: http://orgmode.org/manual/Macro-replacement.html#fn-1)
 
-*** Auto-navigation link feature
+** Auto-navigation link feature
 :PROPERTIES:
 :DATE:     <2013-12-02 Mon 15:01>
 :END:
@@ -1911,6 +1975,10 @@ Function
 **** With numeric argument: Open whole file in site. 
 
 ** Drawer test
+:PROPERTIES:
+
+:ID:       EC137BEC-E035-4D43-9A53-AB50B8CD7A0B
+:END:
 :TEST:
 This is a test. 
 
@@ -1920,7 +1988,7 @@ This is a test.
 
 
 * OLD STUFF - quasi archive
-** ACTIVE Fixing dynsite's build site function
+** ACTIVE Fixing dynsite's build site function                        :test:
 :PROPERTIES:
 :DATE:     <2013-11-19 Tue 00:38>
 :END:
@@ -2368,5 +2436,10 @@ To set properties
   
   org-publish-project-alist
 #+END_SRC
+
+
+
+
+
 
 

@@ -5,25 +5,140 @@ Developing the org-publish-meta application incrementally, step-by-step.
 * Test node for project definitions                         :PROJECT_CONFIGS:
 :PROPERTIES:
 :DATE:     <2013-12-09 Mon 00:58>
+:ID:       2260C2D9-268F-4A0B-8F02-BD70445988A1
 :END:
 
 #+BEGIN_SRC elisp
-(org-pm-make-file-projects)
+(org-pm-make-default-project-plist)
 #+END_SRC
 
 #+RESULTS:
-| 344 | 440 |
-
-** project1
+| :base-directory | /Users/iani2/Documents/Dev/Emacs/org-publish-meta/org | :base-extension | org | :publishing-directory | /Users/iani2/Documents/Dev/Emacs/org-publish-meta/html | :recursive | t | :publishing-function | org-publish-org-to-html | :headline-levels | 5 | :auto-preamble | t |
 
 #+BEGIN_SRC elisp
-(org-pm-make-file-projects)
+  
+  (defvar org-pm-default-project-plist 
+    '(
+      :base-extension "org"
+      :recursive t
+      :publishing-function org-publish-org-to-html
+      :headline-levels 5
+      :auto-preamble t
+    )
+  "The defalt properties for publishing a project with html.
+  Used to provide initial contents when creating a project plist in 
+  org-pm-make-default-project-plist. "
+  )
+  
+  (defun org-pm-make-default-project-plist ()
+    "Construct default plist for publishing a project in html."
+    (let ((plist (copy-sequence org-pm-default-project-plist))
+          (root (file-name-directory (buffer-file-name (current-buffer)))))
+      (plist-put plist :base-directory (concat root "org"))
+      (plist-put plist :publishing-directory (concat root "html"))
+      )
+  )
+  
+  (defun org-pm-make-project-plist (plist)
+    "Parse nodes of current region and construct project properties.
+  Assumes that region is narrowed to subtree of a node containing
+  a project definition.
+  Each node which defines a project should have only a single level 
+  of subnodes in its contents. 
+  The heading of each subnode becomes a property of the project.
+  The name of the property is the substring of the heading up to the first space.
+  The value of the property is obtained in one of 2 ways:
+  If the heading contains a space, then the value of the property
+  is the result of evaluating the string after the space as lisp expression.
+  If the heading contains no sapce, then the value of the property
+  are the contents of the node of that heading, as string.
+  If the node has no contents, the value of the property is nil."
+    (org-map-entries 
+     '(let* (
+             (element (cadr (org-element-at-point)))
+             (heading (plist-get element :raw-value))
+             (space (string-match " .*" heading))
+             prop-name prop-value contents-begin)
+        (cond 
+         (space
+          (setq prop-name (substring heading 0 space))
+          (setq prop-value (eval (read (substring heading space)))))
+         (t (setq prop-name heading)
+            (setq contents-begin (plist-get element :contents-begin))
+            (if contents-begin 
+                (setq prop-value 
+                      (buffer-substring contents-begin
+                                        (plist-get element :contents-end))))))
+        (setq project-plist
+         (plist-put project-plist (intern (concat ":" prop-name)) prop-value))
+       project-plist)))
+  
+  (defun org-pm-make-file-projects ()
+    "Construct the projects for all project definitions found in current file.
+  Project definitions are those nodes which are contained in nodes tagged as
+  PROJECT_CONFIGS."
+    (interactive)
+    (save-excursion
+      (save-restriction
+        (widen)
+        (let
+            (project-def-nodes
+             (org-map-entries '(cadr (org-element-at-point)) "PROJECT_CONFIGS")
+             projects)
+          (dolist 
+              (project projects)
+            (let ((plist (org-pm-make-default-project-plist)))
+              (plist-put plist :project-name (plist-get project :raw-value))
+              (plist-put plist :project-id (org-id-get-create))
+              ))
+          )
+        
+        ))
+  )
+  
+  (save-excursion
+    (save-restriction
+      (widen)
+      (let* 
+          (
+           (project-supernodes
+            (org-map-entries '(cadr (org-element-at-point)) "PROJECT_CONFIGS"))
+           (test (car project-supernodes))
+           (plevel (+ 1 (plist-get test :level)))
+           projects plist properties
+           begin end
+           )
+        (narrow-to-region
+         (plist-get test :contents-begin)
+         (plist-get test :contents-end))
+        (org-map-entries 
+         (lambda ()
+           (setq plist (cadr (org-element-at-point)))
+           (cond
+            ((equal plevel (plist-get plist :level))
+             (save-excursion
+               (save-restriction
+                 (setq begin (plist-get plist :contents-begin))
+                 (cond
+                  (begin
+                   (narrow-to-region begin (plist-get plist :contents-end))
+                   (push
+                    (org-pm-make-project-plist)
+                    projects)))))))))
+        projects)))
 #+END_SRC
 
 #+RESULTS:
-| 344 | 440 |
+| (:base-directory /Users/iani2/Documents/Dev/Emacs/org-publish-meta/org :base-extension org :publishing-directory /Users/iani2/Documents/Dev/Emacs/org-publish-meta/html :recursive t :publishing-function org-publish-org-to-html :headline-levels 5 :auto-preamble t :more 123)                |                                                                                                                                                                                                                                                                                                                      |                                                                                                                                                                                                                                                                                    |
+| (:base-directory /Users/iani2/Documents/Dev/Emacs/org-publish-meta/org :base-extension org :publishing-directory /Users/iani2/Documents/Dev/Emacs/org-publish-meta/html :recursive t :publishing-function org-publish-org-to-html :headline-levels 5 :auto-preamble t :title (with many types)) | (:base-directory /Users/iani2/Documents/Dev/Emacs/org-publish-meta/org :base-extension org :publishing-directory /Users/iani2/Documents/Dev/Emacs/org-publish-meta/html :recursive t :publishing-function org-publish-org-to-html :headline-levels 5 :auto-preamble t :title_with_one_type_only but some contents\n) | (:base-directory /Users/iani2/Documents/Dev/Emacs/org-publish-meta/org :base-extension org :publishing-directory /Users/iani2/Documents/Dev/Emacs/org-publish-meta/html :recursive t :publishing-function org-publish-org-to-html :headline-levels 5 :auto-preamble t :title2 nil) |
 
+** project1
+*** title (list "with" "many" "types")
+*** title_with_one_type_only
+but some contents
+*** title2
 ** project2
+*** more 123
 
 * Second Test node for project definitions                  :PROJECT_CONFIGS:
 :PROPERTIES:
