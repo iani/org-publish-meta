@@ -1,4 +1,4 @@
-#+TODO: TODO UNDERWAY MUST_REVISIT | DONE CANCELLED
+#+TODO: TODO UNDERWAY MUST_REVISIT | DONE CANCELLED OBSOLETE
 
 * org-publish-meta: Extending org-publish
 :PROPERTIES:
@@ -810,9 +810,52 @@ Question: When is the different project a subproject of that of the file?
 :DATE:     <2013-11-26 Tue 21:07>
 :END:
 
-org-site-publish-file :: publish the entire file, splitting into separate files any subnodes which have a "FILENAME" property defined. 
+*** Summary: The commands org-pm-process-and-publish and org-pm-process
 
-org-site-publish-subtree :: publish this subtree.  If the subtree does not have a FILENAME property, ascend until you find one. If there is no FILENAME in any supertree of this subtree, issue a message saying "No filename property found for this subtree.  Use org-site-publish-file?". 
+- org-pm-process-and-publish :: *process and publish* *all* projects of the current scope.
+     If the view of the buffer is narrowed, process only the visible subtree.
+     If C-u prefix is used, then offer to select just one project for processing and publishing. 
+     Suggested keyboard shortcut: C-c p u (mnemonic: Pm-pUblish)
+- org-pm-process :: process-(=copy)-only (but do not publish) current scope. 
+     If the view of the buffer is narrowed, process only the visible subtree.
+     If C-u prefix is used, then offer to select just one project for processing. 
+     Suggested keyboard shortcut: C-c p U
+
+*** Background considerations, details
+:PROPERTIES:
+:DATE:     <2013-12-16 Mon 11:14>
+:END:
+Consideration: Keep the top-level function interface simple.  For this, avoid too fine-level of control of what is processed in the top-level function.  Will the following options then be sufficient? Note that the total number of combinations is 8: 
+
+1. Copy (components of) all projects of the present file
+2. Copy a selected project of the present file (selected with icomplete)
+3. Copy all project of the present node
+4. Copy a selected project of the present node (selected with icomplete)
+
+Each of the above 
+
+5. Copy and publish (components of) all projects of the present file
+6. Copy and publish a selected project of the present file (selected with icomplete)
+7. Copy and publish all project of the present node
+8. Copy and publish a selected project of the present node (selected with icomplete)
+
+How to organize these?
+
+1. Use narrowing to select scope of processing (like with org-publish)
+
+If the org file is narrowed to a subtree, consider only the nodes of the subtree for processing
+
+2. The standard action is to *process and publish* *all* projects of the current scope
+
+Call this command org-pm-process-and-publish. 
+
+If C-u prefix is used, then offer to select just one project for processing and publishing. 
+
+3. For the process-(=copy)-only (but do not publish) functionality, use a separate command. 
+
+Call this command org-pm-process.
+
+If C-u prefix is used, then offer to select just one project for processing.
 
 ** Top-level file properties
 :PROPERTIES:
@@ -919,7 +962,7 @@ ROPERTIES:
 :CUSTOM_ID:       22447DE7-50E6-4AEC-8CB3-1F548BEB460A
 :END:
 
-*** Enable linking to org nodes in different files using ID
+*** THE FIX IS HERE: Enable linking to org nodes in different files using ID
 :PROPERTIES:
 :ID:       CF39CD14-AD27-4280-8E7C-D5B22B1681DF
 :END:
@@ -1612,20 +1655,12 @@ Does this convert right when publishing? If yes, it could save some coding.  One
 
 
 
-** Scrap site concept and work with single project?
-:PROPERTIES:
-:DATE:     <2013-11-28 Thu 10:31>
-:ID:       B4241C9F-E9CD-4773-9F83-A52831E81FD4
-:END:
-
-It may be of advantage to work with a single project created dynamically from a single file *or from a folder*, because of this [[id:69BCA8CC-2C92-42E4-BED4-2AF075445EA2][Conclusion]]. 
-
-** Previous link tries (obsolete?)
+** Inhibiting queries when links are not found
 :PROPERTIES:
 :DATE:     <2013-11-28 Thu 10:33>
 :END:
 
-Set org-link-search-inhibit-query to t to prevent queries if the link is not found. 
+Set org-link-search-inhibit-query to t to prevent queries if the link is not found? 
 
 #+BEGIN_SRC elisp
 (setq org-link-search-inhibit-query t)
@@ -1633,20 +1668,6 @@ Set org-link-search-inhibit-query to t to prevent queries if the link is not fou
 (org-link-search "*Subnode properties")
 (setq test2 (point))
 #+END_SRC
-
-Some test links: 
-
-[[*Alpha][Alpha]] [[*Alpha][Alpha]] [[*Alpha][Alpha]]
-
-[[*Alpha][Alpha]
-*** Alpha
-:PROPERTIES:
-:ID:       BE36A7E7-F17A-47BD-822F-32E989949297
-:END:
-
-*** Alpha
-
-**** Alpha
 
 ** Using jquery .inc to dynamically create page summary lists?
 :PROPERTIES:
@@ -1670,15 +1691,12 @@ You can include a page fragment as follows
 <p class="inc:footer.htm"></p>
 #+END_SRC
 
-** Subnode properties
-:PROPERTIES:
-:DATE:     <2013-11-27 Wed 08:54>
-:END:
-
-** Principles, Basic Design
+** OBSOLETE Principles, Basic Design
+CLOSED: [2013-12-16 Mon 10:39]
 :PROPERTIES:
 :DATE:     <2013-11-25 Mon 12:03>
 :END:
+
 Its basically simple: 
 
 The function for splitting a file into org files and then publishing it as site is:   org-publish-split-file
