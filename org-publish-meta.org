@@ -64,6 +64,44 @@ The contents of this node are copied to a file named About_this_blog.org inside 
 
 The contents of this node are copied to a file named About_the_author.org inside the base folders of two projects: Project "blog" and project "notes". 
 
+
+*** How to indicate a subfolder of a project as target for copying the contents of a node
+:PROPERTIES:
+:DATE:     <2013-12-16 Mon 17:08>
+:FOLDER: '(("test" . "afolder") ("project2" . "anotherfolder"))
+:END:
+
+Indicate the name of the folder in property FOLDER of the node.  If the node only belongs to one project (as in most cases), then write the name of the folder as value of the property thus: 
+
+#+BEGIN_EXAMPLE
+:PROPERTIES:
+:FOLDER: myfolder
+:END:
+#+END_EXAMPLE
+
+For multiple folders in multiple projects, write the project and folder names in a list of the form:
+
+#+BEGIN_EXAMPLE
+:PROPERTIES:
+:FOLDER: '(("project1" . "folder1") ("project2" . "folder2"))
+:END:
+#+END_EXAMPLE
+
+The lisp expression should be entered in full exactly in the form above in order to be recognized and evaluated.  The code used to evaluate the FOLDER property is:
+
+#+BEGIN_SRC elisp
+  (save-excursion
+    (outline-previous-heading)
+    (let ((folder (plist-get (cadr (org-element-at-point)) :FOLDER)))
+      (if (string-match "^'" folder)
+          (setq folder (eval (read folder))))
+      folder
+  ))
+#+END_SRC
+
+#+RESULTS:
+| (test . afolder) | (project2 . anotherfolder) |
+
 *** How to indicate if the whole file is published, and in what project
 :PROPERTIES:
 :DATE:     <2013-12-15 Sun 19:07>
@@ -71,16 +109,7 @@ The contents of this node are copied to a file named About_the_author.org inside
 
 To indicate that an entire file should be part of a project (not just some nodes of the file marked with _this-kind-of_ tags), there are several ways: 
 
-**** 1. Indicate in project definition through property include-containing-file
-
-Indicate this in a project definition contained in the same file.  This is done by setting the project property include-containing-file to t.  For example, if we have the following project definition of project "blog", then the file containing the project definition is published as part of the project named blog: 
-
-***** project defs                                         :PROJECT_DEFS:
-
-****** blog
-******* include-containing-file t
-
-**** 2. Indicate the project to which the file belongs through file property "PROJECT"
+**** Indicate file property "PROJECT"
 
 Indicate the name of the project in the header of the file with property "PROJECT"
 
@@ -90,7 +119,16 @@ If no project definition with that name is found, then a default project definit
 
 Note: If a project definition with that name is found later in some other file, then the file will be attached to that project, thereby possibly altering the location where it is published as well as other properties. 
 
-**** 3. No indication:  org-pm creates default project, or does not publish file
+**** Indicate in a project definition node through property include-containing-file
+
+Indicate this in a project definition contained in the same file.  This is done by setting the project property include-containing-file to t.  For example, the following project definition of project "blog", indicates that the file containing the project definition should published as part of the project "blog".  This way of indicating is perhaps more indirect than with a proeprty at the header of the file, but it has the advantage that if the name of the project is changed later, the file will still belong to the project, without having to change the name in the header of the file.
+
+***** project defs                                         :PROJECT_DEFS:
+
+****** blog
+******* include-containing-file t
+
+**** No indication: org-pm creates default project, or does not publish file
 :PROPERTIES:
 :ID:       7C8918A3-8379-46E9-8DB5-19BE98A212C1
 :END:
@@ -102,7 +140,51 @@ If no indication at all is given in the file about the project, then org-pm will
   - Ask the user whether to proceed with creating a default project
   - If yes, then create the project and insert it (ask again before insertion?)
 
-*** Publishing contents of node in "raw" css, javascript, html
+
+*** How to publish css, javascript and other content from an org-mode file with org-pm (Static project component)
+:PROPERTIES:
+:DATE:     <2013-12-16 Mon 14:50>
+:END:
+
+**** Summary
+
+1. To publish the contents of an org-node as css, javascript, etc. without converting them to html, add to the node the tag _<projectname>-static_ where <projectname> is the name of the org-to-html project to which the contents should be copied.
+2. Specify the file name an ending by naming the node after it.  If no other info is provided, the name of the file created is taken from the heading of the node.  Per default an ending of .css will be provided if not present in the heading.  To override this, simply provide the ending in the heading of the node.  For example:
+ 
+|--------------------------+---------------------|
+| contents of node heading | resulting file name |
+|--------------------------+---------------------|
+| style                    | style.css           |
+| style.css                | style.css           |
+| simplex.less             | simplex.less        |
+| navmenu.js               | navmenu.js          |
+|--------------------------+---------------------|
+
+Per default, nodes belonging to a static project are copied to a subfolder of the main project named "static".  This can be changed by defining the static project explicitly in a node named <projectname>-static and overriding the defaults.  The project plist property indicating the folder in a project definition is named "folder".  Mulitple static projects can be configured in this way, if required (one would have to specify the org-publish-attachment fuction as property in the project definition along with all other static-specific properties).  Following example overrides the folder of the default static project, setting it to "scripts": 
+
+***** project defs with static component                       :PROJECT_DEFS:
+
+****** blog
+******* include-containing-file t
+
+****** blog-static
+******* folder "scripts"
+
+**** Background about static projects
+:PROPERTIES:
+:DATE:     <2013-12-16 Mon 16:46>
+:END:
+
+This section is about including javascript, css and other types of file contents in the org-mode file, and publishing them using the same methods as the org-mode components.  To do this with org-pm, it suffices to add a node to a "static" project.  Org-pm automatically creates a static project for each regular publishing project defined.  So, if you have a project named "blog", org-pm will define a project named "blog-static" for it.  The details of the project, including the source and target folders, are explained below.  To publish the contents of a node as a css, javascript or other static content without converting, it suffices to tag the node with the name of the static project.  So if there is a node named "style" and one adds the tag _blog-static_ to it, the contents of the node will be copied by org-pm in the source folder of the blog-static project, and will then be copied by org-mode to the target of the blog-static project.  Per default, 
+ 
+When publishing contents of javascript, css, less or other types of scripts, org-mode does not convert these contents, but simply copies them over to the designated final target directory of the website.  To do this, org-mode uses a different method than for org-mode files.  For this, it is necessary to define a separate org-mode publishing project, which uses that different method on those files.  Thus, for each site there are usually two different projects defined: 
+
+1. The org-to-html project (main project).  This uses function =org-publish-org-to-html= to convert all org files to html and place the resulting html in the target (site) folder.
+2. The "static" project.  This is copies "static" content such as scripts, css and other style sheets, templates, pictures and other media and documents from the designated origin folder to the target folder.  It uses function =org-publish-attachment=. 
+
+For examples, see: http://orgmode.org/worg/org-tutorials/org-publish-html-tutorial.html
+
+
 
 When a node is tagged for copying to a project (by naming the project in a tag enclosed in underscores like _this_), the contents of the node are copied to the indicated file without any conversion.  It is therefore up to org-publish to convert the resulting file from org to html, if appropriate.  Files that should not be converted can be simply placed in one of the "static" project folders and be given the appropriate file name endings ".css", ".js" etc.  
 

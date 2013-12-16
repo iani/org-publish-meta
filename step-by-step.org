@@ -345,6 +345,26 @@ These operate on org-pm-files.  See [[id:6EFBC165-94AE-4B9B-9EBC-0245DADFDCF8][a
             (setcdr alist (cons (list key value) (cdr alist)))
           (setq alist (list (list key value))))))
     alist)
+  
+  ;; 
+  (defun assoc-remove (alist key)
+    "Remove all sublists of alist whose car is equal to key."
+    (setq alist (remove* key alist :test 'equal :key 'car)))
+  
+  ;;; older version
+  (defun assoc-remove-simple-style (alist key)
+    "Remove all sublists of alist whose car is equal to key."
+    (let (found)
+      (while (setq found (assoc key alist))
+        (setq alist (delq found alist)))
+      alist))
+  
+  (defun assoc-replace (alist key newlist)
+    "Remove all sublists of alist whose car is equal to key, and then
+     add (cons key newlist) to alist."
+    (setq alist (assoc-remove alist key))
+    (setq alist (cons (cons key newlist) alist))
+    )
 #+END_SRC
 
 #+RESULTS:
@@ -553,7 +573,7 @@ CLOSED: [2013-12-16 Mon 00:57]
      plist-b))
 
 #+END_SRC
-* UNDERWAY Project definition parsing code                  :PROJECT_CONFIGS:
+* UNDERWAY Project definition parsing code
 :PROPERTIES:
 :DATE:     <2013-12-09 Mon 00:58>
 :ID:       2260C2D9-268F-4A0B-8F02-BD70445988A1
@@ -579,8 +599,10 @@ CLOSED: [2013-12-16 Mon 00:57]
     (save-excursion
       (save-restriction
         (widen)
+        (org-pm-check-project-config-nodes)
         (let
-            ((template (org-pm-make-default-project-plist))
+            (project-def
+             (template (org-pm-make-default-project-plist))
              (supernodes
               (org-map-entries '(cadr (org-element-at-point)) "PROJECT_CONFIGS"))
              project-def-list tags begin level)
@@ -594,11 +616,39 @@ CLOSED: [2013-12-16 Mon 00:57]
                        (narrow-to-region begin (plist-get node :contents-end))
                        (dolist 
                            (proj-node (org-map-entries '(cadr (org-element-at-point))))
-                         (if (equal level (plist-get proj-node :level))
-                             (push (org-pm-parse-project-def proj-node template)
-                                   project-def-list))))))))
+                         (cond ((equal level (plist-get proj-node :level))
+                                (setq project-def
+                                      (org-pm-parse-project-def proj-node template))
+                                (setq org-publish-project-alist 
+                                      (assoc-replace
+                                       org-publish-project-alist
+                                       (car project-def)
+                                       (cdr project-def)))
+                                (push project-def 
+                                      project-def-list)))))))))
           project-def-list))))
-   
+  
+  (defun org-pm-check-project-config-nodes ()
+    "Check if a node tagged POJECT_CONFIGS has invalid content before first subnode."
+    (org-map-entries 
+     '(let
+          (begin (node (cadr (org-element-at-point))))
+        (if (and 
+             (setq begin (plist-get node :contents-begin))
+             (member "PROJECT_CONFIGS" (plist-get node :tags))
+             )
+            ;; only works with if statement in the following way. Why?
+            (if (equal 0 (string-match 
+                          "\\*+ " 
+                          (buffer-substring-no-properties begin (plist-get node :contents-end))))
+                "ok"
+              (error (format 
+                      "ERROR: Node named '%s' should be empty before first subnode.\n%s"
+                      (plist-get node :raw-value)
+                      "Please remove all content before first subnode.")))
+          ))
+     "PROJECT_CONFIGS"))
+  
   (defun org-pm-parse-project-def (proj-node template)
     "Return a project definition plist for the node represented by proj-node
   org-element plist."
@@ -634,7 +684,7 @@ CLOSED: [2013-12-16 Mon 00:57]
                     (if contents-begin
                         (setq 
                          prop-value 
-                         (buffer-substring 
+                         (buffer-substring-no-properties 
                           contents-begin
                           (plist-get element :contents-end))))))
                 (setq pdef
@@ -647,6 +697,14 @@ CLOSED: [2013-12-16 Mon 00:57]
 #+RESULTS:
 : org-pm-parse-project-def
 
+For test purposes: 
+#+BEGIN_SRC elisp
+  (global-set-key (kbd "C-c C-x t") 'org-pm-make-file-projects)
+#+END_SRC
+
+#+RESULTS:
+: org-pm-make-file-projects
+
 ** Adding nodes and files to projects
 
 #+BEGIN_SRC emacs-lisp
@@ -656,13 +714,18 @@ CLOSED: [2013-12-16 Mon 00:57]
   )
 #+END_SRC
 
-** project1
-*** the_title (list "with" "many" "types")
-*** title_with_one_type_only
+** project configs here                                    :PROJECT_CONFIGS:
+
+*** project1
+**** the_title (list "with" "many" "types")
+**** title_with_one_type_only
 but some contents
-*** title2
-** project2
-*** more 123
+**** title2
+*** project2
+**** more 123
+:PROPERTIES:
+:ID:       5853E3D5-82E5-4CCF-89A5-A53E0BC8281B
+:END:
 
 * project def parsing tests
 :PROPERTIES:
@@ -865,6 +928,20 @@ When called with an argument (C-u prefix), the function will automatically publi
 * Proj def test dummy supernode 1                           :PROJECT_CONFIGS:
 * Proj def test dummy supernode 2                           :PROJECT_CONFIGS:
 ** Project 323
+:PROPERTIES:
+:ID:       5762DFE3-831A-42DD-B2C4-137F68B8D711
+:END:
 xonwrwan
 
+
+* TESTS
+
+#+BEGIN_SRC elisp
+(org-pm-make-file-projects)
+#+END_SRC
+
+#+RESULTS:
+| Project 323 | :base-directory | /Users/iani2/Documents/Dev/Emacs/org-publish-meta/org | :base-extension | org | :publishing-directory | /Users/iani2/Documents/Dev/Emacs/org-publish-meta/html | :recursive | t | :publishing-function | org-publish-org-to-html | :headline-levels | 5 | :auto-preamble | t | :project-name | Project 323 | :node-id | 5762DFE3-831A-42DD-B2C4-137F68B8D711 | :node-filename | /Users/iani2/Documents/Dev/Emacs/org-publish-meta/step-by-step.org |            |                   |                           |                     |         |     |
+| project2    | :base-directory | /Users/iani2/Documents/Dev/Emacs/org-publish-meta/org | :base-extension | org | :publishing-directory | /Users/iani2/Documents/Dev/Emacs/org-publish-meta/html | :recursive | t | :publishing-function | org-publish-org-to-html | :headline-levels | 5 | :auto-preamble | t | :project-name | project2    | :node-id | 5853E3D5-82E5-4CCF-89A5-A53E0BC8281B | :node-filename | /Users/iani2/Documents/Dev/Emacs/org-publish-meta/step-by-step.org | :more      |               123 |                           |                     |         |     |
+| project1    | :base-directory | /Users/iani2/Documents/Dev/Emacs/org-publish-meta/org | :base-extension | org | :publishing-directory | /Users/iani2/Documents/Dev/Emacs/org-publish-meta/html | :recursive | t | :publishing-function | org-publish-org-to-html | :headline-levels | 5 | :auto-preamble | t | :project-name | project1    | :node-id | 5853E3D5-82E5-4CCF-89A5-A53E0BC8281B | :node-filename | /Users/iani2/Documents/Dev/Emacs/org-publish-meta/step-by-step.org | :the_title | (with many types) | :title_with_one_type_only | but some contents\n | :title2 | nil |
 
