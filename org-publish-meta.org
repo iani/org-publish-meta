@@ -71,7 +71,7 @@ The contents of this node are copied to a file named About_the_author.org inside
 
 To indicate that an entire file should be part of a project (not just some nodes of the file marked with _this-kind-of_ tags), there are several ways: 
 
-**** 1. Indicate project definition through property include-containing-file
+**** 1. Indicate in project definition through property include-containing-file
 
 Indicate this in a project definition contained in the same file.  This is done by setting the project property include-containing-file to t.  For example, if we have the following project definition of project "blog", then the file containing the project definition is published as part of the project named blog: 
 
@@ -80,7 +80,7 @@ Indicate this in a project definition contained in the same file.  This is done 
 ****** blog
 ******* include-containing-file t
 
-**** 2. Indicate the project to which the file belongs through property "PROJECT"
+**** 2. Indicate the project to which the file belongs through file property "PROJECT"
 
 Indicate the name of the project in the header of the file with property "PROJECT"
 
@@ -101,6 +101,19 @@ If no indication at all is given in the file about the project, then org-pm will
 - If there are no project definitions in the file and there is no PROJECT property, then:
   - Ask the user whether to proceed with creating a default project
   - If yes, then create the project and insert it (ask again before insertion?)
+
+*** Publishing contents of node in "raw" css, javascript, html
+
+When a node is tagged for copying to a project (by naming the project in a tag enclosed in underscores like _this_), the contents of the node are copied to the indicated file without any conversion.  It is therefore up to org-publish to convert the resulting file from org to html, if appropriate.  Files that should not be converted can be simply placed in one of the "static" project folders and be given the appropriate file name endings ".css", ".js" etc.  
+
+Question: Can we use tags or even project name (automatic generation of static project definitions?) to indicate the folder, project and ending?
+
+Draft: 
+
+- Every project generates a static component, whose folder is a subfolder of the main project
+- The default name for the static folder is "static" (may be changed through explicit folder definition)
+- The default name for the static project component is <projectname>-static, where <projectname> is the name of the main project to which this static component belongs.
+- If a node indicates a static project component as its project through a tag (for example: _blog-static_), then the default file-name ending for copying the contents of the node becomes ".css".  To change that default, add another tag. Tags recognized as endings are: "js", "php", "less", "rb".  (Others may be added). 
 
 *** Some cancelled early ideas: PUBLISH and PUBLISH_TAGS properties
 :PROPERTIES:
