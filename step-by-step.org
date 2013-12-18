@@ -401,6 +401,8 @@ Trying to edit:
 :DATE:     <2013-12-16 Mon 02:00>
 :END:
 #+BEGIN_SRC emacs-lisp
+  ;;; THIS FUNCTION IS CHANGED IN THE FINAL VERSION. 
+  ;;; SEE FILE org-pm.org, org-pm.el
   (defun org-pm-make-default-project-plist ()
     "Construct default plist for publishing a project in html."
     (let ((plist (copy-sequence org-pm-default-project-plist))

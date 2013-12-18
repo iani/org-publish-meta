@@ -4,6 +4,21 @@
 :DATE:     <2013-12-18 Wed 11:52>
 :END:
 
+** org-pm-project-files
+
+** org-pm-auto-parse
+
+** org-pm-auto-copy
+
+** org-pm-project-data-file-path
+
+** org-pm-default-project-name
+
+** org-pm-default-project-org-folder
+
+** org-pm-default-project-html-folder
+
+
 * TODO Main functions and commands
 :PROPERTIES:
 :DATE:     <2013-12-18 Wed 11:16>

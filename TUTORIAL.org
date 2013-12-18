@@ -53,7 +53,7 @@ The command org-pm-remove-file-from-project (C-c R) lets the user select a proje
 
 If no project is yet defined, then org-pm offers to create a default project, like this: 
 
-- The name of the default project is "default".
+- The name of the default project is "org-pm-default".
 - The folder from which the default project reads the org files, and where org-pm will be copying files to, is ~/pm-org
 - The folder to which the the default project will be publishing the converted (html and other) files is ~/pm-html
 
