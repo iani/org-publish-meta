@@ -11,7 +11,7 @@
 
 Run the following to install org-pm and to activate auto-parsing and auto-copying:
 
-#+BEGIN_ASCII elisp
+#+BEGIN_SRC elisp
 (require 'org-pm)
 ;; Auto-parse project configs before saving a buffer:
 (setq org-pm-auto-parse t)
