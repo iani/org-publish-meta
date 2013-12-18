@@ -23,7 +23,11 @@ This command parses the current  in order to do 3 things:
 
 org-pm-parse-buffer can be called explicitly by the user as a command.
 
-If org-pm-auto-parse is enabled, then it is called automatically whenever a buffer is saved. 
+If org-pm-auto-parse is enabled, then it is called automatically whenever a buffer is saved.
+
+** org-pm-publish: Select a project to publish from the projects targeted by current buffer. 
+
+Since a file containing org-pm tags can be anywhere outside an org-mode project folder, one cannot use org-publish-current-project to automatically provide the target project based on the file.  Therefore, use =org-pm-publish= instead to select the desired project to publish from a list of projects that are targeted by the current file.
 
 ** org-pm-make-projects (called by org-pm-parse-buffer)
 

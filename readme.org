@@ -1,66 +1,72 @@
+#+TITLE: Org-publish-meta (org-pm) 
+#+AUTHOR: Ioannis Zannos (zannos [at] gmail [dot] com)
 
+*Simplify and extend org-publish in Emacs Org-mode.*
+
+#+BEGIN_ASCII
 THIS PROJECT IS ONLY AN EARLY DRAFT.
+The code and doc may give an idea of where the project is headed. 
+#+END_ASCII
 
-SAVED HERE FOR BACKUP. 
+* What it is
 
-The code and doc may give you an idea of where the project is headed.  Nothing else. 
+Org-pm (short for org-publish-meta) is an emacs-lisp package that simplifies and extends the project publishing mechanism of org-mode.
 
-[2013-12-04 Wed]
+Org-mode is an Emacs library "for keeping notes, maintaining TODO lists, planning projects, and authoring documents with a fast and effective plain-text system" (http://orgmode.org/). 
 
-* Why org-publish-meta?
-:PROPERTIES:
-:DATE:     <2013-12-03 Tue 07:21>
-:END:
+For Org-mode see: http://orgmode.org/
+For Org-mode project publishing mechanism see: http://orgmode.org/manual/Publishing.html#Publishing
 
-(To be written:  A few words about the motivation / background for the project.): 
+* Purpose
 
-** Why the name?
-:PROPERTIES:
-:DATE:     <2013-12-02 Mon 00:01>
-:END: 
+The purpose of org-pm is to simplify the definition of org-mode publishing projects, eliminating the need to write emacs-lisp code as far as possible. Project project definitions as well as css and scripts can be included in the same org-mode files that hold the text contents to be published.  Additionally, org-pm makes it possible to publish a single org-mode file or any node (section) of a file to any number of different projects. 
 
-Because it extends org-publish.  It is "meta" in the sense of extracting org files from org files, and adding these to projects for publication with org-publish. 
+* How it works
 
-The prefix used for functions in this package will be org-pm- as abbreviation of org-publish-meta-.
+Project definitions (property-lists) are written as nodes (sections) in any org-mode file, using headings as property names and contents as values of the properties.  Special org-mode properties and tags are used to indicate those sections which contain project definitions and also those files and nodes which belong to projects. 
 
-An alternative name - or subtitle - of this package could be "Zero Config", reflecting the premise of making a project publishable with the minimum amount of configuration specifications, and of creating a project for a single file even without any specifications at all.
+Org-pm scans an org-mode file and adds to =org-publish-project-alist= any projects that this file may contain.  It also creates a list of the projects to which the file or any of its sections should be copied into variable =org-pm-project-files=.  Org-pm automatically saves =org-publish-project-alist= and =org-pm-project-files= to a file for use in further Emacs-sessions. 
 
-** Motivation 1: Make it easier to configure projects for org-publish
+Before publishing a project 
 
-** Motivation 2: Enable some of the nice features of o-blog
-
-** Motivation 3: Keep the contents of several web-pages in one org-file
-
-Advantages:  Better overview and editing.
-
-
-** Motivation 4: Need to copy files or parts of files from current notes to different projects for publishing
-
-Last but not least ... this was a major factor ... 
+Both the scanning of files and the copying of their contents can be made to occur automatically when saving any org-mode file and when publishing a project.  See "Automation" below. 
 
 * Features
-:PROPERTIES:
-:DATE:     <2013-12-03 Tue 14:25>
-:END:
 
-** Auto-save org-publish-project-alist
+- Use keyboard shortcuts to add or remove a file to/from any project.
+- Generate default project automatically and provide template file for further editing of configuration.
+- Generate project definitions from org-mode style contents of sections.
+- Include CSS, JavaScript and other script files in the org-mode file as sections. Contents of sections are copied as-they-are.  No need to use extra markup or escape characters. 
+- Copy any file or section of file to any one or more project. 
+- Always automatically save configurations for use in further sessions (no need to manually edit project definitions in emacs-lisp).
+- KISS (Keep-It-Simple-Short), very simple way to define projects and to indicate target projects using section headings, tags and properties.
 
-** Automatic creation of projects with 0 configuration
+* Automation
 
-** Simple customization of projects using in-file org-mode style nodes
+If the auto-parse option is enabled, then all you need to do to update the configuration of any file that you want to include in org-pm is save it.  The file is then ready for publication according to any specifications included in the file's contents. 
 
-** Multiple projects per file
+If the auto-copy option is enabled, then org-pm will automatically copy to the source folder of a project any files or sections of files what have been tagged to belong to that project before publishing it.  
 
-** Any node in a file can be copied as separate file to any project
+Consequently, if both auto-parse and auto-copy are enabled, one can publish files or sections marked by in any file simply by: 
 
-** Easy per-file customization of html export with properties and org-mode style nodes
+1. saving the file. (=save-buffer= or C-x C-s).
+2. publishing the desired project (=org-publish= or =org-pm-publish=)
 
-** Inheritance of properties in sub-projects
+Note: Since a file containing org-pm tags can be anywhere outside an org-mode project folder, one cannot use org-publish-current-project to automatically provide the target project based on the file.  Therefore, use =org-pm-publish= instead to select the desired project to publish from a list of projects that are targeted by the current file.
 
-** Publish same file or node to multiple projects
+See "Getting started" below for enabling auto-parse and auto-copy. 
 
 * Getting started
-:PROPERTIES:
-:DATE:     <2013-12-03 Tue 11:41>
-:END:
 
+Run the following to install org-pm and to activate auto-parsing and auto-copying:
+
+#+BEGIN_SRC elisp
+;; load org-pm package:
+(require 'org-pm)
+;; Auto-parse project configs before saving a buffer:
+(setq org-pm-auto-parse t)
+;; Auto-copy contents of project components before publishing a project:
+(setq org-pm-auto-copy t)
+#+END_SRC
+
+See file:TUTORIAL.org and file:REFERENCE.org for further help.
