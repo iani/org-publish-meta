@@ -1,0 +1,407 @@
+#+TODO: TODO UNDERWAY | DONE
+* Preparatory setup stuff
+:PROPERTIES:
+:ID:       DE05B7A2-2C3F-4AB8-B3AF-E2670087E570
+:END:
+
+#+BEGIN_SRC emacs-lisp
+
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-babel-load-current-file ()
+    (interactive)
+    (org-babel-load-file (buffer-file-name (current-buffer))))  
+  (global-set-key (kbd "C-c C-=") 'org-babel-load-current-file)
+#+END_SRC
+
+#+RESULTS:
+: org-babel-load-current-file
+
+* DONE Variables
+CLOSED: [2013-12-18 Wed 15:28]
+:PROPERTIES:
+:DATE:     <2013-12-18 Wed 11:52>
+:END:
+
+** DONE org-pm-project-files
+CLOSED: [2013-12-18 Wed 15:23]
+:PROPERTIES:
+:ID:       A8ABC239-E74B-4654-9850-53C8521E50BA
+:END:
+
+#+BEGIN_SRC emacs-lisp
+  (defvar org-pm-project-files nil
+  "Store the projects that each file or its sections belong to.
+  For each file it store a list: (full-path project1 project2 ...)")
+#+END_SRC
+
+** DONE org-pm-auto-parse
+CLOSED: [2013-12-18 Wed 15:23]
+:PROPERTIES:
+:ID:       03CF07FC-5FD7-46C6-BE11-74C3D339A315
+:END:
+
+#+BEGIN_SRC emacs-lisp
+  (defvar org-pm-auto-parse nil
+    "If not nil, automatically parse a org-mode buffer
+   for org-pm data before saving it.")
+#+END_SRC
+
+** DONE org-pm-auto-copy
+CLOSED: [2013-12-18 Wed 15:23]
+:PROPERTIES:
+:ID:       3AF37A0C-F14A-41A3-B477-5B12696315BE
+:END:
+
+#+BEGIN_SRC emacs-lisp
+  (defvar org-pm-auto-copy nil
+  "If not nil, automatically copy file components to a project to the 
+  project's source folder before publishing.")
+#+END_SRC
+
+** DONE org-pm-project-data-file-path
+CLOSED: [2013-12-18 Wed 15:23]
+:PROPERTIES:
+:ID:       A71224C0-989C-419B-A7B6-2B0CEC64CEE7
+:END:
+
+#+BEGIN_SRC emacs-lisp
+  (defvar org-pm-project-data-file-path nil
+  "Path of file for storing org-publish-project-alist and 
+  org-pm-project-files.  If nil, the path is deduced from the existence
+  of .emacs.d folder in user's home directory. 
+  If .emacs.d exists, use ~/.emacs.d/savefile/org-publish-project-alist
+  else use ~/.org-publish-project-alist.  
+  Create savefile folder if it does not exist.")
+#+END_SRC
+
+** DONE org-pm-default-project-name
+CLOSED: [2013-12-18 Wed 15:28]
+:PROPERTIES:
+:ID:       3C9E0229-923D-4527-B2FE-903792AA5452
+:END:
+
+#+BEGIN_SRC emacs-lisp
+  (defvar org-pm-default-project-name "org-pm-default"
+  "Name of default, auto-generated project.")
+#+END_SRC
+
+** DONE org-pm-default-project-org-folder
+CLOSED: [2013-12-18 Wed 15:28]
+:PROPERTIES:
+:ID:       3475B9CF-FDDF-4760-8CF1-FE22DC2AA589
+:END:
+
+#+BEGIN_SRC emacs-lisp
+  (defvar org-pm-default-project-org-folder "~/pm-org"
+  "Path of folder for source files of default project.")
+#+END_SRC
+
+** DONE org-pm-default-project-html-folder
+CLOSED: [2013-12-18 Wed 15:28]
+:PROPERTIES:
+:ID:       92AFE11D-6A08-4D77-A2E9-BF0A196271F8
+:END:
+
+#+BEGIN_SRC emacs-lisp
+  (defvar org-pm-default-project-html-folder "~/pm-html"
+    "Path of folder for html (published website) files of default project.")
+#+END_SRC
+
+** DONE org-pm-default-project-plist
+CLOSED: [2013-12-18 Wed 22:16]
+:PROPERTIES:
+:ID:       7539D61D-95E4-4308-B1C4-F86669E921B7
+:END:
+#+BEGIN_SRC emacs-lisp
+  (defvar org-pm-default-project-plist 
+    '(
+      :base-extension "org"
+      :recursive t
+      :publishing-function org-publish-org-to-html
+      :headline-levels 5
+      :auto-preamble t
+    )
+  "The defalt properties for publishing a project with html.
+  Used to provide initial contents when creating a project plist in 
+  org-pm-make-default-project-plist. "
+  )
+#+END_SRC
+
+** TODO org-pm-project-template-name
+:PROPERTIES:
+:ID:       9D5B4E5D-90E1-4F32-842D-620B262665AF
+:END:
+
+#+BEGIN_SRC emacs-lisp
+  (defvar org-pm-project-template-name 
+    (concat (file-name-directory (or load-file-name (buffer-file-name)))
+            "org-pm-project-template.org")
+  "Full path of file containing template of project definition for 
+  projects generated automatically with org-pm-make-project-template-file.
+  The path is initialized at code loading time by function org-pm-init-project-template-name.
+  org-pm-make-project-template-file uses it to make project templates.")
+#+END_SRC
+
+* Auxiliary functions
+:PROPERTIES:
+:DATE:     <2013-12-18 Wed 17:24>
+:END:
+
+** UNDERWAY org-pm-make-default-project-alist
+:PROPERTIES:
+:ID:       29715E74-6E71-43C0-A50C-F312C3173645
+:END:
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-make-default-project-plist ()
+    "Construct default plist for publishing a project in html."
+    (let ((plist (copy-sequence org-pm-default-project-plist)))
+      (setq plist (plist-put plist :base-directory
+                             (file-truename org-pm-default-project-org-folder)))
+      (setq plist (plist-put plist :publishing-directory 
+                             (file-truename org-pm-default-project-html-folder)))))
+#+END_SRC
+
+#+RESULTS:
+: org-pm-make-default-project-plist
+
+** TODO org-pm-add-project-component
+:PROPERTIES:
+:DATE:     <2013-12-18 Wed 21:17>
+:ID:       1FE8167C-A514-4C21-9FC2-4A466A692E56
+:END:
+
+#+BEGIN_SRC emacs-lisp
+(defun org-pm-add-project-component (project-name component)
+
+)
+#+END_SRC
+ 
+** TODO org-pm-save-projects-and-components
+:PROPERTIES:
+:DATE:     <2013-12-18 Wed 21:17>
+:ID:       E3ED5198-9807-4051-88E2-4A9A50A0FC7A
+:END:
+
+#+BEGIN_SRC emacs-lisp
+(defun org-pm-save-projects-and-components ()
+
+)
+#+END_SRC
+
+** TODO org-pm-add-project-to-file-header
+:PROPERTIES:
+:DATE:     <2013-12-18 Wed 21:17>
+:ID:       3E557B48-9700-4BEE-9D72-D4AC276DCF9C
+:END:
+
+#+BEGIN_SRC emacs-lisp
+(defun org-pm-add-project-to-file-header (project-name)
+
+)
+#+END_SRC
+
+** TODO org-pm-get-file-projects
+:PROPERTIES:
+:DATE:     <2013-12-18 Wed 21:17>
+:ID:       54A8502C-CC61-4F6E-9CEB-F58EE65B58F4
+:END:
+
+Get list of all projects to which this file is published in its entirety. (Not projects to  which any of its sections are published.)
+
+To get the list, look in 2 places: 
+
+1. Project names defined by header-type property (=#+PROJECT:=) in any place of the file.  Several such lines may exist.  Collect all projects named there.
+2. Project definition sections that have the tag =include-this-file=. (See reference on how project definition sections are defined.)
+
+#+BEGIN_SRC emacs-lisp
+(defun org-pm-get-file-projects ()
+
+)
+#+END_SRC
+
+** TODO org-pm-get-section-projects
+:PROPERTIES:
+:DATE:     <2013-12-18 Wed 21:17>
+:ID:       02A9DD60-795A-462D-A803-91E8D719560B
+:END:
+
+Get list of all projects to which any individual sections in the file should be copied. Such projects Projects are named by tags in sections.  The tags must be enclosed in underscores "_". For example, if a section has the tag =_blog_= it will be copied to be published in project named =blog=. 
+
+#+BEGIN_SRC emacs-lisp
+(defun org-pm-get-section-projects ()
+
+)
+#+END_SRC
+
+** TODO org-pm-make-project-template-file
+:PROPERTIES:
+:ID:       36439CB5-E875-4E45-B595-5116888C9DCA
+:END:
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-make-project-template-file (project)
+    "Read file containing template of project definition for 
+    projects generated automatically with org-pm-make-project-template-file,
+    from the synonymous file in the org-pm project source
+    code folder.  Replace relevant parts of the template with 
+    information specific to the project.  
+    Finally, save the template the project's base-directory."
+    (save-excursion
+      (find-file org-pm-project-template-name)
+      (let* ((filename (file-name-nondirectory org-pm-project-template-name))
+             (plist (cdr project))
+             (path (concat (plist-get plist :base-directory) "/" filename)))
+        (unless (file-exists-p path)
+          (beginning-of-buffer)
+          (replace-string "PROJECTNAME" (car project))
+          (beginning-of-buffer)
+          (replace-string "BASEDIRECTORY" (plist-get plist :base-directory))
+          (beginning-of-buffer)
+          (replace-string "PUBLISHINGDIRECTORY" (plist-get plist :publishing-directory))
+          (beginning-of-buffer)
+          (replace-string "EXCLUDEFILE" filename)
+          (write-file path)
+          (kill-buffer (current-buffer)))
+        )))
+  
+  ;; (org-pm-make-project-template-file "test")
+#+END_SRC
+
+* Main functions and commands
+:PROPERTIES:
+:DATE:     <2013-12-18 Wed 11:16>
+:END:
+
+** org-pm-add-file-to-project:
+:PROPERTIES:
+:ID:       24187886-5ADA-4263-806B-8655A9813C8B
+:END:
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-add-file-to-project ()
+    "Add the file of the current buffer to a project selected or input by the user.
+    If the project selected/input by the user is not already in the file's project list:
+    - If no project of that name exists, request that the project be defined using
+    org-pm or other methods.
+    - If no project at all exists, then offer to create default project.
+    - Add the selected project to the file's list in org-pm-project-files.
+    - Save org-pm-project-files.
+    - Add the project name to property PROJECT in file's header.
+    "
+    (interactive)
+    (unless (buffer-file-name (current-buffer))
+      (error "This buffer is not associated with a file.  Please save first."))
+    (let* ((org-completion-use-ido t)
+           (projects 
+            (if org-publish-project-alist
+                (mapcar org-publish-project-alist 'car)
+              (list org-pm-default-project-name)))
+           (project-name
+            (org-icompleting-read "Choose or input a project name: " projects)))
+      (if (member project-name (org-pm-get-file-projects))
+          (error "This file is already part of project '%s'" project-name))
+      (setq project (org-pm-query-make-default-project project-name))
+      (org-pm-add-project-to-file-header project-name)
+      (org-pm-add-project-component project-name (buffer-file-name (current-buffer)))
+      (org-pm-save-projects-and-components)
+      (org-pm-make-project-template-file project)
+      (message 
+       "Added project named: %s to file: %s\nBase directory is: %s\nPublishing directory is: %s"
+       project-name
+       (file-name-nondirectory (buffer-file-name (current-buffer)))
+       (plist-get (cdr project) :base-directory)
+       (plist-get (cdr project) :publishing-directory))))
+  
+  (defun org-pm-query-make-default-project (project-name)
+    "Make a project using default settings and project-name as name."
+    (let ((ok  (y-or-n-p (format "Create project '%s'? " project-name)))
+          plist)
+      (unless ok (error "Project creation cancelled."))
+      (setq plist (org-pm-make-default-project-plist))
+      (setq plist
+            (plist-put 
+             plist :base-directory
+             (query-make-folder (plist-get plist :base-directory) 
+                                "Base directory:")))
+      (setq plist 
+            (plist-put 
+             plist :publishing-directory
+             (query-make-folder (plist-get plist :publishing-directory) 
+                                "Publishing directory:")))
+      (cons project-name plist)))
+  
+  (defun query-make-folder (path &optional prompt-string)
+    "If folder at path does not exist, then show dialog offering to user 
+    the option to create the indicated folder or to choose another path.
+    If the path selected does not exist, create folder."
+    (setq path (file-truename path))
+    (unless prompt-string (setq prompt-string "Folder select or create:"))
+    (let ((answer
+            (read-file-name
+             (format 
+              "%s\nSelect or input folder (folder will be created if needed):\n"
+              prompt-string)
+             path)))
+      (unless (equal (file-truename answer) (buffer-file-name (current-buffer))) 
+        (setq path answer))
+      (unless (file-exists-p path) (make-directory path))
+      path))
+  
+#+END_SRC elisp
+
+#+BEGIN_SRC elisp
+  (let ((result
+         (read-file-name "test" "~/")))
+    (if (equal (file-truename result) (buffer-file-name (current-buffer)))
+        "this would be the original default"
+      result)
+  )
+#+END_SRC
+
+#+RESULTS:
+: this would be the original default
+
+#+BEGIN_SRC elisp
+(query-make-folder "~/pm-org")
+#+END_SRC
+
+#+RESULTS:
+: ~/Documents/Dev/Emacs/org-publish-meta/org-pm.org
+
+** org-pm-remove-file-from-project:
+
+** org-pm-parse-buffer: 
+
+This command parses the current  in order to do 3 things: 
+
+1. Create project definitions. (org-pm-make-projects)
+2. Find which parts of the file are stored in which project, and store the results in org-pm-project-files. (org-pm-make-component-project-list)
+3. Save the resulting configurations by writing =org-publish-project-alist= and =org-pm-project-files= to the file whose path is contained in =org-pm-project-data-file-path=
+
+org-pm-parse-buffer can be called explicitly by the user as a command.
+
+If org-pm-auto-parse is enabled, then it is called automatically whenever a buffer is saved.
+
+** org-pm-publish: Select a project to publish from the projects targeted by current buffer. 
+
+Since a file containing org-pm tags can be anywhere outside an org-mode project folder, one cannot use org-publish-current-project to automatically provide the target project based on the file.  Therefore, use =org-pm-publish= instead to select the desired project to publish from a list of projects that are targeted by the current file.
+
+** org-pm-make-projects (called by org-pm-parse-buffer)
+
+** org-pm-make-component-project-list: 
+
+** org-pm-copy-components:
+
+org-pm-copy-components can be called explicitly by the user as a command.
+
+If org-pm-auto-copy is enabled, then it is called automatically whenever a project is published. 
+
+** org-pm-enable-auto: 
+
+** org-pm-disable-auto: 
+
+
+
+
