@@ -11,7 +11,7 @@
 
 Run the following to install org-pm and to activate auto-parsing and auto-copying:
 
-#+BEGIN_SRC elisp
+#+BEGIN_ASCII elisp
 (require 'org-pm)
 ;; Auto-parse project configs before saving a buffer:
 (setq org-pm-auto-parse t)
@@ -34,7 +34,7 @@ The command org-pm-add-file-to-project (C-c A) lets the user select a project fr
 
 To add a file to a project, org-pm-add-file-to-project adds the name of the project in property PROJECT by adding a line like this at the beginning of the org-mode file: 
 
-#+PROJECT: projectname
+: #+PROJECT: projectname
 
 *** Remove a file from a project
 :PROPERTIES:
