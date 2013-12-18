@@ -162,42 +162,6 @@ Note: The following should be included in the startup procedure for loading org-
 (org-pm-load-project-configs)
 #+END_SRC
 
-* TODO List of main functions
-:PROPERTIES:
-:DATE:     <2013-12-18 Wed 11:16>
-:END:
-
-** org-pm-add-file-to-project:
-
-** org-pm-remove-file-from-project:
-
-** org-pm-parse-buffer: 
-
-This command parses the current  in order to do 3 things: 
-
-1. Create project definitions. (org-pm-make-projects)
-2. Find which parts of the file are stored in which project, and store the results in org-pm-project-files. (org-pm-make-component-project-list)
-3. Save the resulting configurations by writing =org-publish-project-alist= and =org-pm-project-files= to the file whose path is contained in =org-pm-project-data-file-path=
-
-org-pm-parse-buffer can be called explicitly by the user as a command.
-
-If org-pm-auto-parse is enabled, then it is called automatically whenever a buffer is saved. 
-
-** org-pm-make-projects (called by org-pm-parse-buffer)
-
-** org-pm-make-component-project-list: 
-
-** org-pm-copy-components:
-
-org-pm-copy-components can be called explicitly by the user as a command.
-
-If org-pm-auto-copy is enabled, then it is called automatically whenever a project is published. 
-
-** org-pm-enable-auto: 
-
-** org-pm-disable-auto: 
-
-
 * UNDERWAY Project definition parsing code
 :PROPERTIES:
 :DATE:     <2013-12-09 Mon 00:58>
