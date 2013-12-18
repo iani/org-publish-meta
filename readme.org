@@ -1,12 +1,16 @@
 #+TITLE: Org-publish-meta (org-pm) 
 #+AUTHOR: Ioannis Zannos (zannos [at] gmail [dot] com)
 
+By: Ioannis Zannos (zannos [at] gmail [dot] com)
+
+Date: December 2013
+
 *Simplify and extend org-publish in Emacs Org-mode.*
 
-#+BEGIN_ASCII
+#+BEGIN_EXAMPLE
 THIS PROJECT IS ONLY AN EARLY DRAFT.
 The code and doc may give an idea of where the project is headed. 
-#+END_ASCII
+#+END_EXAMPLE
 
 * What it is
 
@@ -14,8 +18,8 @@ Org-pm (short for org-publish-meta) is an emacs-lisp package that simplifies and
 
 Org-mode is an Emacs library "for keeping notes, maintaining TODO lists, planning projects, and authoring documents with a fast and effective plain-text system" (http://orgmode.org/). 
 
-For Org-mode see: http://orgmode.org/
-For Org-mode project publishing mechanism see: http://orgmode.org/manual/Publishing.html#Publishing
+- For Org-mode see: http://orgmode.org/
+- For Org-mode project publishing mechanism see: http://orgmode.org/manual/Publishing.html#Publishing
 
 * Purpose
 
@@ -69,4 +73,4 @@ Run the following to install org-pm and to activate auto-parsing and auto-copyin
 (setq org-pm-auto-copy t)
 #+END_SRC
 
-See file:TUTORIAL.org and file:REFERENCE.org for further help.
+See [[file:TUTORIAL.org][TUTORIAL]] and [[file:REFERENCE.org][REFERENCE]] for further help.
