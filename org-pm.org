@@ -149,7 +149,52 @@ CLOSED: [2013-12-18 Wed 22:16]
 :DATE:     <2013-12-18 Wed 17:24>
 :END:
 
-** UNDERWAY org-pm-make-default-project-alist
+** DONE Functions for adding, removing and replacing elements in a-lists
+CLOSED: [2013-12-19 Thu 09:01]
+
+#+BEGIN_SRC emacs-lisp
+  (defun assoc-add (alist key element)
+    "Add element to the sublist of alist which starts with key."
+    (let ((sublist (assoc key alist)))
+      (if sublist
+          (setcdr sublist (cons element (cdr sublist)))
+        (if alist
+            (setcdr alist (cons (list key element) (cdr alist)))
+          (setq alist (list (list key element))))))
+    alist)
+  
+  (defun assoc-remove (alist key element)
+    "Remove element from the sublist of alist whose car is equal to key."
+    (when alist
+      (let ((sublist (assoc key alist)))
+        (when sublist
+          (setcdr sublist(remove element (cdr sublist)))
+          (if (equal 1 (length sublist)) (setq alist (remove sublist alist))))
+        alist)))
+  
+  (defun assoc-remove-key (alist key)
+    "Remove all sublists of alist whose car is equal to key."
+    (setq alist (remove* key alist :test 'equal :key 'car)))
+  
+    ;;; older version
+  (defun assoc-remove-key-simple-style (alist key)
+    "Remove all sublists of alist whose car is equal to key."
+    (let (found)
+      (while (setq found (assoc key alist))
+        (setq alist (delq found alist)))
+      alist))
+  
+  (defun assoc-replace (alist key newlist)
+    "Remove all sublists of alist whose car is equal to key, and then
+       add (cons key newlist) to alist."
+    (setq alist (assoc-remove-key alist key))
+    (setq alist (cons (cons key newlist) alist))
+    )
+  
+#+END_SRC
+
+** DONE org-pm-make-default-project-alist
+CLOSED: [2013-12-19 Thu 02:12]
 :PROPERTIES:
 :ID:       29715E74-6E71-43C0-A50C-F312C3173645
 :END:
@@ -165,19 +210,42 @@ CLOSED: [2013-12-18 Wed 22:16]
 
 #+RESULTS:
 : org-pm-make-default-project-plist
-
-** TODO org-pm-add-project-component
+** DONE org-pm-add-project-file
+CLOSED: [2013-12-19 Thu 09:14]
 :PROPERTIES:
 :DATE:     <2013-12-18 Wed 21:17>
 :ID:       1FE8167C-A514-4C21-9FC2-4A466A692E56
 :END:
 
-#+BEGIN_SRC emacs-lisp
-(defun org-pm-add-project-component (project-name component)
+When a file or a section of a file should be copied to a project base directory, add the project name to the list of projects of this file.  The list of projects of files is stored in org-pm-project-files.  
 
-)
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-add-project-file (project-name file)
+    "In list org-pm-project-files, add the project-name to the list 
+  of projects that file belongs. "
+    (setq org-pm-project-files
+          (assoc-add org-pm-project-files file project-name)))
 #+END_SRC
  
+** TODO org-pm-remove-project-file
+:PROPERTIES:
+:DATE:     <2013-12-18 Wed 21:17>
+:ID:       1FE8167C-A514-4C21-9FC2-4A466A692E56
+:END:
+
+When a file or a section of a file should be removed from a project, remove the project name from the list of projects of this file in org-pm-project-files.  (The list of projects of files is stored in org-pm-project-files.)
+
+NOTE: Removing components from projects is more complex than adding, because we should also remove the files of the components from the base directory of the project.  This should be done 
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-remove-project-file (project-name file)
+    "In list org-pm-project-files, add the project-name to the list 
+  of projects that file belongs. "
+    (setq org-pm-project-files
+          (assoc-add org-pm-project-files file project-name)))
+#+END_SRC
+ 
+
 ** TODO org-pm-save-projects-and-components
 :PROPERTIES:
 :DATE:     <2013-12-18 Wed 21:17>
@@ -235,7 +303,8 @@ Get list of all projects to which any individual sections in the file should be 
 )
 #+END_SRC
 
-** TODO org-pm-make-project-template-file
+** DONE org-pm-make-project-template-file
+CLOSED: [2013-12-19 Thu 02:12]
 :PROPERTIES:
 :ID:       36439CB5-E875-4E45-B595-5116888C9DCA
 :END:
@@ -248,6 +317,9 @@ Get list of all projects to which any individual sections in the file should be 
     code folder.  Replace relevant parts of the template with 
     information specific to the project.  
     Finally, save the template the project's base-directory."
+    
+    ;; Consider using with-temp-buffer for constructing the template file contents
+  
     (save-excursion
       (find-file org-pm-project-template-name)
       (let* ((filename (file-name-nondirectory org-pm-project-template-name))
@@ -263,8 +335,9 @@ Get list of all projects to which any individual sections in the file should be 
           (beginning-of-buffer)
           (replace-string "EXCLUDEFILE" filename)
           (write-file path)
-          (kill-buffer (current-buffer)))
-        )))
+          ;; leave buffer open for edits ?
+          ;; (kill-buffer (current-buffer))
+          ))))
   
   ;; (org-pm-make-project-template-file "test")
 #+END_SRC
@@ -282,14 +355,13 @@ Get list of all projects to which any individual sections in the file should be 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-add-file-to-project ()
     "Add the file of the current buffer to a project selected or input by the user.
-    If the project selected/input by the user is not already in the file's project list:
-    - If no project of that name exists, request that the project be defined using
-    org-pm or other methods.
-    - If no project at all exists, then offer to create default project.
-    - Add the selected project to the file's list in org-pm-project-files.
-    - Save org-pm-project-files.
-    - Add the project name to property PROJECT in file's header.
-    "
+      If the project selected/input by the user is not already in the file's project list:
+      - If no project of that name exists, request that the project be defined using
+      org-pm or other methods.
+      - If no project at all exists, then offer to create default project.
+      - Add the selected project to the file's list in org-pm-project-files.
+      - Save org-pm-project-files.
+      - Add the project name to property PROJECT in file's header."
     (interactive)
     (unless (buffer-file-name (current-buffer))
       (error "This buffer is not associated with a file.  Please save first."))
@@ -304,7 +376,7 @@ Get list of all projects to which any individual sections in the file should be 
           (error "This file is already part of project '%s'" project-name))
       (setq project (org-pm-query-make-default-project project-name))
       (org-pm-add-project-to-file-header project-name)
-      (org-pm-add-project-component project-name (buffer-file-name (current-buffer)))
+      (org-pm-add-project-file project-name (buffer-file-name (current-buffer)))
       (org-pm-save-projects-and-components)
       (org-pm-make-project-template-file project)
       (message 
@@ -316,9 +388,9 @@ Get list of all projects to which any individual sections in the file should be 
   
   (defun org-pm-query-make-default-project (project-name)
     "Make a project using default settings and project-name as name."
-    (let ((ok  (y-or-n-p (format "Create project '%s'? " project-name)))
-          plist)
-      (unless ok (error "Project creation cancelled."))
+    (unless (y-or-n-p (format "Create project '%s'? " project-name))
+      (error "Project creation cancelled."))
+    (let (plist)
       (setq plist (org-pm-make-default-project-plist))
       (setq plist
             (plist-put 
@@ -334,16 +406,16 @@ Get list of all projects to which any individual sections in the file should be 
   
   (defun query-make-folder (path &optional prompt-string)
     "If folder at path does not exist, then show dialog offering to user 
-    the option to create the indicated folder or to choose another path.
-    If the path selected does not exist, create folder."
+      the option to create the indicated folder or to choose another path.
+      If the path selected does not exist, create folder."
     (setq path (file-truename path))
     (unless prompt-string (setq prompt-string "Folder select or create:"))
     (let ((answer
-            (read-file-name
-             (format 
-              "%s\nSelect or input folder (folder will be created if needed):\n"
-              prompt-string)
-             path)))
+           (read-file-name
+            (format 
+             "%s\nSelect or input folder (folder will be created if needed):\n"
+             prompt-string)
+            path)))
       (unless (equal (file-truename answer) (buffer-file-name (current-buffer))) 
         (setq path answer))
       (unless (file-exists-p path) (make-directory path))
