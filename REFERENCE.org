@@ -24,13 +24,32 @@
 :DATE:     <2013-12-18 Wed 11:16>
 :END:
 
-** org-pm-add-file-to-project:
+** org-pm-add-file-to-project
 
-** org-pm-remove-file-from-project:
+Ask the user interactively to input the name of a project to which the present buffer should be added.  Add the buffer to the project through either buffer property =#+PROJECT:= or section tag.  Also ask for folder where to put file of buffer.  If needed, create project definition and add it to buffer.  Created any needed folders.  
 
-** org-pm-parse-buffer: 
+Steps in detail:
 
-This command parses the current  in order to do 3 things: 
+1. Parse buffer contents (=org-pm-parse-buffer=) to update project definitions and create list of projects that this buffer belongs to.
+2. Create list of projects to select from, by removing the projects that the buffer belongs to from the projects in org-publish-project-alist. 
+3. Present menu of projects to select from.  
+4. If user enters name of new project, offer to create this project.  Let user select or input the paths for base directory and publishing directory.  Create these directories if not present.  Add project definition section to buffer if needed.
+5. Ask user to select or input folder inside the source directory where the file should be placed.  If the folder input by the user is not a subfolder of the selected projects' bse directory, then issue an error.  If the folder does not exist, create it.  
+6. If the selected project is defined in the present buffer:
+   - Then add tag with project name and folder path relative to base directory to the section that defines the project.
+   - Else add =#+PROJECT:= property on a new line at top of buffer.
+7. Add project to the entry of this file in =org-pm-project-components= list.
+8. Save config data.
+
+** org-pm-remove-file-from-project
+
+** org-pm-add-section-to-project
+
+** org-pm-remove-section-from-project
+
+** org-pm-parse-buffer 
+
+This command parses the current buffer in order to do 3 things: 
 
 1. Create project definitions. (org-pm-make-projects)
 2. Find which parts of the file are stored in which project, and store the results in org-pm-project-files. (org-pm-make-component-project-list)
@@ -40,7 +59,16 @@ org-pm-parse-buffer can be called explicitly by the user as a command.
 
 If org-pm-auto-parse is enabled, then it is called automatically whenever a buffer is saved.
 
-** org-pm-publish: Select a project to publish from the projects targeted by current buffer. 
+================================================================
+Steps to incorporate:
+1. Scan the current buffer to find which projects it already belongs to:
+   1. Scan for contents of property =#+PROJECT:=.
+   2. Scan for sections with tags enclosed in =_=.
+================================================================
+
+** org-pm-publish 
+
+Select a project to publish from the projects targeted by current buffer. 
 
 Since a file containing org-pm tags can be anywhere outside an org-mode project folder, one cannot use org-publish-current-project to automatically provide the target project based on the file.  Therefore, use =org-pm-publish= instead to select the desired project to publish from a list of projects that are targeted by the current file.
 
@@ -56,6 +84,84 @@ If org-pm-auto-copy is enabled, then it is called automatically whenever a proje
 
 ** org-pm-enable-auto: 
 
-** org-pm-disable-auto: 
+** org-pm-disable-auto:
 
+* Storing Project Data
 
+Org-pm stores project data to a file, so that previously defined projects are available when one restarts emacs. 
+
+Org-pm saves the data every time that it parses a buffer (function =org-pm-parse-buffer=). 
+
+The path of the file holding these data is in variable =org-pm-project-data-file-path=.
+
+The data stored are: 
+
+** Org-mode project definition data (=org-publish-project-alist=)
+
+** The target projects for every file and node (=org-pm-project-components=)
+:PROPERTIES:
+:ID:       A912E617-30B3-4827-89D1-BAA449A8EC49
+:END:
+
+For every file and every section (node) component that belongs to a project, org-mode stores the address of the component and a list of the target projects and paths of files where the component should be copied.  All entries are stored in a list in variable =org-pm-project-components=.  This variable is auto-saved together with the =org-publish-project-alist= every time that a file is parsed. 
+
+Each entry in =org-pm-project-components= has the form: 
+
+#+BEGIN_SRC elisp
+(<ID> <FULL PATH TO SOURCE FILE>
+    (<PROJECT NAME 1> . <RELATIVE PATH OF TARGET FILE 1>)
+    (<PROJECT NAME 2> . <RELATIVE PATH OF TARGET FILE 2>)
+    ...
+    )
+#+END_SRC
+
+Where <ID> is the ID property of the section as provided by org-id-get-create.  For example: 
+
+: 878E718E-90BE-4E46-A002-767FCE598354
+
+* Tasks involved, and when they are done
+
+There are two main steps in the org-pm publish process: 
+
+1. Parsing a file to find projects and components of projects.  This is done with 
+
+2. Copying files or sections (nodes) of files to a project
+
+Additionally, there are tasks needed to keep the data of the project consistent, described in the next section.
+
+** Three main tasks: Specification, Configuration, Publication
+
+*** Specifying configurations through properties and tags in an org file
+
+*** Reading configurations from file data
+
+Parsing a file to find project definitions and components of projects
+
+*** Copying files or sections (nodes) of files to a project based on configurations
+
+** Adding and deleting files or sections to/from proejcts
+
+*** Adding a file to a project
+
+*** Removing a file from a project
+
+*** Adding a section to a project 
+
+*** Removing a section from a project
+
+*** 
+
+*** Data integrity checks
+:PROPERTIES:
+:DATE:     <2013-12-20 Fri 00:10>
+:END:
+
+**** Duplicate IDs
+
+Duplicate IDs arise when a section of a file is copied to another location along with its IDs 
+
+**** Obsolete files
+
+**** Broken links
+
+Broken links arise when 

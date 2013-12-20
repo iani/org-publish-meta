@@ -596,8 +596,12 @@ This place: http://orgmode.org/manual/Internal-links.html mentions CUSTOM_ID but
 (require 'org-id)
 (setq org-id-link-to-org-use-id t)
 (defvar org-only-store-id-links t)
-()
+
 #+END_SRC
+
+#+RESULTS:
+: org-only-store-id-links
+
 **** Fix 1: org-link-search to use ID instead of CUSTOM_ID
 :PROPERTIES:
 :ID:       E0B76DAC-A1A9-49FE-9542-2CE385F978EC
@@ -760,6 +764,10 @@ file:../filename.org::#123ABC-THIS-IS-THE-ID-NUMBER-1234ABC567
       type))
   
 #+END_SRC
+
+#+RESULTS:
+: org-link-search
+
 **** Fix 2: fixing org-id-store-link to include the file path in the link (OK!!!)
 :PROPERTIES:
 :ID:       33A528A5-A0D5-45EF-AA57-06ABB79086FB
@@ -787,6 +795,10 @@ file:../filename.org::#123ABC-THIS-IS-THE-ID-NUMBER-1234ABC567
         (org-store-link-props :link link :description desc :type "id")
         link)))
 #+END_SRC
+
+#+RESULTS:
+: org-id-store-link
+
 **** Fix 3: Fix org-store-link to not add second link to list
 :PROPERTIES:
 :DATE:     <2013-12-09 Mon 12:34>
@@ -2429,6 +2441,9 @@ Other properties affecting publication.
   :type 'alist)
 
 *** Further code
+:PROPERTIES:
+:ID:       878E718E-90BE-4E46-A002-767FCE598354
+:END:
 #+BEGIN_SRC elisp
 (setq org-publish-project-alist
   (list (org-publish-make-default-plist "/Users/iani2/Dropbox/000WORKFILES/org/personal"))
@@ -2550,9 +2565,5 @@ To set properties
   org-publish-project-alist
 #+END_SRC
 
-
-
-
-
-
-
+: #878E718E-90BE-4E46-A002-767FCE598354
+[[#878E718E-90BE-4E46-A002-767FCE598354][Further code]

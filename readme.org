@@ -27,17 +27,17 @@ The purpose of org-pm is to simplify the definition of org-mode publishing proje
 
 * How it works
 
+Org-pm does not require for a file to be placed inside the folder of an Org-mode (publishing) project.  Instead, one specifies for a file or for any section (node) of a file, to which projects it belongs.  Before publishing a project, all files or parts of files that are registered to this project are copied to the base directory of that project.  One may specify for a file or section to be copied to a subfolder of the project. 
+
 Project definitions (property-lists) are written as nodes (sections) in any org-mode file, using headings as property names and contents as values of the properties.  Special org-mode properties and tags are used to indicate those sections which contain project definitions and also those files and nodes which belong to projects. 
 
 Org-pm scans an org-mode file and adds to =org-publish-project-alist= any projects that this file may contain.  It also creates a list of the projects to which the file or any of its sections should be copied into variable =org-pm-project-files=.  Org-pm automatically saves =org-publish-project-alist= and =org-pm-project-files= to a file for use in further Emacs-sessions. 
-
-Before publishing a project 
 
 Both the scanning of files and the copying of their contents can be made to occur automatically when saving any org-mode file and when publishing a project.  See "Automation" below. 
 
 * Features
 
-- Use keyboard shortcuts to add or remove a file to/from any project.
+- Use keyboard shortcuts to add or remove a file or section to/from any project.
 - Generate default project automatically and provide template file for further editing of configuration.
 - Generate project definitions from org-mode style contents of sections.
 - Include CSS, JavaScript and other script files in the org-mode file as sections. Contents of sections are copied as-they-are.  No need to use extra markup or escape characters. 
