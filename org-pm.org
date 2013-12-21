@@ -441,156 +441,95 @@ NOTE: Removing components from projects is more complex than adding, because we 
   ;; FIXME: REDOING HERE see -buggy
   (defun org-pm-make-projects ()
     "Construct the projects for all project definitions found in current file.
-  Project definitions are those nodes which are contained in nodes tagged as
-  PROJECT_DEFS.
-  Note about project definition node-IDs:  
-  Section IDs of project definitions are used only as links 
-  to point to the position in the file where a project definition is, not to identify
-  a project.  A project is identified by its name.  Therefore: 
-  The node-id of a project is set to <full-file-path>::#<section id>.
-  When a duplicate section id is found in a definition, it is replaced by a new one, 
-  and the new id is stored in the project."
+    Project definitions are those nodes which are contained in nodes tagged as
+    PROJECT_DEFS.
+    Note about project definition node-IDs:  
+    Section IDs of project definitions are used only as links 
+    to point to the position in the file where a project definition is, not to identify
+    a project.  A project is identified by its name.  Therefore: 
+    The node-id of a project is set to <full-file-path>::#<section id>.
+    When a duplicate section id is found in a definition, it is replaced by a new one, 
+    and the new id is stored in the project."
     (let ((template (org-pm-make-default-project-plist))
-          entry-checklist level levels ids projects)
-      
+          levels id ids projects)
       (org-map-entries 
        '(let
             ((entry (cadr (org-element-at-point))))
-          (message "ENTRY: %s" entry)
-          (when (member "PROJECT_DEFS" (plist-get entry :tags))
-            (setq level (+ 1 (plist-get entry :level)))
-            (setq levels (cons level levels))
-            (setq entry-checklist
-                  (cons (list (plist-get entry :raw-value)
-                              (format "newly set level %s" level)
-                              levels
-                              (plist-get entry :tags)
-                              )
-                        entry-checklist)))
-          (setq entry-checklist 
-                (cons (list
-                       (message "level: %s" level)
-                       (message "levels: %s" levels)
-                       (message "eq level %s" (equal (car levels) (plist-get entry :level)))
-                       (message "title: %s" (plist-get entry :raw-value))
-                       )
-                      entry-checklist))
-          (if (equal (car levels) (plist-get entry :level))
-              (setq projects (cons (org-pm-parse-project-def entry template) projects)))
-          )
+          (if (member "PROJECT_DEFS" (plist-get entry :tags))
+              (setq levels (cons (+ 1 (plist-get entry :level)) levels)))
+          (when (equal (car levels) (plist-get entry :level))
+            (setq id (org-id-get-create))
+            (when (member id ids)
+              (org-delete-property "ID")
+              (setq id (org-id-get-create))
+              (setq entry (plist-put entry :ID id)))
+            (setq ids (cons id ids))
+            (setq projects (cons (org-pm-parse-project-def entry template) projects))))
        "PROJECT_DEFS")
-      ;; entry-checklist
-      projects
-      ))
+      (mapcar 'org-pm-check-add-project projects)))
   
-  ;; FIXME: nested org-map-entries results in repeated parsing of same nodes. 
-  ;; Therefore redoing this above. 
-  (defun org-pm-make-projects-buggy ()
-    "Construct the projects for all project definitions found in current file.
-  Project definitions are those nodes which are contained in nodes tagged as
-  PROJECT_DEFS."
-    (interactive)
-    (save-excursion
-      (save-restriction
-        (widen)
-        (org-pm-check-project-config-nodes)
-        (let
-            (project-def
-             id-list
-             id
-             (template (org-pm-make-default-project-plist))
-             (supernodes
-              (org-map-entries '(cadr (org-element-at-point)) "PROJECT_DEFS"))
-             project-def-list tags begin level)
-          (dolist (node supernodes)
-            (cond ((and
-                    (plist-get node :tags)
-                    (setq begin (plist-get node :contents-begin)))
-                   (setq level (+ 1 (plist-get node :level)))
-                   (save-excursion
-                     (save-restriction
-                       (narrow-to-region begin (plist-get node :contents-end))
-                       (dolist 
-                           (proj-node (org-map-entries '(cadr (org-element-at-point))))
-                         (message "check: %s - %s" (org-id-get-create) id-list)
-                         (cond ((equal level (plist-get proj-node :level))
-                                (setq id (org-id-get-create))
-                                (when (member id id-list)
-                                  (error "DUPLICATE ID FOUND %s %s"
-                                         id
-                                         id-list
-                                         )) ;; FIXME: Need better error!
-                                (setq id-list (cons id id-list))
-                                (setq project-def
-                                      (org-pm-parse-project-def proj-node template))
-                                (push project-def 
-                                      project-def-list)))))))))
-          project-def-list))))
-  
-  (defun org-pm-check-add-projects (projects)
-    "Check each project in projects: If it is defined in a component with a different ID,
-  then ask user to select which project to keep. 
-  NOTE: 
-        Possibly offer to remove project definitions?  
-        Offer to remove projects after checking if they are in a different place?
-        Or post info about replaced projects so that user can decide how do deal with them?
-        The posting can be done one project at a time.  No need to build a list."
-    (dolist (project projects) (org-pm-query-select-project project)
-      (let ((duplicate (assoc (car project) org-publish-project-alist)))
-        (if duplicate (setq project (org-pm-query-select-project project duplicate)))
-        (org-pm-add-project project))))
-  
-  (defun org-pm-query-select-project (new-project old-project)
-    "Check if new project definition is from a different source than old-project.
-  If yes, then ask the user which of the project definitions to keep.
-  Post info about the rejected definition so that user can remove or edit it.
-  Return the selected project so that it is added by org-pm-add-project,
-  replacing the previous entry for this project."
-    (let ((selection new-project))
-      (unless (equal (plist-get (cdr new-project) :source-id) 
-                     (plist-get (cdr old-project) :source-id))
-        (setq selection (must-write-the-code-for-query-selection new-project old-project))
-        (must-write-the-code-for-message-about-rejected
-         (if (eq selection new-project) old-project new-project)))
-      selection))
-  
-  (defun org-pm-add-project (project)
-    "Add project to org-pm-project-alist.
-  If previous project with same name exist, replace it."
-   (setq org-publish-project-alist 
-         (assoc-replace org-publish-project-alist (car project) (cdr project))))
-  
-  (defun org-pm-check-project-config-nodes ()
-    "Check if a node tagged POJECT_CONFIGS has invalid content before first subnode."
-    (org-map-entries 
-     '(let
-          (begin (node (cadr (org-element-at-point))))
-        (if (and
-             (setq begin (plist-get node :contents-begin))
-             (member "PROJECT_DEFS" (plist-get node :tags))
-             )
-            ;; only works with if statement in the following way. Why?
-            (if (equal 0 (string-match 
-                          "\\*+ " 
-                          (buffer-substring-no-properties begin (plist-get node :contents-end))))
-                "ok"
-              (error (format 
-                      "ERROR: Node named '%s' should be empty before first subnode.\n%s"
-                      (plist-get node :raw-value)
-                      "Please remove all content before first subnode.")))
-          ))
-     "PROJECT_DEFS"))
+  (defun org-pm-check-add-project (project)
+    "Check project for duplicate before adding. 
+    If it is defined in a component with a different ID,
+    then ask user to select which project to keep. 
+    NOTE: 
+          Possibly offer to remove project definitions?  
+          Offer to remove projects after checking if they are in a different place?
+          Or post info about replaced projects so that user can decide how do deal with them?
+          The posting can be done one project at a time.  No need to build a list."
+    (let* (
+           (p-name (car project))
+           (p-def (cdr project))
+           (prev-proj (assoc p-name org-publish-project-alist)))
+      (cond 
+       ((not prev-proj)
+        ;; (message "THERE IS NO PREVIOUS PROJECT WITH SAME NAME")
+        )
+       ((equal (plist-get (cdr prev-proj) :node-id) (plist-get p-def :node-id))
+        ;; (message "THERE IS NO CONFLICT")
+        )
+       (t
+        ;; (message "THIS IS A CONFLICTING DUPLICATE")
+        (let (user-selection
+              (selections
+               (mapcar 
+                (lambda (proj)
+                  (cons (concat
+                         (car proj) ": " (plist-get (cdr proj) :last-updated) " "
+                         (plist-get (cdr proj) :node-id))
+                        proj))
+                (list project prev-proj))))
+         ;;  (message "THIS IS NOW THE LIST OF SELECTIONS %s" selections)
+          (setq user-selection 
+                (completing-read
+                 (concat 
+                  (format "Duplicate definition found in file: %s\n"
+                          (plist-get (cdr prev-proj) :node-filename))
+                  "Select which project to keep (type TAB twice to show list): ")
+                 (mapcar (lambda (s) (car s)) selections)))
+          ;; (message "THE SELECTION WAS: %s" user-selection)
+          (message "THE PROJECT CORRESPONDING IS: %s" (cdr (assoc user-selection selections)))
+          (setq project (cdr (assoc user-selection selections)))
+          (setq org-publish-project-alist
+                (assoc-replace 
+                 org-publish-project-alist (car project) (cdr project))))))
+      project))
   
   (defun org-pm-parse-project-def (proj-node template)
     "Return a project definition plist for the node represented by proj-node
-  org-element plist."
+    org-element plist."
     (let ((pdef (copy-sequence template))
           (pname (plist-get proj-node :raw-value))
           (begin (plist-get proj-node :contents-begin)))
       (setq pdef (plist-put pdef :project-name pname))
-      (setq pdef (plist-put pdef :node-id (org-id-get-create)))
+      (setq 
+       pdef
+       (plist-put 
+        pdef :node-id 
+        (concat (buffer-file-name (current-buffer)) "::#" (plist-get proj-node :ID))))
       (setq pdef (plist-put pdef :node-filename
                             (buffer-file-name (current-buffer))))
+      (setq pdef (plist-put pdef :last-updated (format-time-string "[%Y-%m-%d %a %H:%M]")))
       (cond 
        (begin
         (save-excursion
@@ -620,14 +559,35 @@ NOTE: Removing components from projects is more complex than adding, because we 
                           contents-begin
                           (plist-get element :contents-end))))))
                 (setq pdef
-                      (plist-put pdef (intern (concat ":" prop-name)) prop-value))
-                ))))))
+                      (plist-put pdef (intern (concat ":" prop-name)) prop-value))))))))
       (cons pname pdef)))
+  
+  
+  (defun org-pm-query-select-project (new-project old-project)
+    "Check if new project definition is from a different source than old-project.
+    If yes, then ask the user which of the project definitions to keep.
+    Post info about the rejected definition so that user can remove or edit it.
+    Return the selected project so that it is added by org-pm-add-project,
+    replacing the previous entry for this project."
+    (let ((selection new-project))
+      (unless (equal (plist-get (cdr new-project) :source-id) 
+                     (plist-get (cdr old-project) :source-id))
+        (setq selection (must-write-the-code-for-query-selection new-project old-project))
+        (must-write-the-code-for-message-about-rejected
+         (if (eq selection new-project) old-project new-project)))
+      selection))
+  
+  (defun org-pm-add-project (project)
+    "Add project to org-pm-project-alist.
+    If previous project with same name exist, replace it."
+    (setq org-publish-project-alist 
+          (assoc-replace org-publish-project-alist (car project) (cdr project))))
+  
   
 #+END_SRC
 
 #+RESULTS:
-: org-pm-parse-project-def
+: org-pm-add-project
 
 For test purposes: 
 #+BEGIN_SRC elisp
