@@ -30,6 +30,22 @@
   For each file it store a list: (full-path project1 project2 ...)")
 #+END_SRC
 
+** DONE org-pm-duplicate-project-defs
+CLOSED: [2013-12-21 Sat 22:07]
+
+#+BEGIN_SRC emacs-lisp
+  (defvar org-pm-project-def-duplicates nil
+    "List of links to files/sections which contains project definitions
+  that were overwritten because another definition with the same name was found.
+  Auto-saved together with org-publish-project-alist and org-pm-project-components.
+  Used to create org-mode buffer with links to these locations.
+  See function org-pm-check-add-project."
+  )
+#+END_SRC
+
+#+RESULTS:
+: org-pm-project-def-duplicates
+
 ** DONE org-pm-auto-parse
 CLOSED: [2013-12-18 Wed 15:23]
 :PROPERTIES:
@@ -241,7 +257,6 @@ NOTE: Removing components from projects is more complex than adding, because we 
     (setq org-pm-project-components
           (assoc-add org-pm-project-components file project-name)))
 #+END_SRC
- 
 
 ** TODO org-pm-save-projects-and-components
 :PROPERTIES:
@@ -469,51 +484,27 @@ NOTE: Removing components from projects is more complex than adding, because we 
       (mapcar 'org-pm-check-add-project projects)))
   
   (defun org-pm-check-add-project (project)
-    "Check project for duplicate before adding. 
-    If it is defined in a component with a different ID,
-    then ask user to select which project to keep. 
-    NOTE: 
-          Possibly offer to remove project definitions?  
-          Offer to remove projects after checking if they are in a different place?
-          Or post info about replaced projects so that user can decide how do deal with them?
-          The posting can be done one project at a time.  No need to build a list."
-    (let* (
-           (p-name (car project))
+    "Add the project definition contained in plist 'project' to org-publish-project-alist,
+  replacing any previously existing definition there.  Before replacing, save any 
+  previously existing project whose definition is in a different file component in 
+  the variable org-pm-project-def-duplicates:
+  If a project with the same name already exists in org-publish-project-alist, 
+  and that project has a different ID (file path + section ID), then the previously
+  existing project definition is added to the list in org-pm-project-def-duplicates."
+    (let* ((p-name (car project))
            (p-def (cdr project))
-           (prev-proj (assoc p-name org-publish-project-alist)))
+           (prev-proj (assoc p-name org-publish-project-alist))
+           (prev-proj-id (plist-get (cdr prev-proj) :node-id))
+           (duplicates (assoc p-name org-pm-project-def-duplicates)))
       (cond 
-       ((not prev-proj)
-        ;; (message "THERE IS NO PREVIOUS PROJECT WITH SAME NAME")
-        )
-       ((equal (plist-get (cdr prev-proj) :node-id) (plist-get p-def :node-id))
-        ;; (message "THERE IS NO CONFLICT")
-        )
-       (t
-        ;; (message "THIS IS A CONFLICTING DUPLICATE")
-        (let (user-selection
-              (selections
-               (mapcar 
-                (lambda (proj)
-                  (cons (concat
-                         (car proj) ": " (plist-get (cdr proj) :last-updated) " "
-                         (plist-get (cdr proj) :node-id))
-                        proj))
-                (list project prev-proj))))
-         ;;  (message "THIS IS NOW THE LIST OF SELECTIONS %s" selections)
-          (setq user-selection 
-                (completing-read
-                 (concat 
-                  (format "Duplicate definition found in file: %s\n"
-                          (plist-get (cdr prev-proj) :node-filename))
-                  "Select which project to keep (type TAB twice to show list): ")
-                 (mapcar (lambda (s) (car s)) selections)))
-          ;; (message "THE SELECTION WAS: %s" user-selection)
-          (message "THE PROJECT CORRESPONDING IS: %s" (cdr (assoc user-selection selections)))
-          (setq project (cdr (assoc user-selection selections)))
-          (setq org-publish-project-alist
-                (assoc-replace 
-                 org-publish-project-alist (car project) (cdr project))))))
-      project))
+       ((not prev-proj))
+       ((equal prev-proj-id (plist-get p-def :node-id)))
+       (t (setq
+           org-pm-project-def-duplicates 
+           (assoc-replace org-pm-project-def-duplicates p-name 
+                          (add-to-list 'duplicates prev-proj-id)))))
+      (setq org-publish-project-alist (assoc-replace org-publish-project-alist p-name p-def)))
+    project)
   
   (defun org-pm-parse-project-def (proj-node template)
     "Return a project definition plist for the node represented by proj-node
