@@ -39,7 +39,11 @@ CLOSED: [2013-12-21 Sat 22:07]
   that were overwritten because another definition with the same name was found.
   Auto-saved together with org-publish-project-alist and org-pm-project-components.
   Used to create org-mode buffer with links to these locations.
-  See function org-pm-check-add-project."
+  See functions:
+  - org-pm-check-add-project
+  - org-pm-list-dupicate-project-defs
+  - org-pm-list-project-defs
+  - pm/edit-duplicate-project-def"
   )
 #+END_SRC
 
@@ -736,11 +740,6 @@ CLOSED: [2013-12-22 Sun 12:21]
               (insert "file: file:" (car path-and-id) "\n")
               (insert "node: " "id:" (cadr path-and-id) "\n")))))
       ))
-  
-#+END_SRC
-
-#+BEGIN_SRC elisp
-(split)
 #+END_SRC
 
 ** DONE org-pm-list-project-defs
@@ -765,27 +764,64 @@ CLOSED: [2013-12-22 Sun 14:30]
       (insert "PROJECT DEFINITIONS")
       (dolist (project org-publish-project-alist)
         ;; (insert (format "\nDEBUG %s\n\n" project))
-        (insert "\n** "(car project) "\n")
+        (insert "\n** " 
+                (car project) 
+                " (click [[elisp:(org-pm-search-link \""
+                (plist-get (cdr project) :project-id)
+                "\")][*HERE*]] to edit)\n")
         (insert "file: file:" (plist-get (cdr project) :node-filename) "\n")
         (insert "node: id:" (plist-get (cdr project) :node-id) "\n")
         (let ((duplicates (cdr (assoc (car project) org-pm-project-def-duplicates))))
           (if duplicates
               (dolist (def duplicates)
                 (let ((path-and-id (split-string def "::#")))
-                  (insert "\n*** duplicate:\nfile: file:" (car path-and-id) "\n")
-                  (insert "node: " "id:" (cadr path-and-id) "\n")))
+                 (insert "\n*** duplicate: ")
+                 (insert
+                  " (click [[elisp:(org-pm-search-link \""
+                  def
+                  "\")][*HERE*]] to edit)"
+                  )
+                 (insert "\nfile: file:" (car path-and-id) "\n")
+                 (insert "node: " "id:" (cadr path-and-id) "\n")))
             (insert "\nThere no duplicate definitions for this project!\n"))))))
   
 #+END_SRC
 
-#+BEGIN_SRC elisp
-(split)
+#+RESULTS:
+: org-pm-list-project-defs
+
+*** DONE org-pm-search-link
+CLOSED: [2013-12-22 Sun 18:45]
+
+Currently, links to IDs that are not in org-link-locations are not found by org-mode.  =org-pm-search-link= finds such links by going to the file and then searching for the property with the id of the link.  It is used in org-pm-list-project-defs to enable jumping to links of duplicate project defs.  It can also be used for the same purpose in lists of components. 
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-search-link (link)
+    (let ((file-and-id (split-string link "::#")))
+      (find-file (car file-and-id))
+      (beginning-of-buffer)
+      (re-search-forward (concat ":ID: +" (cadr file-and-id)))
+      (org-back-to-heading)
+      (org-show-subtree)
+      (org-mark-element)
+      (message "
+  Marked the entire section containing project definition.
+  Type C-space C-space to de-select region and deactivate mark.")))
 #+END_SRC
 
-** DONE pm/edit-duplicate-project-def
-CLOSED: [2013-12-22 Sun 16:24]
+#+RESULTS:
+: org-pm-search-link
+
+** UNDERWAY pm/edit-duplicate-project-def
 
 Note: Naming this function org-pm-edit-duplicate-project-def disabled the auto-display of selections in the command line.  Something with org-mode recognizing names of functions and changing the meaning of completing-read?
+
+*** IMPORTANT: use elisp links to build this function into the org-pm-list-project-defs org-buffer!
+
+use elisp links to build this function into the org-pm-list-project-defs 
+See:  http://stackoverflow.com/questions/5043895/how-to-call-emacs-lisp-functions-in-emacs-org-mod
+Adapt this to call the function you need with the file + node:
+[[elisp:(insert "abc.txt")]]
 
 #+BEGIN_SRC emacs-lisp
   (defun pm/edit-duplicate-project-def ()
@@ -811,7 +847,9 @@ Note: Naming this function org-pm-edit-duplicate-project-def disabled the auto-d
       (org-back-to-heading)
       (org-show-subtree)
       (org-mark-element)
-      (message "Marked the entire section containing duplicate project definition")
+      (message "
+  Marked the entire section containing duplicate project definition.
+  Type C-space C-space to de-select region and deactivate mark")
       ))
   
   
