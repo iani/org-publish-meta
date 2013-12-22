@@ -371,25 +371,19 @@ CLOSED: [2013-12-19 Thu 02:12]
 
 
 
-* IMPORTANT CONSIDERATIONS!!!: CONSISTENCY: Cleaning up duplicate links and dead projects+files
+* Cleaning up duplicate links and dead projects+files
 
-1. Some sections may have duplicate IDs, created by copy-pasting sections. Must clean this up or else both link and copying errors will happen.  Registering duplicates across all projects and checking them seems a manageable task.
-
-2. When a project definition is copied or renamed, this may result in having duplicate definitions, i.e. multiple project definitions with the same name in different places.  Which is the one to work with. 
-
+1. Some sections may have duplicate IDs, created by copy-pasting sections.  
+2. When a project definition is copied or renamed, this may result in having duplicate definitions, i.e. multiple project definitions with the same name in different places.  Which is the one to work with.
 3. When a project definition is renamed or removed, the one stored under its previous name becomes orphaned. What to do?
-
 4. When a project component is deleted or moved to another project, or when the project or folder or name of the file where it should be copied changes, then the old file becomes orphaned.   What to do?
 
-Which of these are important and feasible to automate?
+Dealing with the above: 
 
-No. 1 above seems both not too complex to check and essential to keep always consistent. 
-
-No. 2 is also possible to check as soon as it happens, because the moment a new project gets defined one can check if the already existing definition is in the same file, and ask for the user to choose one of the two.
-
-No. 3 could be delegated to commands that a user can call independently of the main specification and publishing process. 
-
-No. 4 could be handled like No. 3.
+1. One can use org-id-update-id-locations to both find all ids and all duplicates.
+2. is possible to check as soon as it happens, because the moment a new project gets defined one can check if the already existing definition is in the same file.  Registering duplicate projects defintions in org-pm-projectd-def-duplicates.  Function org-pm-list-project-defs creates buffer listing all project defs, including duplicates, and provides links for going to any one of thse in order to edit/remove. 
+3. could be delegated to commands that a user can call independently of the main specification and publishing process. 
+4. could be handled like No. 3.
 
 * Main functions and commands
 :PROPERTIES:
@@ -815,13 +809,6 @@ Currently, links to IDs that are not in org-link-locations are not found by org-
 ** UNDERWAY pm/edit-duplicate-project-def
 
 Note: Naming this function org-pm-edit-duplicate-project-def disabled the auto-display of selections in the command line.  Something with org-mode recognizing names of functions and changing the meaning of completing-read?
-
-*** IMPORTANT: use elisp links to build this function into the org-pm-list-project-defs org-buffer!
-
-use elisp links to build this function into the org-pm-list-project-defs 
-See:  http://stackoverflow.com/questions/5043895/how-to-call-emacs-lisp-functions-in-emacs-org-mod
-Adapt this to call the function you need with the file + node:
-[[elisp:(insert "abc.txt")]]
 
 #+BEGIN_SRC emacs-lisp
   (defun pm/edit-duplicate-project-def ()
