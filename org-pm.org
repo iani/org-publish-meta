@@ -460,8 +460,9 @@ NOTE: Removing components from projects is more complex than adding, because we 
     PROJECT_DEFS.
     Note about project definition node-IDs:  
     Section IDs of project definitions are used only as links 
-    to point to the position in the file where a project definition is, not to identify
-    a project.  A project is identified by its name.  Therefore: 
+    to point to the position in the file where a project definition is,.
+    They do nod identify a project.  A project is identified by its name.  
+    Therefore: 
     The node-id of a project is set to <full-file-path>::#<section id>.
     When a duplicate section id is found in a definition, it is replaced by a new one, 
     and the new id is stored in the project."
@@ -494,32 +495,34 @@ NOTE: Removing components from projects is more complex than adding, because we 
     (let* ((p-name (car project))
            (p-def (cdr project))
            (prev-proj (assoc p-name org-publish-project-alist))
-           (prev-proj-id (plist-get (cdr prev-proj) :node-id))
+           (prev-proj-id (plist-get (cdr prev-proj) :project-id))
            (duplicates (assoc p-name org-pm-project-def-duplicates)))
       (cond 
        ((not prev-proj))
-       ((equal prev-proj-id (plist-get p-def :node-id)))
+       ((equal prev-proj-id (plist-get p-def :project-id)))
        (t (setq
            org-pm-project-def-duplicates 
            (assoc-replace org-pm-project-def-duplicates p-name 
                           (add-to-list 'duplicates prev-proj-id)))))
-      (setq org-publish-project-alist (assoc-replace org-publish-project-alist p-name p-def)))
+      (setq org-publish-project-alist 
+            (assoc-replace org-publish-project-alist p-name p-def)))
     project)
   
   (defun org-pm-parse-project-def (proj-node template)
     "Return a project definition plist for the node represented by proj-node
-    org-element plist."
+    org-element plist.
+  Note: project-id MUST contain both filename and node-id to be unique.
+  Storing node-id is convenient for building report of duplicate projects.
+  But get it from project-id?"
     (let ((pdef (copy-sequence template))
           (pname (plist-get proj-node :raw-value))
-          (begin (plist-get proj-node :contents-begin)))
+          (begin (plist-get proj-node :contents-begin))
+          (node-id (plist-get proj-node :ID))
+          (file-name (buffer-file-name (current-buffer))))
       (setq pdef (plist-put pdef :project-name pname))
-      (setq 
-       pdef
-       (plist-put 
-        pdef :node-id 
-        (concat (buffer-file-name (current-buffer)) "::#" (plist-get proj-node :ID))))
-      (setq pdef (plist-put pdef :node-filename
-                            (buffer-file-name (current-buffer))))
+      (setq pdef (plist-put pdef :node-id node-id))
+      (setq pdef (plist-put pdef :node-filename file-name))
+      (setq pdef (plist-put pdef :project-id (concat file-name "::#" node-id)))
       (setq pdef (plist-put pdef :last-updated (format-time-string "[%Y-%m-%d %a %H:%M]")))
       (cond 
        (begin
@@ -706,12 +709,123 @@ If org-pm-auto-copy is enabled, then it is called automatically whenever a proje
 :ID:       5D8EF403-7567-4C82-B919-37ED86C3D268
 :END:
 
+** DONE org-pm-list-dupicate-project-defs
+CLOSED: [2013-12-22 Sun 12:21]
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-list-duplicate-project-defs ()
+    "List project definitions of same name that are found in more than one file or section.  
+  Do this in a separate org-mode buffer, and provide links to both file and section."
+  
+    (interactive)
+  
+    (if (equal 0 (length org-pm-project-def-duplicates))
+        (error "There are no duplicate project definitions at all.\n!!! ... YAyyy ... !!!"))
+    
+    (let ((buffer (get-buffer-create "*org-pm-project-def-duplicates*")))
+      (switch-to-buffer buffer)
+      (org-mode)
+      (delete-region (point-min) (point-max))
+      (org-insert-heading)
+      (insert "DUPLICATE PROJECT DEFINITIONS")
+      (dolist (project org-pm-project-def-duplicates)
+        (let ((project-name (car project)))
+          (insert "\n** " project-name "\n")
+          (dolist (def (cdr project))
+            (let ((path-and-id (split-string def "::#")))
+              (insert "file: file:" (car path-and-id) "\n")
+              (insert "node: " "id:" (cadr path-and-id) "\n")))))
+      ))
+  
+#+END_SRC
+
+#+BEGIN_SRC elisp
+(split)
+#+END_SRC
+
+** DONE org-pm-list-project-defs
+CLOSED: [2013-12-22 Sun 14:30]
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-list-project-defs ()
+    "List projects by name, giving links to file and node containing the project definition.
+  Also list project definitions of same name that are found in more than one file or section.  
+  Do this in a separate org-mode buffer, and provide links to both file and section."
+  
+    (interactive)
+  
+    (if (equal 0 (length org-publish-project-alist))
+        (error "There are no project definitions at all."))
+    
+    (let ((buffer (get-buffer-create "*org-pm-project-definitions*")))
+      (switch-to-buffer buffer)
+      (org-mode)
+      (delete-region (point-min) (point-max))
+      (org-insert-heading)
+      (insert "PROJECT DEFINITIONS")
+      (dolist (project org-publish-project-alist)
+        ;; (insert (format "\nDEBUG %s\n\n" project))
+        (insert "\n** "(car project) "\n")
+        (insert "file: file:" (plist-get (cdr project) :node-filename) "\n")
+        (insert "node: id:" (plist-get (cdr project) :node-id) "\n")
+        (let ((duplicates (cdr (assoc (car project) org-pm-project-def-duplicates))))
+          (if duplicates
+              (dolist (def duplicates)
+                (let ((path-and-id (split-string def "::#")))
+                  (insert "\n*** duplicate:\nfile: file:" (car path-and-id) "\n")
+                  (insert "node: " "id:" (cadr path-and-id) "\n")))
+            (insert "\nThere no duplicate definitions for this project!\n"))))))
+  
+#+END_SRC
+
+#+BEGIN_SRC elisp
+(split)
+#+END_SRC
+
+** DONE pm/edit-duplicate-project-def
+CLOSED: [2013-12-22 Sun 16:24]
+
+Note: Naming this function org-pm-edit-duplicate-project-def disabled the auto-display of selections in the command line.  Something with org-mode recognizing names of functions and changing the meaning of completing-read?
+
+#+BEGIN_SRC emacs-lisp
+  (defun pm/edit-duplicate-project-def ()
+    "Select a project definition from the list of found duplicates, and 
+  go to the containing file at the selected location, so as to edit the 
+  duplicate definition (or to remove it)."
+    
+    (interactive)
+    
+    (if (equal 0 (length org-pm-project-def-duplicates))
+        (error "There are no project definitions to edit."))
+    (let ((definitions (mapcar (lambda (p) (car p)) org-pm-project-def-duplicates))
+          definition def-address)
+      (setq project 
+            (completing-read "Select project: " definitions nil t (car definitions)))
+      (setq definitions (cdr (assoc project org-pm-project-def-duplicates)))
+      (setq project 
+            (completing-read "Select definition: " definitions nil t (car definitions)))
+      (setq def-address (split-string project "::#"))
+      (find-file (car def-address))
+      (beginning-of-buffer)
+      (re-search-forward (concat ":ID: +" (cadr def-address)))
+      (org-back-to-heading)
+      (org-show-subtree)
+      (org-mark-element)
+      (message "Marked the entire section containing duplicate project definition")
+      ))
+  
+  
+#+END_SRC
+
+#+RESULTS:
+: pm/edit-duplicate-project-def
 
 * Handling links
 
-Open issue in this part: Not clear if org-id will register duplicate links when opening files from projects which contain parts copied from other files through org-pm.  Apart from that, the following approach should work.
+Preface: org-id creates unique id strings for links and auto-saves them between emacs sessions.  Also, it can scan files to find all ids, and to locate duplicate link ids.  Therefore, org-id is used here to store links to project definitions as well as to project components. 
 
-** Use unique id for links
+** DONE Use org-id for links
+CLOSED: [2013-12-22 Sun 14:31]
 :PROPERTIES:
 :DATE:     <2013-11-29 Fri 00:12>
 :ID:       D9BE6D1C-0139-4A61-9DC1-BAEA24192ED8
@@ -719,7 +833,7 @@ Open issue in this part: Not clear if org-id will register duplicate links when 
 
 When the org-id packages is installed, and org-id-link-to-org-use-id is set to t, then links created with C-c l (org-store-link) and inserted with C-c C-l (org-insert-link) will work even if the sections containing the links are moved to another file.  Note: the description at http://orgmode.org/manual/Handling-links.html states this, but the description regarding using CUSTOM_ID is a bit short and unclear.  I tried out setting org-id-link-to-org-use-id to t and it works consistently.  I do not use CUSTOM_ID.  
 
-See further more: [[id:F1DBFCAD-39E9-477F-83A5-25FFBEEFD442][Converting links in the files copied to base directories for publication]].
+See furthermore: [[id:F1DBFCAD-39E9-477F-83A5-25FFBEEFD442][Converting links in the files copied to base directories for publication]].
 
 #+BEGIN_SRC elisp
 (require 'org-id)
@@ -727,12 +841,15 @@ See further more: [[id:F1DBFCAD-39E9-477F-83A5-25FFBEEFD442][Converting links in
 ;; (defvar org-only-store-id-links t)
 #+END_SRC
 
-** Converting links in the files copied to base directories for publication
+** TODO Converting links in the files copied to base directories for publication
 :PROPERTIES:
 :DATE:     <2013-12-20 Fri 20:46>
 :ID:       F1DBFCAD-39E9-477F-83A5-25FFBEEFD442
 :END:
 
+*** TODO Updating links for all project components
+
 Org-id stores the list of links with their locations in variable =org-id-locations=.  This should be used by org-pm to provide the right paths to links in the files copied to the base directories of projects for publication.
 
+org-id-update-id-locations can be used in conjuction with org-pm-project-components to find all links of all components created by org-pm, and store them in =org-id-locations=.  The same function also finds duplicates.  So all links of project components can be scanned to provide full path links for copied components in the publihsed projects.
 
