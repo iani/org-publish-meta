@@ -7,7 +7,7 @@
 #+BEGIN_SRC emacs-lisp
   (defun org-babel-load-current-file ()
     (interactive)
-    (org-babel-load-file (buffer-file-name (current-buffer))))  
+    (org-babel-load-file (buffer-file-name (current-buffer))))
   (global-set-key (kbd "C-c C-=") 'org-babel-load-current-file)
 #+END_SRC
 
@@ -19,16 +19,29 @@
 :DATE:     <2013-12-18 Wed 11:52>
 :END:
 
-** UNDERWAY org-pm-project-components
+** DONE org-pm-files
 :PROPERTIES:
 :ID:       A8ABC239-E74B-4654-9850-53C8521E50BA
 :END:
 
 #+BEGIN_SRC emacs-lisp
-  (defvar org-pm-project-components nil
-  "Store the projects that each file or its sections belong to.
-  For each file it store a list: (full-path project1 project2 ...)")
+  (defvar org-pm-files nil
+  "List of files to be copied to projects.
+  For each file, store a list startig with the full path of the file, and
+  followed by the list of projects specified in the file
+  or any of its sections:
+    (full-path-of-file project1 project2 ...)
+  Function org-pm-register-project-components scans a file, creates its list
+  and puts it in org-pm-files.
+  Function org-pm-copy-to-project searches through all lists in org-pm-files,
+  collects the list of files that belong to a project,
+  parses each file to find which components should be copied,
+  and copies the found components to the project.
+  ")
 #+END_SRC
+
+#+RESULTS:
+: org-pm-files
 
 ** DONE org-pm-duplicate-project-defs
 CLOSED: [2013-12-21 Sat 22:07]
@@ -37,7 +50,7 @@ CLOSED: [2013-12-21 Sat 22:07]
   (defvar org-pm-project-def-duplicates nil
     "List of links to files/sections which contains project definitions
   that were overwritten because another definition with the same name was found.
-  Auto-saved together with org-publish-project-alist and org-pm-project-components.
+  Auto-saved together with org-publish-project-alist and org-pm-files.
   Used to create org-mode buffer with links to these locations.
   See functions:
   - org-pm-check-add-project
@@ -70,7 +83,7 @@ CLOSED: [2013-12-18 Wed 15:23]
 
 #+BEGIN_SRC emacs-lisp
   (defvar org-pm-auto-copy nil
-  "If not nil, automatically copy file components to a project to the 
+  "If not nil, automatically copy file components to a project to the
   project's source folder before publishing.")
 #+END_SRC
 
@@ -82,11 +95,11 @@ CLOSED: [2013-12-18 Wed 15:23]
 
 #+BEGIN_SRC emacs-lisp
   (defvar org-pm-project-data-file-path nil
-  "Path of file for storing org-publish-project-alist and 
-  org-pm-project-components.  If nil, the path is deduced from the existence
-  of .emacs.d folder in user's home directory. 
+  "Path of file for storing org-publish-project-alist and
+  org-pm-files.  If nil, the path is deduced from the existence
+  of .emacs.d folder in user's home directory.
   If .emacs.d exists, use ~/.emacs.d/savefile/org-publish-project-alist
-  else use ~/.org-publish-project-alist.  
+  else use ~/.org-publish-project-alist.
   Create savefile folder if it does not exist.")
 #+END_SRC
 
@@ -129,7 +142,7 @@ CLOSED: [2013-12-18 Wed 22:16]
 :ID:       7539D61D-95E4-4308-B1C4-F86669E921B7
 :END:
 #+BEGIN_SRC emacs-lisp
-  (defvar org-pm-default-project-plist 
+  (defvar org-pm-default-project-plist
     '(
       :base-extension "org"
       :recursive t
@@ -138,7 +151,7 @@ CLOSED: [2013-12-18 Wed 22:16]
       :auto-preamble t
     )
   "The defalt properties for publishing a project with html.
-  Used to provide initial contents when creating a project plist in 
+  Used to provide initial contents when creating a project plist in
   org-pm-make-default-project-plist. "
   )
 #+END_SRC
@@ -149,10 +162,10 @@ CLOSED: [2013-12-18 Wed 22:16]
 :END:
 
 #+BEGIN_SRC emacs-lisp
-  (defvar org-pm-project-template-name 
+  (defvar org-pm-project-template-name
     (concat (file-name-directory (or load-file-name (buffer-file-name)))
             "org-pm-project-template.org")
-  "Full path of file containing template of project definition for 
+  "Full path of file containing template of project definition for
   projects generated automatically with org-pm-make-project-template-file.
   The path is initialized at code loading time by function org-pm-init-project-template-name.
   org-pm-make-project-template-file uses it to make project templates.")
@@ -162,6 +175,39 @@ CLOSED: [2013-12-18 Wed 22:16]
 :PROPERTIES:
 :DATE:     <2013-12-18 Wed 17:24>
 :END:
+
+** DONE Get header properties
+:PROPERTIES:
+:DATE:     <2013-12-16 Mon 02:50>
+:END:
+
+#+BEGIN_SRC elisp
+(defun org-get-header-property (property &optional all)
+  "Get property from buffer variable.  Returns only fist match except if ALL is defined.
+NOTE: Also works if editing subtree narrowed or in separate narrowed buffer. "
+  (with-current-buffer
+	(current-buffer)
+    (save-excursion
+      (save-restriction
+	(save-match-data
+	  (widen)
+	  (goto-char (point-min))
+	  (let (values)
+	    (while (re-search-forward (format "^#\\+%s:?[ \t]*\\(.*\\)" property) nil t)
+	      (add-to-list 'values (substring-no-properties (match-string 1))))
+	    (if all
+		values
+	      (car values))))))))
+#+END_SRC
+
+#+RESULTS:
+: org-get-header-property
+
+#+BEGIN_SRC elisp
+(org-get-header-property "TEST")
+#+END_SRC
+
+#+RESULTS:
 
 ** DONE Functions for adding, removing and replacing elements in a-lists
 CLOSED: [2013-12-19 Thu 09:01]
@@ -179,7 +225,7 @@ CLOSED: [2013-12-19 Thu 09:01]
             (setcdr alist (cons (list key element) (cdr alist)))
           (setq alist (list (list key element))))))
     alist)
-  
+
   (defun assoc-remove (alist key element)
     "Remove element from the sublist of alist whose car is equal to key."
     (when alist
@@ -188,11 +234,11 @@ CLOSED: [2013-12-19 Thu 09:01]
           (setcdr sublist(remove element (cdr sublist)))
           (if (equal 1 (length sublist)) (setq alist (remove sublist alist))))
         alist)))
-  
+
   (defun assoc-remove-key (alist key)
     "Remove all sublists of alist whose car is equal to key."
     (setq alist (remove* key alist :test 'equal :key 'car)))
-  
+
     ;;; older version
   (defun assoc-remove-key-simple-style (alist key)
     "Remove all sublists of alist whose car is equal to key."
@@ -200,15 +246,18 @@ CLOSED: [2013-12-19 Thu 09:01]
       (while (setq found (assoc key alist))
         (setq alist (delq found alist)))
       alist))
-  
+
   (defun assoc-replace (alist key newlist)
     "Remove all sublists of alist whose car is equal to key, and then
        add (cons key newlist) to alist."
     (setq alist (assoc-remove-key alist key))
     (setq alist (cons (cons key newlist) alist))
     )
-  
+
 #+END_SRC
+
+#+RESULTS:
+: assoc-replace
 
 ** DONE org-pm-make-default-project-alist
 CLOSED: [2013-12-19 Thu 02:12]
@@ -221,7 +270,7 @@ CLOSED: [2013-12-19 Thu 02:12]
     (let ((plist (copy-sequence org-pm-default-project-plist)))
       (setq plist (plist-put plist :base-directory
                              (file-truename org-pm-default-project-org-folder)))
-      (setq plist (plist-put plist :publishing-directory 
+      (setq plist (plist-put plist :publishing-directory
                              (file-truename org-pm-default-project-html-folder)))))
 #+END_SRC
 
@@ -234,32 +283,32 @@ CLOSED: [2013-12-19 Thu 09:14]
 :ID:       1FE8167C-A514-4C21-9FC2-4A466A692E56
 :END:
 
-When a file or a section of a file should be copied to a project base directory, add the project name to the list of projects of this file.  The list of projects of files is stored in org-pm-project-components.  
+When a file or a section of a file should be copied to a project base directory, add the project name to the list of projects of this file.  The list of projects of files is stored in org-pm-files.
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-add-project-file (project-name file)
-    "In list org-pm-project-components, add the project-name to the list 
+    "In list org-pm-files, add the project-name to the list
   of projects that file bel ongs. "
-    (setq org-pm-project-components
-          (assoc-add org-pm-project-components file project-name)))
+    (setq org-pm-files
+          (assoc-add org-pm-files file project-name)))
 #+END_SRC
- 
+
 ** TODO org-pm-remove-project-file
 :PROPERTIES:
 :DATE:     <2013-12-18 Wed 21:17>
 :ID:       1FE8167C-A514-4C21-9FC2-4A466A692E56
 :END:
 
-When a file or a section of a file should be removed from a project, remove the project name from the list of projects of this file in org-pm-project-components.  (The list of projects of files is stored in org-pm-project-components.)
+When a file or a section of a file should be removed from a project, remove the project name from the list of projects of this file in org-pm-files.  (The list of projects of files is stored in org-pm-files.)
 
 NOTE: Removing components from projects is more complex than adding, because we should also remove the files of the components from the base directory of the project.  Therefore: org-pm-parse-buffer must remove any files of components that no longer exist.  How to do this?
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-remove-project-file (project-name file)
-    "In list org-pm-project-components, add the project-name to the list 
+    "In list org-pm-files, add the project-name to the list
   of projects that file belongs. "
-    (setq org-pm-project-components
-          (assoc-add org-pm-project-components file project-name)))
+    (setq org-pm-files
+          (assoc-add org-pm-files file project-name)))
 #+END_SRC
 
 ** TODO org-pm-save-projects-and-components
@@ -294,7 +343,7 @@ NOTE: Removing components from projects is more complex than adding, because we 
 
 Get list of all projects to which this file is published in its entirety. (Not projects to  which any of its sections are published.)
 
-To get the list, look in 2 places: 
+To get the list, look in 2 places:
 
 1. Project names defined by header-type property (=#+PROJECT:=) in any place of the file.  Several such lines may exist.  Collect all projects named there.
 2. Project definition sections that have the tag =include-this-file=. (See reference on how project definition sections are defined.)
@@ -311,7 +360,7 @@ To get the list, look in 2 places:
 :ID:       02A9DD60-795A-462D-A803-91E8D719560B
 :END:
 
-Get list of all projects to which any individual sections in the file should be copied. Such projects Projects are named by tags in sections.  The tags must be enclosed in underscores "_". For example, if a section has the tag =_blog_= it will be copied to be published in project named =blog=. 
+Get list of all projects to which any individual sections in the file should be copied. Such projects Projects are named by tags in sections.  The tags must be enclosed in underscores "_". For example, if a section has the tag =_blog_= it will be copied to be published in project named =blog=.
 
 #+BEGIN_SRC emacs-lisp
 (defun org-pm-get-section-projects ()
@@ -327,15 +376,15 @@ CLOSED: [2013-12-19 Thu 02:12]
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-make-project-template-file (project)
-    "Read file containing template of project definition for 
+    "Read file containing template of project definition for
     projects generated automatically with org-pm-make-project-template-file,
     from the synonymous file in the org-pm project source
-    code folder.  Replace relevant parts of the template with 
-    information specific to the project.  
+    code folder.  Replace relevant parts of the template with
+    information specific to the project.
     Finally, save the template the project's base-directory."
-    
+
     ;; Consider using with-temp-buffer for constructing the template file contents
-  
+
     (save-excursion
       (find-file org-pm-project-template-name)
       (let* ((filename (file-name-nondirectory org-pm-project-template-name))
@@ -354,11 +403,11 @@ CLOSED: [2013-12-19 Thu 02:12]
           ;; leave buffer open for edits ?
           ;; (kill-buffer (current-buffer))
           ))))
-  
+
   ;; (org-pm-make-project-template-file "test")
 #+END_SRC
 
-** TODO functions operating on org-pm-project-components
+** TODO functions operating on org-pm-files
 
 *** Add a project to a file component
 
@@ -367,23 +416,6 @@ CLOSED: [2013-12-19 Thu 02:12]
 *** Remove a project from a file component
 
 *** Remove a project from a section component
-
-
-
-
-* Cleaning up duplicate links and dead projects+files
-
-1. Some sections may have duplicate IDs, created by copy-pasting sections.  
-2. When a project definition is copied or renamed, this may result in having duplicate definitions, i.e. multiple project definitions with the same name in different places.  Which is the one to work with.
-3. When a project definition is renamed or removed, the one stored under its previous name becomes orphaned. What to do?
-4. When a project component is deleted or moved to another project, or when the project or folder or name of the file where it should be copied changes, then the old file becomes orphaned.   What to do?
-
-Dealing with the above: 
-
-1. One can use org-id-update-id-locations to both find all ids and all duplicates.
-2. is possible to check as soon as it happens, because the moment a new project gets defined one can check if the already existing definition is in the same file.  Registering duplicate projects defintions in org-pm-projectd-def-duplicates.  Function org-pm-list-project-defs creates buffer listing all project defs, including duplicates, and provides links for going to any one of thse in order to edit/remove. 
-3. could be delegated to commands that a user can call independently of the main specification and publishing process. 
-4. could be handled like No. 3.
 
 * Main functions and commands
 :PROPERTIES:
@@ -398,7 +430,7 @@ Dealing with the above:
 
 New version, differnt approach.
 
-Scan file to do several things: 
+Scan file to do several things:
 
 1. Build list of all IDs of nodes that contain project definitions
 2. Check for duplicates IDs. Ask to resolve them.
@@ -406,12 +438,10 @@ Scan file to do several things:
 4. Build the project definitions and add them to =org-publish-project-alist=.
 5. Build list of all IDs of nodes that are components of projects.
 6. Check for duplicates across all files and projects.  Ask to resolve them.
-7. Save list of project component section IDs and file paths to =org-pm-project-components=.
-8. Save =org-publish-project-alist= and =org-pm-project-components=.
+7. Save list of project component section IDs and file paths to =org-pm-files=.
+8. Save =org-publish-project-alist= and =org-pm-files=.
 
-Refining, towards implementation: 
-
-
+Refining, towards implementation:
 
 #+BEGIN_SRC emacs-lisp
   (defun d1-org-pm-parse-file ()
@@ -421,13 +451,13 @@ Refining, towards implementation:
 #+END_SRC
 
 
-** old org-pm-parse-buffer notes 
+** old org-pm-parse-buffer notes
 
-This command parses the current  in order to do 3 things: 
+This command parses the current  in order to do 3 things:
 
 1. Create project definitions. (org-pm-make-projects)
-2. Find which parts of the file are stored in which project, and store the results in org-pm-project-components. (org-pm-make-component-project-list)
-3. Save the resulting configurations by writing =org-publish-project-alist= and =org-pm-project-components= to the file whose path is contained in =org-pm-project-data-file-path=
+2. Find which parts of the file are stored in which project, and store the results in org-pm-files. (org-pm-make-component-project-list)
+3. Save the resulting configurations by writing =org-publish-project-alist= and =org-pm-files= to the file whose path is contained in =org-pm-project-data-file-path=
 
 org-pm-parse-buffer can be called explicitly by the user as a command.
 
@@ -437,7 +467,7 @@ If org-pm-auto-parse is enabled, then it is called automatically whenever a buff
 NOTE: Removing components from projects is more complex than adding, because we should also remove the files of the components from the base directory of the project.  Therefore: org-pm-parse-buffer must remove any files of components that no longer exist.  How to do this?
 
 
-** org-pm-make-projects
+** DONE org-pm-make-projects (called by org-pm-parse-buffer)
 :PROPERTIES:
 :DATE:     <2013-12-16 Mon 02:00>
 :ID:       C4B36522-9597-4911-A829-B2414572DC06
@@ -450,23 +480,22 @@ NOTE: Removing components from projects is more complex than adding, because we 
           (root (file-name-directory (buffer-file-name (current-buffer)))))
       (plist-put plist :base-directory (concat root "org"))
       (plist-put plist :publishing-directory (concat root "html"))))
-  
-  ;; FIXME: REDOING HERE see -buggy
+
   (defun org-pm-make-projects ()
     "Construct the projects for all project definitions found in current file.
-    Project definitions are those nodes which are contained in nodes tagged as
-    PROJECT_DEFS.
-    Note about project definition node-IDs:  
-    Section IDs of project definitions are used only as links 
-    to point to the position in the file where a project definition is,.
-    They do nod identify a project.  A project is identified by its name.  
-    Therefore: 
-    The node-id of a project is set to <full-file-path>::#<section id>.
-    When a duplicate section id is found in a definition, it is replaced by a new one, 
-    and the new id is stored in the project."
+  Project definitions are those nodes which are contained in nodes tagged as
+  PROJECT_DEFS.
+  Note about project definition node-IDs:
+  Section IDs of project definitions are used only as links
+  to point to the position in the file where a project definition is,.
+  They do nod identify a project.  A project is identified by its name.
+  Therefore:
+  The node-id of a project is set to <full-file-path>::#<section id>.
+  When a duplicate section id is found in a definition, it is replaced by a new one,
+  and the new id is stored in the project."
     (let ((template (org-pm-make-default-project-plist))
           levels id ids projects)
-      (org-map-entries 
+      (org-map-entries
        '(let
             ((entry (cadr (org-element-at-point))))
           (if (member "PROJECT_DEFS" (plist-get entry :tags))
@@ -481,13 +510,13 @@ NOTE: Removing components from projects is more complex than adding, because we 
             (setq projects (cons (org-pm-parse-project-def entry template) projects))))
        "PROJECT_DEFS")
       (mapcar 'org-pm-check-add-project projects)))
-  
+
   (defun org-pm-check-add-project (project)
     "Add the project definition contained in plist 'project' to org-publish-project-alist,
-  replacing any previously existing definition there.  Before replacing, save any 
-  previously existing project whose definition is in a different file component in 
+  replacing any previously existing definition there.  Before replacing, save any
+  previously existing project whose definition is in a different file component in
   the variable org-pm-project-def-duplicates:
-  If a project with the same name already exists in org-publish-project-alist, 
+  If a project with the same name already exists in org-publish-project-alist,
   and that project has a different ID (file path + section ID), then the previously
   existing project definition is added to the list in org-pm-project-def-duplicates."
     (let* ((p-name (car project))
@@ -495,17 +524,17 @@ NOTE: Removing components from projects is more complex than adding, because we 
            (prev-proj (assoc p-name org-publish-project-alist))
            (prev-proj-id (plist-get (cdr prev-proj) :project-id))
            (duplicates (assoc p-name org-pm-project-def-duplicates)))
-      (cond 
+      (cond
        ((not prev-proj))
        ((equal prev-proj-id (plist-get p-def :project-id)))
        (t (setq
-           org-pm-project-def-duplicates 
-           (assoc-replace org-pm-project-def-duplicates p-name 
+           org-pm-project-def-duplicates
+           (assoc-replace org-pm-project-def-duplicates p-name
                           (add-to-list 'duplicates prev-proj-id)))))
-      (setq org-publish-project-alist 
+      (setq org-publish-project-alist
             (assoc-replace org-publish-project-alist p-name p-def)))
     project)
-  
+
   (defun org-pm-parse-project-def (proj-node template)
     "Return a project definition plist for the node represented by proj-node
     org-element plist.
@@ -522,7 +551,7 @@ NOTE: Removing components from projects is more complex than adding, because we 
       (setq pdef (plist-put pdef :node-filename file-name))
       (setq pdef (plist-put pdef :project-id (concat file-name "::#" node-id)))
       (setq pdef (plist-put pdef :last-updated (format-time-string "[%Y-%m-%d %a %H:%M]")))
-      (cond 
+      (cond
        (begin
         (save-excursion
           (save-restriction
@@ -537,24 +566,24 @@ NOTE: Removing components from projects is more complex than adding, because we 
                  (space
                   (setq prop-name (substring heading 0 space))
                   (setq prop-value (eval (read (substring heading space))))
-                  (if (and 
+                  (if (and
                        (equal prop-name "include-containing-file")
                        prop-value)
-                      (org-pm-add-component 
+                      (org-pm-add-component
                        pname (buffer-file-name (current-buffer)) prop-value)))
                  (t (setq prop-name heading)
                     (setq contents-begin (plist-get element :contents-begin))
                     (if contents-begin
-                        (setq 
-                         prop-value 
-                         (buffer-substring-no-properties 
+                        (setq
+                         prop-value
+                         (buffer-substring-no-properties
                           contents-begin
                           (plist-get element :contents-end))))))
                 (setq pdef
                       (plist-put pdef (intern (concat ":" prop-name)) prop-value))))))))
       (cons pname pdef)))
-  
-  
+
+
   (defun org-pm-query-select-project (new-project old-project)
     "Check if new project definition is from a different source than old-project.
     If yes, then ask the user which of the project definitions to keep.
@@ -562,26 +591,25 @@ NOTE: Removing components from projects is more complex than adding, because we 
     Return the selected project so that it is added by org-pm-add-project,
     replacing the previous entry for this project."
     (let ((selection new-project))
-      (unless (equal (plist-get (cdr new-project) :source-id) 
+      (unless (equal (plist-get (cdr new-project) :source-id)
                      (plist-get (cdr old-project) :source-id))
         (setq selection (must-write-the-code-for-query-selection new-project old-project))
         (must-write-the-code-for-message-about-rejected
          (if (eq selection new-project) old-project new-project)))
       selection))
-  
+
   (defun org-pm-add-project (project)
     "Add project to org-pm-project-alist.
     If previous project with same name exist, replace it."
-    (setq org-publish-project-alist 
+    (setq org-publish-project-alist
           (assoc-replace org-publish-project-alist (car project) (cdr project))))
-  
-  
+
 #+END_SRC
 
 #+RESULTS:
 : org-pm-add-project
 
-For test purposes: 
+For test purposes:
 #+BEGIN_SRC elisp
   (global-set-key (kbd "C-c C-x t") 'org-pm-make-projects)
 #+END_SRC
@@ -589,10 +617,14 @@ For test purposes:
 #+RESULTS:
 : org-pm-make-projects
 
-** org-pm-add-file-to-project:
+** UNDERWAY org-pm-add-file-to-project:
 :PROPERTIES:
 :ID:       24187886-5ADA-4263-806B-8655A9813C8B
 :END:
+
+Add file to current buffer to project interactively selected or input by user.
+
+If project name input by user does not correspond to an existing project, offer to create that project.
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-add-file-to-project ()
@@ -601,14 +633,14 @@ For test purposes:
       - If no project of that name exists, request that the project be defined using
       org-pm or other methods.
       - If no project at all exists, then offer to create default project.
-      - Add the selected project to the file's list in org-pm-project-components.
-      - Save org-pm-project-components.
+      - Add the selected project to the file's list in org-pm-files.
+      - Save org-pm-files.
       - Add the project name to property PROJECT in file's header."
     (interactive)
     (unless (buffer-file-name (current-buffer))
       (error "This buffer is not associated with a file.  Please save first."))
     (let* ((org-completion-use-ido t)
-           (projects 
+           (projects
             (if org-publish-project-alist
                 (mapcar org-publish-project-alist 'car)
               (list org-pm-default-project-name)))
@@ -621,13 +653,13 @@ For test purposes:
       (org-pm-add-project-file project-name (buffer-file-name (current-buffer)))
       (org-pm-save-projects-and-components)
       (org-pm-make-project-template-file project)
-      (message 
+      (message
        "Added project named: %s to file: %s\nBase directory is: %s\nPublishing directory is: %s"
        project-name
        (file-name-nondirectory (buffer-file-name (current-buffer)))
        (plist-get (cdr project) :base-directory)
        (plist-get (cdr project) :publishing-directory))))
-  
+
   (defun org-pm-query-make-default-project (project-name)
     "Make a project using default settings and project-name as name."
     (unless (y-or-n-p (format "Create project '%s'? " project-name))
@@ -635,34 +667,34 @@ For test purposes:
     (let (plist)
       (setq plist (org-pm-make-default-project-plist))
       (setq plist
-            (plist-put 
+            (plist-put
              plist :base-directory
-             (query-make-folder (plist-get plist :base-directory) 
+             (query-make-folder (plist-get plist :base-directory)
                                 "Base directory:")))
-      (setq plist 
-            (plist-put 
+      (setq plist
+            (plist-put
              plist :publishing-directory
-             (query-make-folder (plist-get plist :publishing-directory) 
+             (query-make-folder (plist-get plist :publishing-directory)
                                 "Publishing directory:")))
       (cons project-name plist)))
-  
+
   (defun query-make-folder (path &optional prompt-string)
-    "If folder at path does not exist, then show dialog offering to user 
+    "If folder at path does not exist, then show dialog offering to user
       the option to create the indicated folder or to choose another path.
       If the path selected does not exist, create folder."
     (setq path (file-truename path))
     (unless prompt-string (setq prompt-string "Folder select or create:"))
     (let ((answer
            (read-file-name
-            (format 
+            (format
              "%s\nSelect or input folder (folder will be created if needed):\n"
              prompt-string)
             path)))
-      (unless (equal (file-truename answer) (buffer-file-name (current-buffer))) 
+      (unless (equal (file-truename answer) (buffer-file-name (current-buffer)))
         (setq path answer))
       (unless (file-exists-p path) (make-directory path))
       path))
-  
+
 #+END_SRC elisp
 
 #+BEGIN_SRC elisp
@@ -684,25 +716,76 @@ For test purposes:
 #+RESULTS:
 : ~/Documents/Dev/Emacs/org-publish-meta/org-pm.org
 
-** org-pm-remove-file-from-project:
+** TODO org-pm-remove-file-from-project:
 
-** org-pm-publish: Select a project to publish from the projects targeted by current buffer. 
+Remove file from project interactively selected by user.
+
+** TODO org-pm-add-component-to-project
+
+Add current section (node) to a project interactively selected or input by user.
+
+If project name input by user does not correspond to an existing project, offer to create that project.
+
+** TODO org-pm-remove-component-from-project
+
+Remove current section (node) from a project interactively selected by user.
+
+** UNDERWAY org-pm-register-project-components
+
+Parse current buffer, looking for projects added for the whole file (with property =#+PROJECT:= or for sections (with tags enclosed in =_=). Collect names of all projects found in a list.
+Put the list in the assoc list stored in =org-pm-files=, using the full path of the file as key. Function =org-pm-copy-to-project= scans this list to find if the file contains any components that should be copied to the project, and copies them.
+
+#+begin_src emacs-lisp :tangle yes
+  (defun org-pm-register-project-components ()
+    "Parse current buffer, looking for projects added for the whole file (with property
+  =#+PROJECT:= or for sections (with tags enclosed in =_=). Collect names of all projects
+  found in a list. Put the list in the assoc list stored in =org-pm-files=, using the
+  full path of the file as key. Function =org-pm-copy-to-project= scans this list to find
+  if the file contains any components that should be copied to the project, and copies
+   them."
+    (interactive)
+
+    (let (projects (filename (buffer-file-name (current-buffer))))
+      (mapcar (lambda (project)
+                (add-to-list 'projects (org-pm-get-project-name project)))
+              (org-get-header-property "PROJECT" t))
+      (org-map-entries
+       '(let ((tags (plist-get (cadr (org-element-at-point)) :tags)))
+          (dolist (tag tags)
+            (if (string-match  "^_.*_$" tag)
+                (add-to-list 'projects (org-pm-get-project-name tag))))
+          ))
+      (setq org-pm-files (assoc-replace org-pm-files filename projects))
+      (message "Result: %s" projects)))
+
+  (defun org-pm-get-project-name (name-and-folder)
+    (car (split-string name-and-folder "@")))
+
+  ;; Note: for setting the project name to the car of the split, and the
+  ;; folder to the cdr of the split, see
+  ;; http://www.cs.cmu.edu/Groups/AI/html/cltl/clm/node94.html
+  ;; and http://clhs.lisp.se/Body/m_mult_2.htm
+  ;; on how to do multiple-value-setq
+  ;; Here example from site 2 above:
+  ;; (multiple-value-setq (a b c) (values 1 2))
+#+end_src
+
+#+RESULTS:
+: org-pm-get-project-name
+
+** TODO org-pm-publish: Select a project to publish from the projects targeted by current buffer.
 
 Since a file containing org-pm tags can be anywhere outside an org-mode project folder, one cannot use org-publish-current-project to automatically provide the target project based on the file.  Therefore, use =org-pm-publish= instead to select the desired project to publish from a list of projects that are targeted by the current file.
-
-** org-pm-make-projects (called by org-pm-parse-buffer)
-
-** org-pm-make-component-project-list: 
 
 ** org-pm-copy-components:
 
 org-pm-copy-components can be called explicitly by the user as a command.
 
-If org-pm-auto-copy is enabled, then it is called automatically whenever a project is published. 
+If org-pm-auto-copy is enabled, then it is called automatically whenever a project is published.
 
-** org-pm-enable-auto: 
+** org-pm-enable-auto:
 
-** org-pm-disable-auto: 
+** org-pm-disable-auto:
 :PROPERTIES:
 :ID:       5D8EF403-7567-4C82-B919-37ED86C3D268
 :END:
@@ -712,14 +795,14 @@ CLOSED: [2013-12-22 Sun 12:21]
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-list-duplicate-project-defs ()
-    "List project definitions of same name that are found in more than one file or section.  
+    "List project definitions of same name that are found in more than one file or section.
   Do this in a separate org-mode buffer, and provide links to both file and section."
-  
+
     (interactive)
-  
+
     (if (equal 0 (length org-pm-project-def-duplicates))
         (error "There are no duplicate project definitions at all.\n!!! ... YAyyy ... !!!"))
-    
+
     (let ((buffer (get-buffer-create "*org-pm-project-def-duplicates*")))
       (switch-to-buffer buffer)
       (org-mode)
@@ -742,14 +825,14 @@ CLOSED: [2013-12-22 Sun 14:30]
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-list-project-defs ()
     "List projects by name, giving links to file and node containing the project definition.
-  Also list project definitions of same name that are found in more than one file or section.  
+  Also list project definitions of same name that are found in more than one file or section.
   Do this in a separate org-mode buffer, and provide links to both file and section."
-  
+
     (interactive)
-  
+
     (if (equal 0 (length org-publish-project-alist))
         (error "There are no project definitions at all."))
-    
+
     (let ((buffer (get-buffer-create "*org-pm-project-definitions*")))
       (switch-to-buffer buffer)
       (org-mode)
@@ -758,8 +841,8 @@ CLOSED: [2013-12-22 Sun 14:30]
       (insert "PROJECT DEFINITIONS")
       (dolist (project org-publish-project-alist)
         ;; (insert (format "\nDEBUG %s\n\n" project))
-        (insert "\n** " 
-                (car project) 
+        (insert "\n** "
+                (car project)
                 " (click [[elisp:(org-pm-search-link \""
                 (plist-get (cdr project) :project-id)
                 "\")][*HERE*]] to edit)\n")
@@ -778,7 +861,7 @@ CLOSED: [2013-12-22 Sun 14:30]
                  (insert "\nfile: file:" (car path-and-id) "\n")
                  (insert "node: " "id:" (cadr path-and-id) "\n")))
             (insert "\nThere no duplicate definitions for this project!\n"))))))
-  
+
 #+END_SRC
 
 #+RESULTS:
@@ -787,7 +870,7 @@ CLOSED: [2013-12-22 Sun 14:30]
 *** DONE org-pm-search-link
 CLOSED: [2013-12-22 Sun 18:45]
 
-Currently, links to IDs that are not in org-link-locations are not found by org-mode.  =org-pm-search-link= finds such links by going to the file and then searching for the property with the id of the link.  It is used in org-pm-list-project-defs to enable jumping to links of duplicate project defs.  It can also be used for the same purpose in lists of components. 
+Currently, links to IDs that are not in org-link-locations are not found by org-mode.  =org-pm-search-link= finds such links by going to the file and then searching for the property with the id of the link.  It is used in org-pm-list-project-defs to enable jumping to links of duplicate project defs.  It can also be used for the same purpose in lists of components.
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-search-link (link)
@@ -812,20 +895,20 @@ Note: Naming this function org-pm-edit-duplicate-project-def disabled the auto-d
 
 #+BEGIN_SRC emacs-lisp
   (defun pm/edit-duplicate-project-def ()
-    "Select a project definition from the list of found duplicates, and 
-  go to the containing file at the selected location, so as to edit the 
+    "Select a project definition from the list of found duplicates, and
+  go to the containing file at the selected location, so as to edit the
   duplicate definition (or to remove it)."
-    
+
     (interactive)
-    
+
     (if (equal 0 (length org-pm-project-def-duplicates))
         (error "There are no project definitions to edit."))
     (let ((definitions (mapcar (lambda (p) (car p)) org-pm-project-def-duplicates))
           definition def-address)
-      (setq project 
+      (setq project
             (completing-read "Select project: " definitions nil t (car definitions)))
       (setq definitions (cdr (assoc project org-pm-project-def-duplicates)))
-      (setq project 
+      (setq project
             (completing-read "Select definition: " definitions nil t (car definitions)))
       (setq def-address (split-string project "::#"))
       (find-file (car def-address))
@@ -838,43 +921,26 @@ Note: Naming this function org-pm-edit-duplicate-project-def disabled the auto-d
   Marked the entire section containing duplicate project definition.
   Type C-space C-space to de-select region and deactivate mark")
       ))
-  
-  
+
+
 #+END_SRC
 
 #+RESULTS:
 : pm/edit-duplicate-project-def
 
-* Handling links
 
-Preface: org-id creates unique id strings for links and auto-saves them between emacs sessions.  Also, it can scan files to find all ids, and to locate duplicate link ids.  Therefore, org-id is used here to store links to project definitions as well as to project components. 
 
-** DONE Use org-id for links
-CLOSED: [2013-12-22 Sun 14:31]
-:PROPERTIES:
-:DATE:     <2013-11-29 Fri 00:12>
-:ID:       D9BE6D1C-0139-4A61-9DC1-BAEA24192ED8
-:END:
 
-When the org-id packages is installed, and org-id-link-to-org-use-id is set to t, then links created with C-c l (org-store-link) and inserted with C-c C-l (org-insert-link) will work even if the sections containing the links are moved to another file.  Note: the description at http://orgmode.org/manual/Handling-links.html states this, but the description regarding using CUSTOM_ID is a bit short and unclear.  I tried out setting org-id-link-to-org-use-id to t and it works consistently.  I do not use CUSTOM_ID.  
+* Cleaning up duplicate links and dead projects+files
 
-See furthermore: [[id:F1DBFCAD-39E9-477F-83A5-25FFBEEFD442][Converting links in the files copied to base directories for publication]].
+1. Some sections may have duplicate IDs, created by copy-pasting sections.
+2. When a project definition is copied or renamed, this may result in having duplicate definitions, i.e. multiple project definitions with the same name in different places.  Which is the one to work with.
+3. When a project definition is renamed or removed, the one stored under its previous name becomes orphaned. What to do?
+4. When a project component is deleted or moved to another project, or when the project or folder or name of the file where it should be copied changes, then the old file becomes orphaned.   What to do?
 
-#+BEGIN_SRC elisp
-(require 'org-id)
-(setq org-id-link-to-org-use-id t)
-;; (defvar org-only-store-id-links t)
-#+END_SRC
+Dealing with the above:
 
-** TODO Converting links in the files copied to base directories for publication
-:PROPERTIES:
-:DATE:     <2013-12-20 Fri 20:46>
-:ID:       F1DBFCAD-39E9-477F-83A5-25FFBEEFD442
-:END:
-
-*** TODO Updating links for all project components
-
-Org-id stores the list of links with their locations in variable =org-id-locations=.  This should be used by org-pm to provide the right paths to links in the files copied to the base directories of projects for publication.
-
-org-id-update-id-locations can be used in conjuction with org-pm-project-components to find all links of all components created by org-pm, and store them in =org-id-locations=.  The same function also finds duplicates.  So all links of project components can be scanned to provide full path links for copied components in the publihsed projects.
-
+1. One can use org-id-update-id-locations to both find all ids and all duplicates.
+2. is possible to check as soon as it happens, because the moment a new project gets defined one can check if the already existing definition is in the same file.  Registering duplicate projects defintions in org-pm-projectd-def-duplicates.  Function org-pm-list-project-defs creates buffer listing all project defs, including duplicates, and provides links for going to any one of thse in order to edit/remove.
+3. could be delegated to commands that a user can call independently of the main specification and publishing process.
+4. could be handled like No. 3.
