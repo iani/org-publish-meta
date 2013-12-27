@@ -216,22 +216,22 @@ CLOSED: [2013-12-18 Wed 22:16]
 :END:
 
 #+BEGIN_SRC elisp
-(defun org-get-header-property (property &optional all)
-  "Get property from buffer variable.  Returns only fist match except if ALL is defined.
-NOTE: Also works if editing subtree narrowed or in separate narrowed buffer. "
-  (with-current-buffer
-	(current-buffer)
-    (save-excursion
-      (save-restriction
-	(save-match-data
-	  (widen)
-	  (goto-char (point-min))
-	  (let (values)
-	    (while (re-search-forward (format "^#\\+%s:?[ \t]*\\(.*\\)" property) nil t)
-	      (add-to-list 'values (substring-no-properties (match-string 1))))
-	    (if all
-		values
-	      (car values))))))))
+  (defun org-get-header-property (property &optional all)
+    "Get property from buffer variable.  Returns only fist match except if ALL is defined.
+  NOTE: Also works if editing subtree narrowed or in separate narrowed buffer. "
+    (with-current-buffer
+        (current-buffer)
+      (save-excursion
+        (save-restriction
+          (save-match-data
+            (widen)
+            (goto-char (point-min))
+            (let (values)
+              (while (re-search-forward (format "^#\\+%s:?[ \t]*\\(.*\\)" property) nil t)
+                (add-to-list 'values (substring-no-properties (match-string 1))))
+              (if all
+                  values
+                (car values))))))))
 #+END_SRC
 
 #+RESULTS:
@@ -241,7 +241,24 @@ NOTE: Also works if editing subtree narrowed or in separate narrowed buffer. "
 (org-get-header-property "TEST")
 #+END_SRC
 
+** COMMENT Get drawer contents
 #+RESULTS:
+#+BEGIN_SRC emacs-lisp
+  (defun org-get-drawer (drawer-name)
+    "Get the contents of the drawer named 'drawer-name', at current section."
+    (save-excursion
+      (org-back-to-heading)
+      (let* ((plist (cadr (org-element-at-point)))
+             (node-end (plist-get plist :end))
+             drawer-begin)
+        (re-search-forward (format "^:%s:" drawer-name) node-end)
+        (forward-char)
+        (setq drawer-begin (point))
+        (re-search-forward "^:END:" node-end)
+        (beginning-of-line)
+        (backward-char)
+        (buffer-substring drawer-begin (point)))))
+#+END_SRC
 
 ** DONE Functions for adding, removing and replacing elements in a-lists
 CLOSED: [2013-12-19 Thu 09:01]

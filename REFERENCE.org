@@ -1,16 +1,130 @@
+#+OPTIONS: ^:{} H:5
+
+* Overview
+
+Org-pm is a kind or pre-processor for org-publish.  It does 3 things:
+
+1. It creates project definitions from specifications written as sections of an org mode file.  In this way, an org mode file can define any number of projects.
+2. It copies files or parts of files to any number of projects, which can then be published in the usual way with org-publish.
+3. Save the =org-publish-projects-alist= between sessions, along with the list of files containing parts that should be copied to projects.
+
+To define a project, one writes the properties and the values as subsections of a section.
+
+To specify which projects to copy a file or section to, org-pm uses properties and tags. The values of properties or tags specify the project and optionally also the subfolder path and the file name where the file or section should be copied to.
+
+One can include files for css or other scripts as sections of an org file, which are copied out as source files before publication.
+
+Org-pm provides interactive commands for adding projects to files or sections.  It creates and inserts templates for new projects in the current file.  It keeps track of duplicate project definitions, that is definitions of a project with the same name which are stored in more than one locations (sections) in one or more files.  The command =org-pm-list-project-defs= creates an org file listing the locations of all project definitions, including the duplicates, with links for going to the definitions.
+
+* Defining projects
+
+
+
+* Specifying projects, folders and file-names to copy files or sections to
+
+A single string is used to specify the project, folder and file-name where a file or section should be copied to.  The three parts are separated by =@=.
+
+*IMPORTANT*: Because org-mode has problems tags that contain a dot (=.=), use hash (=#=) instead of a dot in a file or folder name when putting it in a tag.
+
+Example: The following 5 strings specify 5 different projects and locations to copy a file or section to:
+
+- =project1= :: The root directory of =project1=, using the name of the current file or the heading of the current section as file name.
+- =project2@news= :: The subdirectory news of =project2=, using the name of the current file.
+- =project3@news/august= :: The sub-subdirectory =news/august/= of =project3=, using the name of the current file.
+- =project4@@index= :: The root directory of =project4=, using =index.org= as file name.
+- =project5@static@style#css= :: The subdirectory =static/= of =project5=, using =style.css= as file name.
+
+** Copying an entire file to one or more projects
+To specify that the whole file should be copied to a project, one adds the project specification string as value of property =PROJECT=.  More than one project can be specified in the same file in this way. For example:
+
+#+BEGIN_EXAMPLE
+,#+PROJECT: project1
+,#+PROJECT: project2@news
+#+END_EXAMPLE
+
+Specifies that the current file should be copied to the root directory of =project1= and to subdirectory =news= of =project2=
+
+*** Copying a section of a file to one or more projects
+
+To specify that a section should be copied to a project, one adds the project/folder/file-name specification string as tag to that section, enclosed in underscores (=_=).
+
+If no filename is provided, then the heading is used as filename.  Spaces are substituted by dashes (=-=).
+
+Several tags can be added in this way to copy the section to more than one project.
+
+Examples:
+
+**** about this site                                             :_project1_:
+
+Copy this section to file =about-this-site.org= in the base directory of =project1=.
+
+**** tutorial 1                                        :_project2@tutorials_:
+
+Copy this section to file =tutorial-1.org= in subdirectory =tutorials= of =project2=.
+
+**** Default Style                                        :_project2@static@style#css_:
+
+Copy this section to file =style.css= in subdirectory =static= of =project2=.  Note: hash (=#=) is used instead of dot (=.=) in the tag, because Org-mode has problems with recognizing tags containing dots.
+
+**** examples                                      :_project1_:_project2_:
+
+Copy this section to file examples.org, in the root directories of projects =project1= and =project2=.
 
 * TODO Variables
 :PROPERTIES:
 :DATE:     <2013-12-18 Wed 11:52>
 :END:
 
-** org-pm-project-files
+** org-pm-files
+
+Saves a list of paths of all files containing components that should be copied to projects, together with the list of projects that are specified by components of that file.  No other information is stored, because it can always be retrieved from the contents of the file itself.  The list of projects is needed to find all files belonging to a project.
+
+The list is updated each time that a file is parsed by org-pm.  It is saved together with =org-publish-project-alist= to the path specified by =org-pm-project-data-file-path=.
+
+The following illustrates how the files of a project are retrieved from =org-pm=files=
+
+#+BEGIN_SRC elisp
+  (let
+      ((org-pm-files-demo ;; dummy org-pm-files
+        '(("file1.org" "project1" "project2")
+          ("file2.org" "project2" "project3")
+          ("file3.org" "project1" "project3" "project4")))
+       (project "project3") ;; dummy project
+       found-files) ;; collect files belonging to "project3" here
+    (dolist (files org-pm-files-demo )
+      (if (member project files) (add-to-list 'found-files (car files))))
+    found-files)
+#+END_SRC
+
+#+RESULTS:
+| file3.org | file2.org |
+
+** org-pm-project-data-file-path
+
+String specifying the path where org-pm saves =org-publish-project-alist= and =org-pm-files=.  These are all the data that need to be saved between sessions in order to preserve the current state of org-pm projects.  The default value of =org-pm-project-data-file-path= is: =~/.emacs.d/savefile/org-pm-project-data.el=.
 
 ** org-pm-auto-parse
 
-** org-pm-auto-copy
+If true, saving an org-mode file will cause org-pm to do the following:
 
-** org-pm-project-data-file-path
+- parse the file, and stores the names of the projects found in =org-pm-files=
+- create any projects that are defined in the org file and add them to =org-publish-projects-alist=.
+- Store any previously found project definitions from different files or sections in =org-pm-project-duplicate-project-defs=, for reference.
+- Save the contents of =org-publish-projects-alist=, =org-pm-files= and =org-pm-duplicate-project-defs= in the file indicated by =org-pm-project-data-file-path=.
+
+The default value of =org-pm-auto-parse= is =t=.
+
+** org-pm-auto-copy-mode
+
+Indicates when to copy file components to their designated projects.
+
+Possible values:
+
+- =nil= :: Do not copy automatically.  User must run command =org-pm-copy-components= to copy the components.
+- =on-save= :: Copy components each time the corresponding file is saved.
+- =on-publish= :: Copy components to project each time that org-publish is run, just before publishing a project.
+
+Default value: =on-save=
 
 ** org-pm-default-project-name
 
@@ -26,15 +140,15 @@
 
 ** org-pm-add-file-to-project
 
-Ask the user interactively to input the name of a project to which the present buffer should be added.  Add the buffer to the project through either buffer property =#+PROJECT:= or section tag.  Also ask for folder where to put file of buffer.  If needed, create project definition and add it to buffer.  Created any needed folders.  
+Ask the user interactively to input the name of a project to which the present buffer should be added.  Add the buffer to the project through either buffer property =#+PROJECT:= or section tag.  Also ask for folder where to put file of buffer.  If needed, create project definition and add it to buffer.  Created any needed folders.
 
 Steps in detail:
 
 1. Parse buffer contents (=org-pm-parse-buffer=) to update project definitions and create list of projects that this buffer belongs to.
-2. Create list of projects to select from, by removing the projects that the buffer belongs to from the projects in org-publish-project-alist. 
-3. Present menu of projects to select from.  
+2. Create list of projects to select from, by removing the projects that the buffer belongs to from the projects in org-publish-project-alist.
+3. Present menu of projects to select from.
 4. If user enters name of new project, offer to create this project.  Let user select or input the paths for base directory and publishing directory.  Create these directories if not present.  Add project definition section to buffer if needed.
-5. Ask user to select or input folder inside the source directory where the file should be placed.  If the folder input by the user is not a subfolder of the selected projects' bse directory, then issue an error.  If the folder does not exist, create it.  
+5. Ask user to select or input folder inside the source directory where the file should be placed.  If the folder input by the user is not a subfolder of the selected projects' bse directory, then issue an error.  If the folder does not exist, create it.
 6. If the selected project is defined in the present buffer:
    - Then add tag with project name and folder path relative to base directory to the section that defines the project.
    - Else add =#+PROJECT:= property on a new line at top of buffer.
@@ -47,9 +161,9 @@ Steps in detail:
 
 ** org-pm-remove-section-from-project
 
-** org-pm-parse-buffer 
+** org-pm-parse-buffer
 
-This command parses the current buffer in order to do 3 things: 
+This command parses the current buffer in order to do 3 things:
 
 1. Create project definitions. (org-pm-make-projects)
 2. Find which parts of the file are stored in which project, and store the results in org-pm-project-files. (org-pm-make-component-project-list)
@@ -66,35 +180,35 @@ Steps to incorporate:
    2. Scan for sections with tags enclosed in =_=.
 ================================================================
 
-** org-pm-publish 
+** org-pm-publish
 
-Select a project to publish from the projects targeted by current buffer. 
+Select a project to publish from the projects targeted by current buffer.
 
 Since a file containing org-pm tags can be anywhere outside an org-mode project folder, one cannot use org-publish-current-project to automatically provide the target project based on the file.  Therefore, use =org-pm-publish= instead to select the desired project to publish from a list of projects that are targeted by the current file.
 
 ** org-pm-make-projects (called by org-pm-parse-buffer)
 
-** org-pm-make-component-project-list: 
+** org-pm-make-component-project-list:
 
 ** org-pm-copy-components:
 
 org-pm-copy-components can be called explicitly by the user as a command.
 
-If org-pm-auto-copy is enabled, then it is called automatically whenever a project is published. 
+If org-pm-auto-copy is enabled, then it is called automatically whenever a project is published.
 
-** org-pm-enable-auto: 
+** org-pm-enable-auto:
 
 ** org-pm-disable-auto:
 
 * Storing Project Data
 
-Org-pm stores project data to a file, so that previously defined projects are available when one restarts emacs. 
+Org-pm stores project data to a file, so that previously defined projects are available when one restarts emacs.
 
-Org-pm saves the data every time that it parses a buffer (function =org-pm-parse-buffer=). 
+Org-pm saves the data every time that it parses a buffer (function =org-pm-parse-buffer=).
 
 The path of the file holding these data is in variable =org-pm-project-data-file-path=.
 
-The data stored are: 
+The data stored are:
 
 ** Org-mode project definition data (=org-publish-project-alist=)
 
@@ -103,9 +217,9 @@ The data stored are:
 :ID:       A912E617-30B3-4827-89D1-BAA449A8EC49
 :END:
 
-For every file and every section (node) component that belongs to a project, org-mode stores the address of the component and a list of the target projects and paths of files where the component should be copied.  All entries are stored in a list in variable =org-pm-project-components=.  This variable is auto-saved together with the =org-publish-project-alist= every time that a file is parsed. 
+For every file and every section (node) component that belongs to a project, org-mode stores the address of the component and a list of the target projects and paths of files where the component should be copied.  All entries are stored in a list in variable =org-pm-project-components=.  This variable is auto-saved together with the =org-publish-project-alist= every time that a file is parsed.
 
-Each entry in =org-pm-project-components= has the form: 
+Each entry in =org-pm-project-components= has the form:
 
 #+BEGIN_SRC elisp
 (<ID> <FULL PATH TO SOURCE FILE>
@@ -115,15 +229,15 @@ Each entry in =org-pm-project-components= has the form:
     )
 #+END_SRC
 
-Where <ID> is the ID property of the section as provided by org-id-get-create.  For example: 
+Where <ID> is the ID property of the section as provided by org-id-get-create.  For example:
 
 : 878E718E-90BE-4E46-A002-767FCE598354
 
 * Tasks involved, and when they are done
 
-There are two main steps in the org-pm publish process: 
+There are two main steps in the org-pm publish process:
 
-1. Parsing a file to find projects and components of projects.  This is done with 
+1. Parsing a file to find projects and components of projects.  This is done with
 
 2. Copying files or sections (nodes) of files to a project
 
@@ -145,11 +259,11 @@ Parsing a file to find project definitions and components of projects
 
 *** Removing a file from a project
 
-*** Adding a section to a project 
+*** Adding a section to a project
 
 *** Removing a section from a project
 
-*** 
+***
 
 *** Data integrity checks
 :PROPERTIES:
@@ -158,10 +272,10 @@ Parsing a file to find project definitions and components of projects
 
 **** Duplicate IDs
 
-Duplicate IDs arise when a section of a file is copied to another location along with its IDs 
+Duplicate IDs arise when a section of a file is copied to another location along with its IDs
 
 **** Obsolete files
 
 **** Broken links
 
-Broken links arise when 
+Broken links arise when

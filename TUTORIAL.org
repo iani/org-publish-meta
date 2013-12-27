@@ -1,4 +1,3 @@
-
 * TUTORIAL
 :PROPERTIES:
 :DATE:     <2013-12-18 Wed 09:30>
@@ -13,13 +12,18 @@ Run the following to install org-pm and to activate auto-parsing and auto-copyin
 
 #+BEGIN_SRC elisp
 (require 'org-pm)
-;; Auto-parse project configs before saving a buffer:
+;; Auto-parse project configs after saving a buffer:
 (setq org-pm-auto-parse t)
-;; Auto-copy contents of project components before publishing a project:
-(setq org-pm-auto-copy t)
+;; Auto-copy contents of project components after saving a buffer:
+(setq org-pm-auto-copy-mode 'on-save)
 #+END_SRC
 
-The auto-parse and auto-copy features are optional, and are deactivated by default.  You can also deactivate auto-copy and auto-parse for individual files by setting the values of respective properties in those files.  See documentation for details.  It is recommended to try out org-pm with the auto-features activated at first, because it greatly simplifies its use.
+The auto-parse and auto-copy features are optional.  The default settings are:
+
+=org-pm-auto-parse: t=
+=org-pm-auto-copy-mode: 'on-save=
+
+, and are deactivated by default.  You can also deactivate auto-copy and auto-parse for individual files by setting the values of respective properties in those files to nil.  See documentation for details.  It is recommended to try out org-pm with the auto-features activated at first, because it greatly simplifies its use.
 
 ** First steps: Adding and removing files, the default project
 *** Add a file to a project
@@ -32,7 +36,7 @@ Keyboard shortcut: C-c A.
 
 The command org-pm-add-file-to-project (C-c A) lets the user select a project from a list of existing projects displayed in the menu buffer, and adds the file of the current buffer to the selected project.  If there is no project defined, the command offers to create a default project (see below).
 
-To add a file to a project, org-pm-add-file-to-project adds the name of the project in property PROJECT by adding a line like this at the beginning of the org-mode file: 
+To add a file to a project, org-pm-add-file-to-project adds the name of the project in property PROJECT by adding a line like this at the beginning of the org-mode file:
 
 : #+PROJECT: projectname
 
@@ -51,15 +55,15 @@ The command org-pm-remove-file-from-project (C-c R) lets the user select a proje
 :DATE:     <2013-12-18 Wed 10:25>
 :END:
 
-If no project is yet defined, then org-pm offers to create a default project, like this: 
+If no project is yet defined, then org-pm offers to create a default project, like this:
 
 - The name of the default project is "org-pm-default".
 - The folder from which the default project reads the org files, and where org-pm will be copying files to, is ~/pm-org
 - The folder to which the the default project will be publishing the converted (html and other) files is ~/pm-html
 
-If the folders for the default project do not exist already, then org-pm creates them. 
+If the folders for the default project do not exist already, then org-pm creates them.
 
-You can customize the name and folders of the default project by setting the corresponding variables, like this: 
+You can customize the name and folders of the default project by setting the corresponding variables, like this:
 
 #+BEGIN_SRC elisp
 (setq org-pm-default-project-name "my-site")
@@ -81,12 +85,12 @@ When org-pm creates the default project for the first time, it places a file nam
 
 *** Automatic parsing and copying with standard emacs/org-mode saving and publishing commands
 
-If the 
+If the
 - Save any buffers th
 
 *** Explicit execution of parsing and copying files through commands
 
-If the auto-parse option is enabled (see Tutorial section 1: Installation and basic configuration), then all you need to do to update the configuration of any file that you want to include in org-pm is save it.  The file is then ready for publication according to any specifications included in the file contents. 
+If the auto-parse option is enabled (see Tutorial section 1: Installation and basic configuration), then all you need to do to update the configuration of any file that you want to include in org-pm is save it.  The file is then ready for publication according to any specifications included in the file contents.
 
 If the auto-parse option is not enabled, then call command org-pm-parse-file to update any project definitions contained in the file and also register any parts of the file (nodes, or the file itself) which are marked to be copied to any projects.
 
@@ -106,6 +110,3 @@ If the auto-copy option is enabled (see Tutorial section 1: Installation and bas
 :PROPERTIES:
 :DATE:     <2013-12-18 Wed 10:43>
 :END:
-
-
-
