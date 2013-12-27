@@ -1,4 +1,4 @@
-#+TODO: TODO UNDERWAY | DONE
+#+TODO: TODO UNDERWAY | DONE CANCELLED
 * Command for loading this file manually
 :PROPERTIES:
 :ID:       DE05B7A2-2C3F-4AB8-B3AF-E2670087E570
@@ -176,6 +176,40 @@ CLOSED: [2013-12-18 Wed 22:16]
 :DATE:     <2013-12-18 Wed 17:24>
 :END:
 
+** Utility functions for saving emacs lisp data
+:PROPERTIES:
+:DATE:     <2013-12-04 Wed 12:47>
+:END:
+
+#+BEGIN_SRC elisp
+
+  (defun dump-vars-to-file (varlist filename)
+    "simplistic dumping of variables in VARLIST to a file FILENAME"
+    (save-excursion
+      (let ((buf (find-file-noselect filename)))
+        (set-buffer buf)
+        (erase-buffer)
+        (dump varlist buf)
+        (save-buffer)
+        (kill-buffer))))
+
+  (defun dump (varlist buffer)
+    "insert into buffer the setq statement to recreate the variables in VARLIST"
+    (loop for var in varlist do
+          (print (list 'setq var (list 'quote (symbol-value var)))
+                 buffer)))
+
+  (defun checkit ()
+    (interactive)
+    (let ((a '(1 2 3 (4 5)))
+          (b '(a b c))
+          (c (make-vector 3 'a)))
+      (dump-vars-to-file '(a b c) "/Users/iani2/Desktop/TEST.el")))
+#+END_SRC
+
+#+RESULTS:
+: checkit
+
 ** DONE Get header properties
 :PROPERTIES:
 :DATE:     <2013-12-16 Mon 02:50>
@@ -317,6 +351,8 @@ NOTE: Removing components from projects is more complex than adding, because we 
 :ID:       E3ED5198-9807-4051-88E2-4A9A50A0FC7A
 :END:
 
+Save the contents of =org-publish-project-alist= and =org-pm-files= to the file specified in =org-pm-project-data-file-path=.
+
 #+BEGIN_SRC emacs-lisp
 (defun org-pm-save-projects-and-components ()
 
@@ -330,28 +366,13 @@ NOTE: Removing components from projects is more complex than adding, because we 
 :END:
 
 #+BEGIN_SRC emacs-lisp
-(defun org-pm-add-project-to-file-header (project-name)
-
-)
-#+END_SRC
-
-** TODO org-pm-get-file-projects
-:PROPERTIES:
-:DATE:     <2013-12-18 Wed 21:17>
-:ID:       54A8502C-CC61-4F6E-9CEB-F58EE65B58F4
-:END:
-
-Get list of all projects to which this file is published in its entirety. (Not projects to  which any of its sections are published.)
-
-To get the list, look in 2 places:
-
-1. Project names defined by header-type property (=#+PROJECT:=) in any place of the file.  Several such lines may exist.  Collect all projects named there.
-2. Project definition sections that have the tag =include-this-file=. (See reference on how project definition sections are defined.)
-
-#+BEGIN_SRC emacs-lisp
-(defun org-pm-get-file-projects ()
-
-)
+  (defun org-pm-add-project-to-file-header (project-name)
+    "Add property PROJECT with value project-name at beginning of file."
+    (save-excursion
+      (save-restriction
+        (widen)
+        (beginning-of-buffer)
+        (insert (format "#+PROJECT: %s\n" project-name)))))
 #+END_SRC
 
 ** TODO org-pm-get-section-projects
@@ -449,22 +470,6 @@ Refining, towards implementation:
     ()
   )
 #+END_SRC
-
-
-** old org-pm-parse-buffer notes
-
-This command parses the current  in order to do 3 things:
-
-1. Create project definitions. (org-pm-make-projects)
-2. Find which parts of the file are stored in which project, and store the results in org-pm-files. (org-pm-make-component-project-list)
-3. Save the resulting configurations by writing =org-publish-project-alist= and =org-pm-files= to the file whose path is contained in =org-pm-project-data-file-path=
-
-org-pm-parse-buffer can be called explicitly by the user as a command.
-
-If org-pm-auto-parse is enabled, then it is called automatically whenever a buffer is saved.
-
-*** IMPORTANT: When scanning for which projects are
-NOTE: Removing components from projects is more complex than adding, because we should also remove the files of the components from the base directory of the project.  Therefore: org-pm-parse-buffer must remove any files of components that no longer exist.  How to do this?
 
 
 ** DONE org-pm-make-projects (called by org-pm-parse-buffer)
@@ -617,6 +622,22 @@ For test purposes:
 #+RESULTS:
 : org-pm-make-projects
 
+** old org-pm-parse-buffer notes
+
+This command parses the current  in order to do 3 things:
+
+1. Create project definitions. (org-pm-make-projects)
+2. Find which parts of the file are stored in which project, and store the results in org-pm-files. (org-pm-make-component-project-list)
+3. Save the resulting configurations by writing =org-publish-project-alist= and =org-pm-files= to the file whose path is contained in =org-pm-project-data-file-path=
+
+org-pm-parse-buffer can be called explicitly by the user as a command.
+
+If org-pm-auto-parse is enabled, then it is called automatically whenever a buffer is saved.
+
+*** IMPORTANT: When scanning for which projects are
+NOTE: Removing components from projects is more complex than adding, because we should also remove the files of the components from the base directory of the project.  Therefore: org-pm-parse-buffer must remove any files of components that no longer exist.  How to do this?
+
+
 ** UNDERWAY org-pm-add-file-to-project:
 :PROPERTIES:
 :ID:       24187886-5ADA-4263-806B-8655A9813C8B
@@ -732,6 +753,12 @@ Remove current section (node) from a project interactively selected by user.
 
 ** UNDERWAY org-pm-register-project-components
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+TO BE REPLACED BY org-pm-process-file
+org-pm-process-file starts by incorporating the code from this function
+and adds to it the copying of the components found.
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 Parse current buffer, looking for projects added for the whole file (with property =#+PROJECT:= or for sections (with tags enclosed in =_=). Collect names of all projects found in a list.
 Put the list in the assoc list stored in =org-pm-files=, using the full path of the file as key. Function =org-pm-copy-to-project= scans this list to find if the file contains any components that should be copied to the project, and copies them.
 
@@ -773,15 +800,59 @@ Put the list in the assoc list stored in =org-pm-files=, using the full path of 
 #+RESULTS:
 : org-pm-get-project-name
 
+** org-pm-process file (replaces: org-pm-register-project-components)
+
+- org-pm-copy-components can be called explicitly by the user as a command.
+- If org-pm-auto-copy is enabled, then it is called automatically.
+- There are two ways to automate the copying:
+  1. Copy whenever the file is saved.
+  2. Copy whenever the project is published.
+
+Assessment:
+
+Version 1 lengthens the file saving time.
+Version 1 lengthens the publishing time.
+
+The accumulated delay of copying project components from all files when publishing may be more distracting than the delay of copying components of a single project.  Additionally, it is better to be able to check the condition of a project at any stage, and to have it updated as soon as a file is saved.  So I start by setting the default to copy components when the file is saved.
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-copy-components ()
+    "Identify and copy the components that are marked to belong to projects."
+
+  )
+
+  ;; This version does both the registering and the copying.
+  ;; Will replace org-pm-register-project-components.
+  (defun org-pm-process-file ()
+    "Identify and copy the components that are marked to belong to projects.
+  Parse current buffer, looking for projects added for the whole file (with property
+  =#+PROJECT:= or for sections (with tags enclosed in =_=). Collect names of all projects
+  found in a list. Put the list in the assoc list stored in =org-pm-files=, using the full
+  path of the file as key. Function =org-pm-copy-to-project= scans this list to find if
+  the file contains any components that should be copied to the project, and copies them."
+      (interactive)
+
+      (let ((filename (buffer-file-name (current-buffer)))
+            projects components project file folder)
+        (mapcar (lambda (project)
+                  (add-to-list 'projects (org-pm-get-project-name project)))
+                (org-get-header-property "PROJECT" t))
+        (org-map-entries
+         '(let ((tags (plist-get (cadr (org-element-at-point)) :tags)))
+            (dolist (tag tags)
+              (if (string-match  "^_.*_$" tag)
+                  (add-to-list 'projects (org-pm-get-project-name tag))))
+            ))
+        (setq org-pm-files (assoc-replace org-pm-files filename projects))
+        (message "Result: %s" projects)))
+#+END_SRC
+
 ** TODO org-pm-publish: Select a project to publish from the projects targeted by current buffer.
 
 Since a file containing org-pm tags can be anywhere outside an org-mode project folder, one cannot use org-publish-current-project to automatically provide the target project based on the file.  Therefore, use =org-pm-publish= instead to select the desired project to publish from a list of projects that are targeted by the current file.
 
-** org-pm-copy-components:
 
-org-pm-copy-components can be called explicitly by the user as a command.
 
-If org-pm-auto-copy is enabled, then it is called automatically whenever a project is published.
 
 ** org-pm-enable-auto:
 
