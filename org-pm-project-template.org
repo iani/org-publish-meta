@@ -1,10 +1,12 @@
+* PROJECTNAME
 
-* project template                                             :PROJECT_DEFS:
-
-** PROJECTNAME
-
-*** base-directory "BASEDIRECTORY"
-
-*** publishing-directory "PUBLISHINGDIRECTORY"
-
-*** exclude "EXCLUDEFILE"
+** base-directory "BASEDIRECTORY"
+** base-extension "org"
+** publishing-directory "PUBLISHINGDIRECTORY"
+** publishing-function 'org-html-publish-to-html
+** headline-levels 4
+** section-numbers nil
+** with-toc t
+** html-preamble t
+** static-base-directory "BASEDIRECTORY/static/"
+** static-publishing-directory "PUBLISHINGDIRECTORY/static/"

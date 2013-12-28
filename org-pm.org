@@ -17,9 +17,9 @@ CLOSED: [2013-12-18 Wed 15:23]
          ((file-exists-p home)
           (setq home (concat home "/savefile"))
           (unless (file-exists-p home) (make-directory home))
-          concat home "/org-pm-project.data.el")
+          (concat home "/org-pm-project.data.el"))
          (t (concat home "/.org-pm-project.data.el"))))
-  "Path of file for storing org-publish-project-alist and
+    "Path of file for storing org-publish-project-alist and
   org-pm-files.  If nil, the path is deduced from the existence
   of .emacs.d folder in user's home directory.
   If .emacs.d exists, use ~/.emacs.d/savefile/org-publish-project-alist
@@ -94,6 +94,24 @@ CLOSED: [2013-12-18 Wed 15:23]
   "If not nil, automatically copy file components to a project to the
   project's source folder before publishing.")
 #+END_SRC
+
+** UNDERWAY org-pm-project-template-file-name
+:PROPERTIES:
+:ID:       9D5B4E5D-90E1-4F32-842D-620B262665AF
+:END:
+
+#+BEGIN_SRC emacs-lisp
+  (defvar org-pm-project-template-file-name
+    (concat (file-name-directory (or load-file-name (buffer-file-name)))
+            "org-pm-project-template.org")
+  "Full path of file containing template of project definition for
+  projects generated automatically with org-pm-make-project-template.
+  The path is initialized at code loading time by function org-pm-init-project-template-name.
+  org-pm-make-project-template uses it to make project templates.")
+#+END_SRC
+
+#+RESULTS:
+: org-pm-project-template-file-name
 
 ** DONE org-pm-default-project-name
 CLOSED: [2013-12-18 Wed 15:28]
@@ -435,44 +453,108 @@ Get list of all projects to which any individual sections in the file should be 
 )
 #+END_SRC
 
-** DONE org-pm-make-project-template-file
+** org-pm-edit-project-template
+
+Edit the file containing the global project template.
+Note that edits may cause conflicts when updating org-pm from git.
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-edit-project-template ()
+    "Edit the file containing the global project template.
+  Note that edits may cause conflicts when updating org-pm from git."
+    (interactive)
+    (find-file org-pm-project-template-file-name))
+#+END_SRC
+
+** org-pm-show-project-definition-section
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-show-project-definition-section ()
+    "Mark all sections tagged PROJECT_DEFS.
+    Additionally go to the first section tagged PROJECT_DEFS, if it exists."
+    (interactive)
+    (let ((defs (org-map-entries '(cadr (org-element-at-point)) "PROJECT_DEFS")))
+      (cond
+       (defs
+         (org-match-sparse-tree nil "PROJECT_DEFS")
+         (goto-char (plist-get (car defs) :begin))
+         (recenter-top-bottom '(4))
+         (message "Showing location of first project definition section found."))
+       (t (message "No project definitions were found in this file.")))))
+#+END_SRC
+
+** UNDERWAY org-pm-make-project-template
 CLOSED: [2013-12-19 Thu 02:12]
 :PROPERTIES:
 :ID:       36439CB5-E875-4E45-B595-5116888C9DCA
 :END:
 
 #+BEGIN_SRC emacs-lisp
-  (defun org-pm-make-project-template-file (project)
+  (defun org-pm-make-project-template (&optional project)
     "Read file containing template of project definition for
-    projects generated automatically with org-pm-make-project-template-file,
+    projects generated automatically with org-pm-make-project-template,
     from the synonymous file in the org-pm project source
     code folder.  Replace relevant parts of the template with
     information specific to the project.
     Finally, save the template the project's base-directory."
 
     ;; Consider using with-temp-buffer for constructing the template file contents
+    (interactive)
 
-    (save-excursion
-      (find-file org-pm-project-template-name)
-      (let* ((filename (file-name-nondirectory org-pm-project-template-name))
-             (plist (cdr project))
-             (path (concat (plist-get plist :base-directory) "/" filename)))
-        (unless (file-exists-p path)
-          (beginning-of-buffer)
+    (let* ((def-node
+             (car (org-map-entries '(cadr (org-element-at-point)) "PROJECT_DEFS")))
+           (buffer (get-buffer-create "*def*"))
+           plist template-string)
+      (save-excursion
+        (set-buffer buffer)
+        (insert-file-contents org-pm-project-template-file-name)
+        (beginning-of-buffer)
+        (when project
           (replace-string "PROJECTNAME" (car project))
           (beginning-of-buffer)
           (replace-string "BASEDIRECTORY" (plist-get plist :base-directory))
           (beginning-of-buffer)
-          (replace-string "PUBLISHINGDIRECTORY" (plist-get plist :publishing-directory))
-          (beginning-of-buffer)
-          (replace-string "EXCLUDEFILE" filename)
-          (write-file path)
-          ;; leave buffer open for edits ?
-          ;; (kill-buffer (current-buffer))
-          ))))
+          (replace-string "PUBLISHINGDIRECTORY" (plist-get plist :publishing-directory)))
+        (setq template-string (buffer-string))
+        (kill-buffer buffer))
+      (cond (def-node
+             (goto-char (plist-get def-node :begin))
+             (end-of-line)
+             (org-paste-subtree nil template-string))
+            (t
+             (end-of-buffer)
+             (insert "\n* Project Definitions              :PROJECT_DEFS:\n")
+             ;; (previous-line)
+             ;; (end-of-line)
+            ;; (end-of-buffer)
+             (org-paste-subtree 2 template-string)))))
 
-  ;; (org-pm-make-project-template-file "test")
+  ;; (org-pm-make-project-template "test")
 #+END_SRC
+
+#+RESULTS:
+: org-pm-make-project-template
+
+#+BEGIN_SRC elisp
+    (let ((def-node (org-map-entries '(cadr (org-element-at-point)) "PROJECT_DEFS"))
+        (project)
+        (plist)
+        (buffer (get-buffer-create "*def*")))
+    (set-buffer buffer)
+    (insert-file-contents org-pm-project-template-file-name)
+    (beginning-of-buffer)
+    (when nil
+     (replace-string "PROJECTNAME" (car project))
+     (beginning-of-buffer)
+     (replace-string "BASEDIRECTORY" (plist-get plist :base-directory))
+     (beginning-of-buffer)
+     (replace-string "PUBLISHINGDIRECTORY" (plist-get plist :publishing-directory)))
+    (message "%s" def-node)
+  )
+#+END_SRC
+
+#+RESULTS:
+: #<buffer *def*>
 
 ** TODO functions operating on org-pm-files
 
@@ -719,7 +801,7 @@ If project name input by user does not correspond to an existing project, offer 
       (org-pm-add-project-to-file-header project-name)
       (org-pm-add-project-file project-name (buffer-file-name (current-buffer)))
       (org-pm-save-projects-and-components)
-      (org-pm-make-project-template-file project)
+      (org-pm-make-project-template project)
       (message
        "Added project named: %s to file: %s\nBase directory is: %s\nPublishing directory is: %s"
        project-name

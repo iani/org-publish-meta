@@ -8,17 +8,17 @@ Org-pm is a kind or pre-processor for org-publish.  It does 3 things:
 2. It copies files or parts of files to any number of projects, which can then be published in the usual way with org-publish.
 3. It saves the =org-publish-projects-alist= between sessions, along with the list of files containing parts that should be copied to projects, and with a list of the location of duplicate project definitions (definitions with the same name in more than one files or sections).
 
-To define a project, one writes the properties and the values as subsections of a section.
+In org-pm, an org-mode publishing project is defined in an Org-mode section, writing the publishing options and their values (http://orgmode.org/manual/Publishing-options.html) as subsections of that section.  Sections that contain project definitions are marked with the tag "PROJECT_DEFS".  Multiple such sections can exist, and each section can contain more than one project definition.
 
 To specify which projects to copy a file or section to, org-pm uses properties and tags. The values of properties or tags specify the project and optionally also the subfolder path and the file name where the file or section should be copied to.
 
-One can include files for css or other scripts as sections of an org file, which are copied out as source files before publication.
+One can include files for css or other scripts as sections of an org file.  These are copied out as source files before publication.
 
 Org-pm provides interactive commands for adding projects to files or sections.  It creates and inserts templates for new projects in the current file.  It keeps track of duplicate project definitions, that is definitions of a project with the same name which are stored in more than one locations (sections) in one or more files.  The command =org-pm-list-project-defs= creates an org file listing the locations of all project definitions, including the duplicates, with links for going to the definitions.
 
 * Defining projects
 
-To define an Org-mode publishing project, one writes the properties of the project as subheadings of a section, and the values as contents of the section or as further text in the headline of the section.  The name of the project is given in the heading containing the property subsections.  The entire definition is placed in another section with the tag =PROJECT_DEFS=.
+To define an Org-mode publishing project, one writes the publishing options of the project (http://orgmode.org/manual/Publishing-options.html) as subheadings of a section, and the values as contents of the section or as further text in the headline of the section.  The name of the project is given in the heading containing the property subsections.  The entire definition is placed in another section with the tag =PROJECT_DEFS=.
 
 Org-pm automatically creates two more projects for each project definition found under the section tagged =PROJECT_DEFS=:
 
