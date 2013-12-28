@@ -226,26 +226,31 @@ Note that edits may cause conflicts when updating org-pm from git."
        (message "Showing location of first project definition section found."))
      (t (message "No project definitions were found in this file.")))))
 
-(defun org-pm-make-project-template
-  (&optional project-name base-directory publishing-directory)
-  "Read file containing template of project definition
+(defun org-pm-make-project-template (no-query)
+  "Create a project definition template and insert it into current file.
+Input project name, base directory and publishing directory from user.
+Skip input step if called with prefix argument.
+Read file containing template of project definition
 from org-pm-project-template-file-name
 If arguments present, replace relevant parts of the template with
 custom name, base-directory, publishing-directory
 Insert the resulting template in the current file.
-Create the project, the static and store it in org-publish-project-alists."
-  (interactive)
-
-  (let* ((project-name (if project-name project-name "org-pm-default"))
-         (base-directory
-          (file-truename (if base-directory base-directory "~/org-pm/")))
+Create the project as well as its static project and component project.
+Store all 3 in org-publish-project-alists.
+Save updated project, file and duplicate lists to disk."
+  (interactive "P")
+  (let* ((project-name "org-pm-default")
+         (base-directory (file-truename "~/org-pm/"))
          (publishing-directory
-          (file-truename
-           (if publishing-directory publishing-directory "~/Sites/org-pm/")))
+          (file-truename "~/Sites/org-pm/"))
          (def-node
            (car (org-map-entries '(cadr (org-element-at-point)) "PROJECT_DEFS")))
          (buffer (get-buffer-create "*def*"))
          plist template-string)
+    (unless no-query
+      (setq project-name (read-string "Enter project name: " project-name))
+      (setq base-directory (query-make-folder base-directory))
+      (setq publishing-directory (query-make-folder publishing-directory)))
     (save-excursion
       (set-buffer buffer)
       (insert-file-contents org-pm-project-template-file-name)
@@ -266,24 +271,39 @@ Create the project, the static and store it in org-publish-project-alists."
            (end-of-buffer)
            (insert "\n* COMMENT Project Definitions              :PROJECT_DEFS:\n")
            (org-paste-subtree 2 template-string)))
-    ;;;;;;;;;;; !!!!!!!!
-    ;;; FIXME: Add creation of project here
-    ;;; See org-pm-parse-project-def.
-    ;;; the cursor is now positioned correctly to get (org-element-at-point)
-    ;;; and pass it to org-pm-parse-project-def
+    (org-pm-check-add-project (org-pm-parse-project-def (cadr (org-element-at-point))))
     ))
 
-(defun d1-org-pm-parse-file ()
-  "DRAFT Dec 20, 2013 (9:11 PM)"
-  ()
-)
+(defun org-pm-load-all-project-data ()
+  "Load project alist, project file lists, duplicate project def lists
+from previously saved date on disk."
+  (interactive)
+  (if (file-exists-p org-pm-project-data-file-path)
+      (load-file org-pm-project-data-file-path)))
 
-(defun org-pm-make-default-project-plist ()
-  "Construct default plist for publishing a project in html."
-  (let ((plist (copy-sequence org-pm-default-project-plist))
-        (root (file-name-directory (buffer-file-name (current-buffer)))))
-    (plist-put plist :base-directory (concat root "org"))
-    (plist-put plist :publishing-directory (concat root "html"))))
+(defun org-pm-save-all-project-data ()
+  "Load project alist, project file lists, duplicate project def lists
+from previously saved date on disk."
+  (interactive)
+  (dump-vars-to-file
+   '(org-publish-project-alist org-pm-files org-pm-duplicate-project-defs)
+   org-pm-project-data-file-path))
+
+(defun dump-vars-to-file (varlist filename)
+  "simplistic dumping of variables in VARLIST to a file FILENAME"
+  (save-excursion
+    (let ((buf (find-file-noselect filename)))
+      (set-buffer buf)
+      (erase-buffer)
+      (dump varlist buf)
+      (save-buffer)
+      (kill-buffer))))
+
+(defun dump (varlist buffer)
+  "insert into buffer the setq statement to recreate the variables in VARLIST"
+  (loop for var in varlist do
+        (print (list 'setq var (list 'quote (symbol-value var)))
+               buffer)))
 
 (defun org-pm-make-projects ()
   "Construct the projects for all project definitions found in current file.
@@ -319,9 +339,11 @@ and the new id is stored in the project."
   "Create a project definition list based on the contents of the
 section described in proj-node plist. Convert headings
 to property names and contents to their values.
-Add useful identification data.  Argument template is a plist
-with additional properties, but may be left out if the section
-contains all the properties needed to define the project."
+Add useful identification data.
+Argument template is a plist with additional properties,
+but may be left out if the section contains all the properties needed
+to define the project."
+  (unless org-publish-project-alist (org-pm-load-all-project-data))
   (let ((pdef (copy-sequence template))
         (pname (plist-get proj-node :raw-value))
         (begin (plist-get proj-node :contents-begin))
@@ -372,6 +394,7 @@ the variable org-pm-project-def-duplicates:
 If a project with the same name already exists in org-publish-project-alist,
 and that project has a different ID (file path + section ID), then the previously
 existing project definition is added to the list in org-pm-project-def-duplicates."
+  (unless org-publish-project-alist (org-pm-load-project-lists))
   (let* ((p-name (car project))
          (p-def (cdr project))
          (prev-proj (assoc p-name org-publish-project-alist))
@@ -387,7 +410,6 @@ existing project definition is added to the list in org-pm-project-def-duplicate
     (setq org-publish-project-alist
           (assoc-replace org-publish-project-alist p-name p-def)))
   project)
-
 
 (defun org-pm-query-select-project (new-project old-project)
   "Check if new project definition is from a different source than old-project.
@@ -442,8 +464,9 @@ existing project definition is added to the list in org-pm-project-def-duplicate
      (plist-get (cdr project) :base-directory)
      (plist-get (cdr project) :publishing-directory))))
 
-(defun org-pm-query-make-default-project (project-name)
-  "Make a project using default settings and project-name as name."
+(defun org-pm-query-make-project-template ()
+  "Input project name, base directory and publishing directory from user.
+Then pass these as arguments to org-pm-make-project-template"
   (unless (y-or-n-p (format "Create project '%s'? " project-name))
     (error "Project creation cancelled."))
   (let (plist)

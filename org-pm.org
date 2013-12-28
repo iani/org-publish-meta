@@ -27,6 +27,9 @@ CLOSED: [2013-12-18 Wed 15:23]
   Create savefile folder if it does not exist.")
 #+END_SRC
 
+#+RESULTS:
+: org-pm-project-data-file-path
+
 ** DONE org-pm-files
 :PROPERTIES:
 :ID:       A8ABC239-E74B-4654-9850-53C8521E50BA
@@ -51,7 +54,7 @@ CLOSED: [2013-12-18 Wed 15:23]
 #+RESULTS:
 : org-pm-files
 
-** DONE org-pm-duplicate-project-defs
+** DONE org-pm-project-def-duplicates
 CLOSED: [2013-12-21 Sat 22:07]
 
 #+BEGIN_SRC emacs-lisp
@@ -170,40 +173,6 @@ CLOSED: [2013-12-18 Wed 22:16]
 :PROPERTIES:
 :DATE:     <2013-12-18 Wed 17:24>
 :END:
-
-** Utility functions for saving emacs lisp data
-:PROPERTIES:
-:DATE:     <2013-12-04 Wed 12:47>
-:END:
-
-#+BEGIN_SRC elisp
-
-  (defun dump-vars-to-file (varlist filename)
-    "simplistic dumping of variables in VARLIST to a file FILENAME"
-    (save-excursion
-      (let ((buf (find-file-noselect filename)))
-        (set-buffer buf)
-        (erase-buffer)
-        (dump varlist buf)
-        (save-buffer)
-        (kill-buffer))))
-
-  (defun dump (varlist buffer)
-    "insert into buffer the setq statement to recreate the variables in VARLIST"
-    (loop for var in varlist do
-          (print (list 'setq var (list 'quote (symbol-value var)))
-                 buffer)))
-
-  (defun checkit ()
-    (interactive)
-    (let ((a '(1 2 3 (4 5)))
-          (b '(a b c))
-          (c (make-vector 3 'a)))
-      (dump-vars-to-file '(a b c) "/Users/iani2/Desktop/TEST.el")))
-#+END_SRC
-
-#+RESULTS:
-: checkit
 
 ** DONE Get header properties
 :PROPERTIES:
@@ -534,11 +503,7 @@ Note that edits may cause conflicts when updating org-pm from git.
              (end-of-buffer)
              (insert "\n* COMMENT Project Definitions              :PROJECT_DEFS:\n")
              (org-paste-subtree 2 template-string)))
-      ;;;;;;;;;;; !!!!!!!!
-      ;;; FIXME: Add creation of project here
-      ;;; See org-pm-parse-project-def.
-      ;;; the cursor is now positioned correctly to get (org-element-at-point)
-      ;;; and pass it to org-pm-parse-project-def
+      (org-pm-check-add-project (org-pm-parse-project-def (cadr (org-element-at-point))))
       ))
 #+END_SRC
 
@@ -566,48 +531,52 @@ Note that edits may cause conflicts when updating org-pm from git.
 #+RESULTS:
 : #<buffer *def*>
 
-
-* COMMENT Project Definitions              :PROJECT_DEFS:
-** scrap
-
-*** base-directory "~/org-pm/"
-*** base-extension "org"
-*** publishing-directory "~/Sites/org-pm/"
-*** publishing-function 'org-html-publish-to-html
-*** headline-levels 4
-*** section-numbers nil
-*** with-toc t
-*** html-preamble t
-*** static-base-directory "~/org-pm/static/"
-*** static-publishing-directory "~/Sites/org-pm/static/"
-
-** org-pm-default-let-us-see
-
-*** base-directory "~/org-pm/"
-*** base-extension "org"
-*** publishing-directory "~/Sites/org-pm/"
-*** publishing-function 'org-html-publish-to-html
-*** headline-levels 4
-*** section-numbers nil
-*** with-toc t
-*** html-preamble t
-*** static-base-directory "~/org-pm/static/"
-*** static-publishing-directory "~/Sites/org-pm/static/"
-
-** TODO functions operating on org-pm-files
-
-*** Add a project to a file component
-
-*** Add a project to a section component
-
-*** Remove a project from a file component
-
-*** Remove a project from a section component
-
 * Main functions and commands
 :PROPERTIES:
 :DATE:     <2013-12-18 Wed 11:16>
 :END:
+
+** org-pm-load-all-project-data
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-load-all-project-data ()
+    "Load project alist, project file lists, duplicate project def lists
+  from previously saved date on disk."
+    (interactive)
+    (if (file-exists-p org-pm-project-data-file-path)
+        (load-file org-pm-project-data-file-path)))
+#+END_SRC
+
+** org-pm-save-all-project-data
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-save-all-project-data ()
+    "Load project alist, project file lists, duplicate project def lists
+  from previously saved date on disk."
+    (interactive)
+    (dump-vars-to-file
+     '(org-publish-project-alist org-pm-files org-pm-project-def-duplicates)
+     org-pm-project-data-file-path))
+
+  (defun dump-vars-to-file (varlist filename)
+    "simplistic dumping of variables in VARLIST to a file FILENAME"
+    (save-excursion
+      (let ((buf (find-file-noselect filename)))
+        (set-buffer buf)
+        (erase-buffer)
+        (dump varlist buf)
+        (save-buffer)
+        (kill-buffer))))
+
+  (defun dump (varlist buffer)
+    "insert into buffer the setq statement to recreate the variables in VARLIST"
+    (loop for var in varlist do
+          (print (list 'setq var (list 'quote (symbol-value var)))
+                 buffer)))
+#+END_SRC
+
+#+RESULTS:
+: dump
 
 ** DONE org-pm-make-projects (called by org-pm-parse-buffer)
 #+BEGIN_SRC emacs-lisp
@@ -653,6 +622,7 @@ Note that edits may cause conflicts when updating org-pm from git.
   Argument template is a plist with additional properties,
   but may be left out if the section contains all the properties needed
   to define the project."
+    (unless org-publish-project-alist (org-pm-load-all-project-data))
     (let ((pdef (copy-sequence template))
           (pname (plist-get proj-node :raw-value))
           (begin (plist-get proj-node :contents-begin))
@@ -698,6 +668,7 @@ Note that edits may cause conflicts when updating org-pm from git.
 
 ** org-pm-check-add-project
 #+BEGIN_SRC emacs-lisp
+  (require 'dash)
   (defun org-pm-check-add-project (project)
     "Add the project definition contained in plist 'project' to org-publish-project-alist,
   replacing any previously existing definition there.  Before replacing, save any
@@ -705,13 +676,17 @@ Note that edits may cause conflicts when updating org-pm from git.
   the variable org-pm-project-def-duplicates:
   If a project with the same name already exists in org-publish-project-alist,
   and that project has a different ID (file path + section ID), then the previously
-  existing project definition is added to the list in org-pm-project-def-duplicates."
+  existing project definition is added to the list in org-pm-project-def-duplicates.
+  Also create static and combined project components.
+  Create alternate ids for the latter, by appending -static and -combined
+  to the id of the main project."
     (unless org-publish-project-alist (org-pm-load-project-lists))
     (let* ((p-name (car project))
            (p-def (cdr project))
            (prev-proj (assoc p-name org-publish-project-alist))
            (prev-proj-id (plist-get (cdr prev-proj) :project-id))
-           (duplicates (assoc p-name org-pm-project-def-duplicates)))
+           (duplicates (assoc p-name org-pm-project-def-duplicates))
+           static-project static-project-name combined-project)
       (cond
        ((not prev-proj))
        ((equal prev-proj-id (plist-get p-def :project-id)))
@@ -720,7 +695,25 @@ Note that edits may cause conflicts when updating org-pm from git.
            (assoc-replace org-pm-project-def-duplicates p-name
                           (add-to-list 'duplicates prev-proj-id)))))
       (setq org-publish-project-alist
-            (assoc-replace org-publish-project-alist p-name p-def)))
+            (assoc-replace org-publish-project-alist p-name p-def))
+      (setq static-project
+            (-flatten (-map
+                       (lambda (pair)
+                         (list (replace-regexp-in-string "^static-" "" (car pair))
+                               (cadr pair)))
+                       (-filter
+                        (lambda (pair) (string-match "^static-" (car pair)))
+                        (-partition 2 p-def)))))
+      (setq static-project-name (concat "static-" p-name))
+      (setq org-publish-project-alist
+            (assoc-replace org-publish-project-alist
+                           static-project-name static-project))
+      (setq org-publish-project-alist
+            (assoc-replace org-publish-project-alist
+                           (concat "combined-" p-name)
+                           (list :components
+                                 p-name static-project-name))))
+
     project)
 
 #+END_SRC
@@ -1029,44 +1022,50 @@ CLOSED: [2013-12-22 Sun 14:30]
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-list-project-defs ()
-    "List projects by name, giving links to file and node containing the project definition.
-  Also list project definitions of same name that are found in more than one file or section.
-  Do this in a separate org-mode buffer, and provide links to both file and section."
+    "Build list of projects with links to file and node containing the project definition,
+  in a separate org-mode buffer, and provide links to both file and section.
+  Also list duplicate project definitions,
+  i.e. definitions of same name that are found in more than one file or section.
+  Skip those static and combined projects created by the system,
+  i.e. projects whose ids end in -static and -combined."
 
     (interactive)
 
     (if (equal 0 (length org-publish-project-alist))
         (error "There are no project definitions at all."))
 
-    (let ((buffer (get-buffer-create "*org-pm-project-definitions*")))
+    (let ((buffer (get-buffer-create "*org-pm-project-definitions*"))
+          node-id)
       (switch-to-buffer buffer)
       (org-mode)
       (delete-region (point-min) (point-max))
       (org-insert-heading)
       (insert "PROJECT DEFINITIONS")
       (dolist (project org-publish-project-alist)
-        ;; (insert (format "\nDEBUG %s\n\n" project))
-        (insert "\n** "
-                (car project)
-                " (click [[elisp:(org-pm-search-link \""
-                (plist-get (cdr project) :project-id)
-                "\")][*HERE*]] to edit)\n")
-        (insert "file: file:" (plist-get (cdr project) :node-filename) "\n")
-        (insert "node: id:" (plist-get (cdr project) :node-id) "\n")
-        (let ((duplicates (cdr (assoc (car project) org-pm-project-def-duplicates))))
-          (if duplicates
-              (dolist (def duplicates)
-                (let ((path-and-id (split-string def "::#")))
-                 (insert "\n*** duplicate: ")
-                 (insert
-                  " (click [[elisp:(org-pm-search-link \""
-                  def
-                  "\")][*HERE*]] to edit)"
-                  )
-                 (insert "\nfile: file:" (car path-and-id) "\n")
-                 (insert "node: " "id:" (cadr path-and-id) "\n")))
-            (insert "\nThere no duplicate definitions for this project!\n"))))))
-
+        (setq node-id (plist-get (cdr project) :node-id))
+        (unless (or
+                 (string-match "^static-" node-id)
+                 (string-match "^combined-" node-id))
+         (insert "\n** "
+                 (car project)
+                 " (click [[elisp:(org-pm-search-link \""
+                 (plist-get (cdr project) :project-id)
+                 "\")][*HERE*]] to edit)\n")
+         (insert "file: file:" (plist-get (cdr project) :node-filename) "\n")
+         (insert "node: id:" node-id "\n")
+         (let ((duplicates (cdr (assoc (car project) org-pm-project-def-duplicates))))
+           (if duplicates
+               (dolist (def duplicates)
+                 (let ((path-and-id (split-string def "::#")))
+                   (insert "\n*** duplicate: ")
+                   (insert
+                    " (click [[elisp:(org-pm-search-link \""
+                    def
+                    "\")][*HERE*]] to edit)"
+                    )
+                   (insert "\nfile: file:" (car path-and-id) "\n")
+                   (insert "node: " "id:" (cadr path-and-id) "\n")))
+             (insert "\nThere no duplicate definitions for this project!\n")))))))
 #+END_SRC
 
 #+RESULTS:
