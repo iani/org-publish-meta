@@ -8,5 +8,5 @@
 ** section-numbers nil
 ** with-toc t
 ** html-preamble t
-** static-base-directory "BASEDIRECTORY/static/"
-** static-publishing-directory "PUBLISHINGDIRECTORY/static/"
+** static-base-directory "BASEDIRECTORYstatic/"
+** static-publishing-directory "PUBLISHINGDIRECTORYstatic/"

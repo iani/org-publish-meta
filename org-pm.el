@@ -48,7 +48,7 @@ See functions:
 "If not nil, automatically copy file components to a project to the
 project's source folder before publishing.")
 
-(defvar org-pm-project-template-name
+(defvar org-pm-project-template-file-name
   (concat (file-name-directory (or load-file-name (buffer-file-name)))
           "org-pm-project-template.org")
 "Full path of file containing template of project definition for
@@ -207,31 +207,71 @@ of projects that file belongs. "
 
 )
 
-(defun org-pm-make-project-template (&optional project)
-  "Read file containing template of project definition for
-  projects generated automatically with org-pm-make-project-template,
-  from the synonymous file in the org-pm project source
-  code folder.  Replace relevant parts of the template with
-  information specific to the project.
-  Finally, save the template the project's base-directory."
-
-  ;; Consider using with-temp-buffer for constructing the template file contents
+(defun org-pm-edit-project-template ()
+  "Edit the file containing the global project template.
+Note that edits may cause conflicts when updating org-pm from git."
   (interactive)
-  (find-file org-pm-project-template-name)
-  (let* ((filename (file-name-nondirectory org-pm-project-template-name))
-         (plist (cdr project))
-         (def-section '(org-map-entries (cadr (org-element-at-point)) "PROJECT_DEFS")))
-    (when nil
-      (beginning-of-buffer)
-      (replace-string "PROJECTNAME" (car project))
-      (beginning-of-buffer)
-      (replace-string "BASEDIRECTORY" (plist-get plist :base-directory))
-      (beginning-of-buffer)
-      (replace-string "PUBLISHINGDIRECTORY" (plist-get plist :publishing-directory))
-      )
-    (message "THIS IS THE SECTION: %s" def-section)))
+  (find-file org-pm-project-template-file-name))
 
-;; (org-pm-make-project-template "test")
+(defun org-pm-show-project-definition-section ()
+  "Mark all sections tagged PROJECT_DEFS.
+  Additionally go to the first section tagged PROJECT_DEFS, if it exists."
+  (interactive)
+  (let ((defs (org-map-entries '(cadr (org-element-at-point)) "PROJECT_DEFS")))
+    (cond
+     (defs
+       (org-match-sparse-tree nil "PROJECT_DEFS")
+       (goto-char (plist-get (car defs) :begin))
+       (recenter-top-bottom '(4))
+       (message "Showing location of first project definition section found."))
+     (t (message "No project definitions were found in this file.")))))
+
+(defun org-pm-make-project-template
+  (&optional project-name base-directory publishing-directory)
+  "Read file containing template of project definition
+from org-pm-project-template-file-name
+If arguments present, replace relevant parts of the template with
+custom name, base-directory, publishing-directory
+Insert the resulting template in the current file.
+Create the project, the static and store it in org-publish-project-alists."
+  (interactive)
+
+  (let* ((project-name (if project-name project-name "org-pm-default"))
+         (base-directory
+          (file-truename (if base-directory base-directory "~/org-pm/")))
+         (publishing-directory
+          (file-truename
+           (if publishing-directory publishing-directory "~/Sites/org-pm/")))
+         (def-node
+           (car (org-map-entries '(cadr (org-element-at-point)) "PROJECT_DEFS")))
+         (buffer (get-buffer-create "*def*"))
+         plist template-string)
+    (save-excursion
+      (set-buffer buffer)
+      (insert-file-contents org-pm-project-template-file-name)
+      (beginning-of-buffer)
+      (replace-string "PROJECTNAME" project-name)
+      (beginning-of-buffer)
+      (replace-string "BASEDIRECTORY" base-directory)
+      (beginning-of-buffer)
+      (replace-string "PUBLISHINGDIRECTORY" publishing-directory)
+      (setq template-string (buffer-string))
+      (kill-buffer buffer))
+    (cond (def-node
+           (goto-char (plist-get def-node :begin))
+           (end-of-line)
+           (insert "\n")
+           (org-paste-subtree (+ 1 (plist-get def-node :level)) template-string))
+          (t
+           (end-of-buffer)
+           (insert "\n* COMMENT Project Definitions              :PROJECT_DEFS:\n")
+           (org-paste-subtree 2 template-string)))
+    ;;;;;;;;;;; !!!!!!!!
+    ;;; FIXME: Add creation of project here
+    ;;; See org-pm-parse-project-def.
+    ;;; the cursor is now positioned correctly to get (org-element-at-point)
+    ;;; and pass it to org-pm-parse-project-def
+    ))
 
 (defun d1-org-pm-parse-file ()
   "DRAFT Dec 20, 2013 (9:11 PM)"
@@ -275,36 +315,13 @@ and the new id is stored in the project."
      "PROJECT_DEFS")
     (mapcar 'org-pm-check-add-project projects)))
 
-(defun org-pm-check-add-project (project)
-  "Add the project definition contained in plist 'project' to org-publish-project-alist,
-replacing any previously existing definition there.  Before replacing, save any
-previously existing project whose definition is in a different file component in
-the variable org-pm-project-def-duplicates:
-If a project with the same name already exists in org-publish-project-alist,
-and that project has a different ID (file path + section ID), then the previously
-existing project definition is added to the list in org-pm-project-def-duplicates."
-  (let* ((p-name (car project))
-         (p-def (cdr project))
-         (prev-proj (assoc p-name org-publish-project-alist))
-         (prev-proj-id (plist-get (cdr prev-proj) :project-id))
-         (duplicates (assoc p-name org-pm-project-def-duplicates)))
-    (cond
-     ((not prev-proj))
-     ((equal prev-proj-id (plist-get p-def :project-id)))
-     (t (setq
-         org-pm-project-def-duplicates
-         (assoc-replace org-pm-project-def-duplicates p-name
-                        (add-to-list 'duplicates prev-proj-id)))))
-    (setq org-publish-project-alist
-          (assoc-replace org-publish-project-alist p-name p-def)))
-  project)
-
-(defun org-pm-parse-project-def (proj-node template)
-  "Return a project definition plist for the node represented by proj-node
-  org-element plist.
-Note: project-id MUST contain both filename and node-id to be unique.
-Storing node-id is convenient for building report of duplicate projects.
-But get it from project-id?"
+(defun org-pm-parse-project-def (proj-node &optional template)
+  "Create a project definition list based on the contents of the
+section described in proj-node plist. Convert headings
+to property names and contents to their values.
+Add useful identification data.  Argument template is a plist
+with additional properties, but may be left out if the section
+contains all the properties needed to define the project."
   (let ((pdef (copy-sequence template))
         (pname (plist-get proj-node :raw-value))
         (begin (plist-get proj-node :contents-begin))
@@ -346,6 +363,30 @@ But get it from project-id?"
               (setq pdef
                     (plist-put pdef (intern (concat ":" prop-name)) prop-value))))))))
     (cons pname pdef)))
+
+(defun org-pm-check-add-project (project)
+  "Add the project definition contained in plist 'project' to org-publish-project-alist,
+replacing any previously existing definition there.  Before replacing, save any
+previously existing project whose definition is in a different file component in
+the variable org-pm-project-def-duplicates:
+If a project with the same name already exists in org-publish-project-alist,
+and that project has a different ID (file path + section ID), then the previously
+existing project definition is added to the list in org-pm-project-def-duplicates."
+  (let* ((p-name (car project))
+         (p-def (cdr project))
+         (prev-proj (assoc p-name org-publish-project-alist))
+         (prev-proj-id (plist-get (cdr prev-proj) :project-id))
+         (duplicates (assoc p-name org-pm-project-def-duplicates)))
+    (cond
+     ((not prev-proj))
+     ((equal prev-proj-id (plist-get p-def :project-id)))
+     (t (setq
+         org-pm-project-def-duplicates
+         (assoc-replace org-pm-project-def-duplicates p-name
+                        (add-to-list 'duplicates prev-proj-id)))))
+    (setq org-publish-project-alist
+          (assoc-replace org-publish-project-alist p-name p-def)))
+  project)
 
 
 (defun org-pm-query-select-project (new-project old-project)

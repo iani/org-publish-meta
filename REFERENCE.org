@@ -7,13 +7,13 @@ Org-pm is a kind or pre-processor for org-publish.  It does 3 things:
 1. It creates project definitions from specifications written as sections of an org mode file.  In this way, an org mode file can define any number of projects.
 2. It copies files or parts of files to any number of projects, which can then be published in the usual way with org-publish.
 3. It saves the =org-publish-projects-alist= between sessions, along with the list of files containing parts that should be copied to projects, and with a list of the location of duplicate project definitions (definitions with the same name in more than one files or sections).
-
-In org-pm, an org-mode publishing project is defined in an Org-mode section, writing the publishing options and their values (http://orgmode.org/manual/Publishing-options.html) as subsections of that section.  Sections that contain project definitions are marked with the tag "PROJECT_DEFS".  Multiple such sections can exist, and each section can contain more than one project definition.
-
+** Project definitions as Org-mode sections
+Org-pm defines org-mode publishing projects as plain-text Org-mode sections.  The publishing options and their values (http://orgmode.org/manual/Publishing-options.html) are written as subsections of that section.  Sections that contain project definitions are marked with the tag "PROJECT_DEFS".  Multiple such sections can exist, and each section can contain more than one project definition.
+** Tags and properties specify project, folder and file-name for publishing
 To specify which projects to copy a file or section to, org-pm uses properties and tags. The values of properties or tags specify the project and optionally also the subfolder path and the file name where the file or section should be copied to.
 
 One can include files for css or other scripts as sections of an org file.  These are copied out as source files before publication.
-
+** Interactive adding/removing to/from projects, template generation
 Org-pm provides interactive commands for adding projects to files or sections.  It creates and inserts templates for new projects in the current file.  It keeps track of duplicate project definitions, that is definitions of a project with the same name which are stored in more than one locations (sections) in one or more files.  The command =org-pm-list-project-defs= creates an org file listing the locations of all project definitions, including the duplicates, with links for going to the definitions.
 
 * Defining projects
@@ -65,7 +65,7 @@ To specify that the whole file should be copied to a project, one adds the proje
 
 Specifies that the current file should be copied to the root directory of =project1= and to subdirectory =news= of =project2=
 
-*** Copying a section of a file to one mor more projects
+*** Copying a section of a file to one or more projects
 
 To specify that a section should be copied to a project, one adds the project/folder/file-name specification string as tag to that section, enclosed in underscores (=_=).
 

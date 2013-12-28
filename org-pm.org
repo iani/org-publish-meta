@@ -484,52 +484,62 @@ Note that edits may cause conflicts when updating org-pm from git.
 #+END_SRC
 
 ** UNDERWAY org-pm-make-project-template
-CLOSED: [2013-12-19 Thu 02:12]
 :PROPERTIES:
 :ID:       36439CB5-E875-4E45-B595-5116888C9DCA
 :END:
 
 #+BEGIN_SRC emacs-lisp
-  (defun org-pm-make-project-template (&optional project)
-    "Read file containing template of project definition for
-    projects generated automatically with org-pm-make-project-template,
-    from the synonymous file in the org-pm project source
-    code folder.  Replace relevant parts of the template with
-    information specific to the project.
-    Finally, save the template the project's base-directory."
-
-    ;; Consider using with-temp-buffer for constructing the template file contents
-    (interactive)
-
-    (let* ((def-node
+  (defun org-pm-make-project-template (no-query)
+    "Create a project definition template and insert it into current file.
+  Input project name, base directory and publishing directory from user.
+  Skip input step if called with prefix argument.
+  Read file containing template of project definition
+  from org-pm-project-template-file-name
+  If arguments present, replace relevant parts of the template with
+  custom name, base-directory, publishing-directory
+  Insert the resulting template in the current file.
+  Create the project as well as its static project and component project.
+  Store all 3 in org-publish-project-alists.
+  Save updated project, file and duplicate lists to disk."
+    (interactive "P")
+    (let* ((project-name "org-pm-default")
+           (base-directory (file-truename "~/org-pm/"))
+           (publishing-directory
+            (file-truename "~/Sites/org-pm/"))
+           (def-node
              (car (org-map-entries '(cadr (org-element-at-point)) "PROJECT_DEFS")))
            (buffer (get-buffer-create "*def*"))
            plist template-string)
+      (unless no-query
+        (setq project-name (read-string "Enter project name: " project-name))
+        (setq base-directory (query-make-folder base-directory))
+        (setq publishing-directory (query-make-folder publishing-directory)))
       (save-excursion
         (set-buffer buffer)
         (insert-file-contents org-pm-project-template-file-name)
         (beginning-of-buffer)
-        (when project
-          (replace-string "PROJECTNAME" (car project))
-          (beginning-of-buffer)
-          (replace-string "BASEDIRECTORY" (plist-get plist :base-directory))
-          (beginning-of-buffer)
-          (replace-string "PUBLISHINGDIRECTORY" (plist-get plist :publishing-directory)))
+        (replace-string "PROJECTNAME" project-name)
+        (beginning-of-buffer)
+        (replace-string "BASEDIRECTORY" base-directory)
+        (beginning-of-buffer)
+        (replace-string "PUBLISHINGDIRECTORY" publishing-directory)
         (setq template-string (buffer-string))
         (kill-buffer buffer))
       (cond (def-node
              (goto-char (plist-get def-node :begin))
              (end-of-line)
-             (org-paste-subtree nil template-string))
+             (insert "\n")
+             (org-paste-subtree (+ 1 (plist-get def-node :level)) template-string))
             (t
              (end-of-buffer)
-             (insert "\n* Project Definitions              :PROJECT_DEFS:\n")
-             ;; (previous-line)
-             ;; (end-of-line)
-            ;; (end-of-buffer)
-             (org-paste-subtree 2 template-string)))))
-
-  ;; (org-pm-make-project-template "test")
+             (insert "\n* COMMENT Project Definitions              :PROJECT_DEFS:\n")
+             (org-paste-subtree 2 template-string)))
+      ;;;;;;;;;;; !!!!!!!!
+      ;;; FIXME: Add creation of project here
+      ;;; See org-pm-parse-project-def.
+      ;;; the cursor is now positioned correctly to get (org-element-at-point)
+      ;;; and pass it to org-pm-parse-project-def
+      ))
 #+END_SRC
 
 #+RESULTS:
@@ -556,6 +566,34 @@ CLOSED: [2013-12-19 Thu 02:12]
 #+RESULTS:
 : #<buffer *def*>
 
+
+* COMMENT Project Definitions              :PROJECT_DEFS:
+** scrap
+
+*** base-directory "~/org-pm/"
+*** base-extension "org"
+*** publishing-directory "~/Sites/org-pm/"
+*** publishing-function 'org-html-publish-to-html
+*** headline-levels 4
+*** section-numbers nil
+*** with-toc t
+*** html-preamble t
+*** static-base-directory "~/org-pm/static/"
+*** static-publishing-directory "~/Sites/org-pm/static/"
+
+** org-pm-default-let-us-see
+
+*** base-directory "~/org-pm/"
+*** base-extension "org"
+*** publishing-directory "~/Sites/org-pm/"
+*** publishing-function 'org-html-publish-to-html
+*** headline-levels 4
+*** section-numbers nil
+*** with-toc t
+*** html-preamble t
+*** static-base-directory "~/org-pm/static/"
+*** static-publishing-directory "~/Sites/org-pm/static/"
+
 ** TODO functions operating on org-pm-files
 
 *** Add a project to a file component
@@ -571,49 +609,8 @@ CLOSED: [2013-12-19 Thu 02:12]
 :DATE:     <2013-12-18 Wed 11:16>
 :END:
 
-** New org-pm-parse-buffer draft
-:PROPERTIES:
-:DATE:     <2013-12-20 Fri 21:10>
-:ID:       D7E1FC11-2681-47D3-B43A-E24F7EE5A215
-:END:
-
-New version, differnt approach.
-
-Scan file to do several things:
-
-1. Build list of all IDs of nodes that contain project definitions
-2. Check for duplicates IDs. Ask to resolve them.
-3. Check for duplicate projects under diffent IDs.  Ask to resolve them.
-4. Build the project definitions and add them to =org-publish-project-alist=.
-5. Build list of all IDs of nodes that are components of projects.
-6. Check for duplicates across all files and projects.  Ask to resolve them.
-7. Save list of project component section IDs and file paths to =org-pm-files=.
-8. Save =org-publish-project-alist= and =org-pm-files=.
-
-Refining, towards implementation:
-
-#+BEGIN_SRC emacs-lisp
-  (defun d1-org-pm-parse-file ()
-    "DRAFT Dec 20, 2013 (9:11 PM)"
-    ()
-  )
-#+END_SRC
-
-
 ** DONE org-pm-make-projects (called by org-pm-parse-buffer)
-:PROPERTIES:
-:DATE:     <2013-12-16 Mon 02:00>
-:ID:       C4B36522-9597-4911-A829-B2414572DC06
-:END:
-
 #+BEGIN_SRC emacs-lisp
-  (defun org-pm-make-default-project-plist ()
-    "Construct default plist for publishing a project in html."
-    (let ((plist (copy-sequence org-pm-default-project-plist))
-          (root (file-name-directory (buffer-file-name (current-buffer)))))
-      (plist-put plist :base-directory (concat root "org"))
-      (plist-put plist :publishing-directory (concat root "html"))))
-
   (defun org-pm-make-projects ()
     "Construct the projects for all project definitions found in current file.
   Project definitions are those nodes which are contained in nodes tagged as
@@ -643,37 +640,19 @@ Refining, towards implementation:
             (setq projects (cons (org-pm-parse-project-def entry template) projects))))
        "PROJECT_DEFS")
       (mapcar 'org-pm-check-add-project projects)))
+#+END_SRC
 
-  (defun org-pm-check-add-project (project)
-    "Add the project definition contained in plist 'project' to org-publish-project-alist,
-  replacing any previously existing definition there.  Before replacing, save any
-  previously existing project whose definition is in a different file component in
-  the variable org-pm-project-def-duplicates:
-  If a project with the same name already exists in org-publish-project-alist,
-  and that project has a different ID (file path + section ID), then the previously
-  existing project definition is added to the list in org-pm-project-def-duplicates."
-    (let* ((p-name (car project))
-           (p-def (cdr project))
-           (prev-proj (assoc p-name org-publish-project-alist))
-           (prev-proj-id (plist-get (cdr prev-proj) :project-id))
-           (duplicates (assoc p-name org-pm-project-def-duplicates)))
-      (cond
-       ((not prev-proj))
-       ((equal prev-proj-id (plist-get p-def :project-id)))
-       (t (setq
-           org-pm-project-def-duplicates
-           (assoc-replace org-pm-project-def-duplicates p-name
-                          (add-to-list 'duplicates prev-proj-id)))))
-      (setq org-publish-project-alist
-            (assoc-replace org-publish-project-alist p-name p-def)))
-    project)
+** org-pm-parse-project-def
 
-  (defun org-pm-parse-project-def (proj-node template)
-    "Return a project definition plist for the node represented by proj-node
-    org-element plist.
-  Note: project-id MUST contain both filename and node-id to be unique.
-  Storing node-id is convenient for building report of duplicate projects.
-  But get it from project-id?"
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-parse-project-def (proj-node &optional template)
+    "Create a project definition list based on the contents of the
+  section described in proj-node plist. Convert headings
+  to property names and contents to their values.
+  Add useful identification data.
+  Argument template is a plist with additional properties,
+  but may be left out if the section contains all the properties needed
+  to define the project."
     (let ((pdef (copy-sequence template))
           (pname (plist-get proj-node :raw-value))
           (begin (plist-get proj-node :contents-begin))
@@ -715,8 +694,39 @@ Refining, towards implementation:
                 (setq pdef
                       (plist-put pdef (intern (concat ":" prop-name)) prop-value))))))))
       (cons pname pdef)))
+#+END_SRC
 
+** org-pm-check-add-project
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-check-add-project (project)
+    "Add the project definition contained in plist 'project' to org-publish-project-alist,
+  replacing any previously existing definition there.  Before replacing, save any
+  previously existing project whose definition is in a different file component in
+  the variable org-pm-project-def-duplicates:
+  If a project with the same name already exists in org-publish-project-alist,
+  and that project has a different ID (file path + section ID), then the previously
+  existing project definition is added to the list in org-pm-project-def-duplicates."
+    (unless org-publish-project-alist (org-pm-load-project-lists))
+    (let* ((p-name (car project))
+           (p-def (cdr project))
+           (prev-proj (assoc p-name org-publish-project-alist))
+           (prev-proj-id (plist-get (cdr prev-proj) :project-id))
+           (duplicates (assoc p-name org-pm-project-def-duplicates)))
+      (cond
+       ((not prev-proj))
+       ((equal prev-proj-id (plist-get p-def :project-id)))
+       (t (setq
+           org-pm-project-def-duplicates
+           (assoc-replace org-pm-project-def-duplicates p-name
+                          (add-to-list 'duplicates prev-proj-id)))))
+      (setq org-publish-project-alist
+            (assoc-replace org-publish-project-alist p-name p-def)))
+    project)
 
+#+END_SRC
+
+** org-pm-query-select-project
+#+BEGIN_SRC emacs-lisp
   (defun org-pm-query-select-project (new-project old-project)
     "Check if new project definition is from a different source than old-project.
     If yes, then ask the user which of the project definitions to keep.
@@ -730,7 +740,10 @@ Refining, towards implementation:
         (must-write-the-code-for-message-about-rejected
          (if (eq selection new-project) old-project new-project)))
       selection))
+#+END_SRC
 
+** org-pm-add-project
+#+BEGIN_SRC emacs-lisp
   (defun org-pm-add-project (project)
     "Add project to org-pm-project-alist.
     If previous project with same name exist, replace it."
@@ -739,20 +752,15 @@ Refining, towards implementation:
 
 #+END_SRC
 
-#+RESULTS:
-: org-pm-add-project
-
 For test purposes:
+
 #+BEGIN_SRC elisp
   (global-set-key (kbd "C-c C-x t") 'org-pm-make-projects)
 #+END_SRC
 
-#+RESULTS:
-: org-pm-make-projects
-
 ** old org-pm-parse-buffer notes
 
-This command parses the current  in order to do 3 things:
+This command parses the current file in order to do 3 things:
 
 1. Create project definitions. (org-pm-make-projects)
 2. Find which parts of the file are stored in which project, and store the results in org-pm-files. (org-pm-make-component-project-list)
@@ -808,9 +816,23 @@ If project name input by user does not correspond to an existing project, offer 
        (file-name-nondirectory (buffer-file-name (current-buffer)))
        (plist-get (cdr project) :base-directory)
        (plist-get (cdr project) :publishing-directory))))
+  #+END_SRC
 
-  (defun org-pm-query-make-default-project (project-name)
-    "Make a project using default settings and project-name as name."
+** TODO org-pm-query-make-project-template MUST REVIEW! FIXME!
+
+REWRITE THIS TO use org-pm-make-project-template.
+
+Ask for:
+1. Project name
+2. base directory
+3. publishing directory
+
+Pass these as arguments to org-pm-make-project-template.
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-query-make-project-template ()
+    "Input project name, base directory and publishing directory from user.
+  Then pass these as arguments to org-pm-make-project-template"
     (unless (y-or-n-p (format "Create project '%s'? " project-name))
       (error "Project creation cancelled."))
     (let (plist)
@@ -826,7 +848,10 @@ If project name input by user does not correspond to an existing project, offer 
              (query-make-folder (plist-get plist :publishing-directory)
                                 "Publishing directory:")))
       (cons project-name plist)))
+#+END_SRC
 
+** query-make-folder
+#+BEGIN_SRC emacs-lisp
   (defun query-make-folder (path &optional prompt-string)
     "If folder at path does not exist, then show dialog offering to user
       the option to create the indicated folder or to choose another path.
@@ -844,26 +869,7 @@ If project name input by user does not correspond to an existing project, offer 
       (unless (file-exists-p path) (make-directory path))
       path))
 
-#+END_SRC elisp
-
-#+BEGIN_SRC elisp
-  (let ((result
-         (read-file-name "test" "~/")))
-    (if (equal (file-truename result) (buffer-file-name (current-buffer)))
-        "this would be the original default"
-      result)
-  )
 #+END_SRC
-
-#+RESULTS:
-: this would be the original default
-
-#+BEGIN_SRC elisp
-(query-make-folder "~/pm-org")
-#+END_SRC
-
-#+RESULTS:
-: ~/Documents/Dev/Emacs/org-publish-meta/org-pm.org
 
 ** TODO org-pm-remove-file-from-project:
 
@@ -1120,15 +1126,10 @@ Note: Naming this function org-pm-edit-duplicate-project-def disabled the auto-d
   Marked the entire section containing duplicate project definition.
   Type C-space C-space to de-select region and deactivate mark")
       ))
-
-
 #+END_SRC
 
 #+RESULTS:
 : pm/edit-duplicate-project-def
-
-
-
 
 * Cleaning up duplicate links and dead projects+files
 
@@ -1143,3 +1144,20 @@ Dealing with the above:
 2. is possible to check as soon as it happens, because the moment a new project gets defined one can check if the already existing definition is in the same file.  Registering duplicate projects defintions in org-pm-projectd-def-duplicates.  Function org-pm-list-project-defs creates buffer listing all project defs, including duplicates, and provides links for going to any one of thse in order to edit/remove.
 3. could be delegated to commands that a user can call independently of the main specification and publishing process.
 4. could be handled like No. 3.
+
+* COMMENT Project Definitions              :PROJECT_DEFS:
+** org-pm-default
+:PROPERTIES:
+:ID:       7F35BA92-3A62-4E62-AB79-123F3B61174E
+:END:
+
+*** base-directory "/Users/iani2/org-pm/"
+*** base-extension "org"
+*** publishing-directory "/Users/iani2/Sites/org-pm/"
+*** publishing-function 'org-html-publish-to-html
+*** headline-levels 4
+*** section-numbers nil
+*** with-toc t
+*** html-preamble t
+*** static-base-directory "/Users/iani2/org-pm/static/"
+*** static-publishing-directory "/Users/iani2/Sites/org-pm/static/"
