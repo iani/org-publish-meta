@@ -1,23 +1,31 @@
 #+TODO: TODO UNDERWAY | DONE CANCELLED
-* Command for loading this file manually
-:PROPERTIES:
-:ID:       DE05B7A2-2C3F-4AB8-B3AF-E2670087E570
-:END:
-
-#+BEGIN_SRC emacs-lisp
-  (defun org-babel-load-current-file ()
-    (interactive)
-    (org-babel-load-file (buffer-file-name (current-buffer))))
-  (global-set-key (kbd "C-c C-=") 'org-babel-load-current-file)
-#+END_SRC
-
-#+RESULTS:
-: org-babel-load-current-file
-
 * UNDERWAY Variables
 :PROPERTIES:
 :DATE:     <2013-12-18 Wed 11:52>
 :END:
+
+** DONE org-pm-project-data-file-path
+CLOSED: [2013-12-18 Wed 15:23]
+:PROPERTIES:
+:ID:       A71224C0-989C-419B-A7B6-2B0CEC64CEE7
+:END:
+
+#+BEGIN_SRC emacs-lisp
+  (defvar org-pm-project-data-file-path
+    (let ((home (file-truename "~/.emacs.d")))
+        (cond
+         ((file-exists-p home)
+          (setq home (concat home "/savefile"))
+          (unless (file-exists-p home) (make-directory home))
+          concat home "/org-pm-project.data.el")
+         (t (concat home "/.org-pm-project.data.el"))))
+  "Path of file for storing org-publish-project-alist and
+  org-pm-files.  If nil, the path is deduced from the existence
+  of .emacs.d folder in user's home directory.
+  If .emacs.d exists, use ~/.emacs.d/savefile/org-publish-project-alist
+  else use ~/.org-publish-project-alist.
+  Create savefile folder if it does not exist.")
+#+END_SRC
 
 ** DONE org-pm-files
 :PROPERTIES:
@@ -27,7 +35,7 @@
 #+BEGIN_SRC emacs-lisp
   (defvar org-pm-files nil
   "List of files to be copied to projects.
-  For each file, store a list startig with the full path of the file, and
+  For each file, store a list starting with the full path of the file, and
   followed by the list of projects specified in the file
   or any of its sections:
     (full-path-of-file project1 project2 ...)
@@ -70,7 +78,7 @@ CLOSED: [2013-12-18 Wed 15:23]
 :END:
 
 #+BEGIN_SRC emacs-lisp
-  (defvar org-pm-auto-parse nil
+  (defvar org-pm-auto-parse t
     "If not nil, automatically parse a org-mode buffer
    for org-pm data before saving it.")
 #+END_SRC
@@ -82,25 +90,9 @@ CLOSED: [2013-12-18 Wed 15:23]
 :END:
 
 #+BEGIN_SRC emacs-lisp
-  (defvar org-pm-auto-copy nil
+  (defvar org-pm-auto-copy 'on-save
   "If not nil, automatically copy file components to a project to the
   project's source folder before publishing.")
-#+END_SRC
-
-** DONE org-pm-project-data-file-path
-CLOSED: [2013-12-18 Wed 15:23]
-:PROPERTIES:
-:ID:       A71224C0-989C-419B-A7B6-2B0CEC64CEE7
-:END:
-
-#+BEGIN_SRC emacs-lisp
-  (defvar org-pm-project-data-file-path nil
-  "Path of file for storing org-publish-project-alist and
-  org-pm-files.  If nil, the path is deduced from the existence
-  of .emacs.d folder in user's home directory.
-  If .emacs.d exists, use ~/.emacs.d/savefile/org-publish-project-alist
-  else use ~/.org-publish-project-alist.
-  Create savefile folder if it does not exist.")
 #+END_SRC
 
 ** DONE org-pm-default-project-name
@@ -154,21 +146,6 @@ CLOSED: [2013-12-18 Wed 22:16]
   Used to provide initial contents when creating a project plist in
   org-pm-make-default-project-plist. "
   )
-#+END_SRC
-
-** TODO org-pm-project-template-name
-:PROPERTIES:
-:ID:       9D5B4E5D-90E1-4F32-842D-620B262665AF
-:END:
-
-#+BEGIN_SRC emacs-lisp
-  (defvar org-pm-project-template-name
-    (concat (file-name-directory (or load-file-name (buffer-file-name)))
-            "org-pm-project-template.org")
-  "Full path of file containing template of project definition for
-  projects generated automatically with org-pm-make-project-template-file.
-  The path is initialized at code loading time by function org-pm-init-project-template-name.
-  org-pm-make-project-template-file uses it to make project templates.")
 #+END_SRC
 
 * Auxiliary functions
@@ -241,7 +218,7 @@ CLOSED: [2013-12-18 Wed 22:16]
 (org-get-header-property "TEST")
 #+END_SRC
 
-** COMMENT Get drawer contents
+** Get drawer contents
 #+RESULTS:
 #+BEGIN_SRC emacs-lisp
   (defun org-get-drawer (drawer-name)
@@ -258,6 +235,59 @@ CLOSED: [2013-12-18 Wed 22:16]
         (beginning-of-line)
         (backward-char)
         (buffer-substring drawer-begin (point)))))
+#+END_SRC
+
+ test ** Set state of current heading to COMMENT
+
+
+
+This function is derived by modifying org-toggle-comment.
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-set-comment ()
+    "Change the COMMENT state of an entry to COMMENT.
+  Do *not* remove COMMENT state if already present.
+  This function is derived from org-toggle-coment."
+    (interactive)
+    (save-excursion
+      (org-back-to-heading)
+      (let (case-fold-search)
+        (cond
+         ((looking-at (format org-heading-keyword-regexp-format
+                              org-comment-string))
+          ;; if comment was found, then do nothing:
+          )
+         ((looking-at org-outline-regexp)
+          (goto-char (match-end 0))
+          (insert org-comment-string " "))))))
+
+  (eval-after-load 'org
+    '(define-key org-mode-map (kbd "C-c C-;") 'org-set-comment))
+#+END_SRC
+
+** Comment out the rest of a section following a comment line
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-create-excerpt ()
+      "If an org-mode-style comment with contents: READMORE is found,
+  then insert a heading after the comment, and add COMMENT status to that heading.
+  This excludes the rest of the section from being exported.
+  If no READMORE is found, then COMMENT the entire section.
+  This is an easy way of creating excerpts when copying a flle to a project,
+  and parts of this file are also copied to the project, so we don't want to
+  export them with the main file."
+      (interactive)
+      (save-excursion
+        (org-back-to-heading)
+        (let* ((plist (cadr (org-element-at-point)))
+               (node-begin (plist-get plist :begin))
+               (node-end (plist-get plist :end)))
+          (re-search-forward "^ # READMORE" node-end t)
+          (unless (equal (point) node-begin)
+            (org-insert-heading)
+            (org-set-comment))
+          (message "%d %d %d" (point) node-begin node-end)
+          )))
 #+END_SRC
 
 ** DONE Functions for adding, removing and replacing elements in a-lists
@@ -302,8 +332,7 @@ CLOSED: [2013-12-19 Thu 09:01]
     "Remove all sublists of alist whose car is equal to key, and then
        add (cons key newlist) to alist."
     (setq alist (assoc-remove-key alist key))
-    (setq alist (cons (cons key newlist) alist))
-    )
+    (setq alist (cons (cons key newlist) alist)))
 
 #+END_SRC
 

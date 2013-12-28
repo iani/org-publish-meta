@@ -1,0 +1,10 @@
+
+* project template                                             :PROJECT_DEFS:
+
+** PROJECTNAME
+
+*** base-directory "BASEDIRECTORY"
+
+*** publishing-directory "PUBLISHINGDIRECTORY"
+
+*** exclude "EXCLUDEFILE"

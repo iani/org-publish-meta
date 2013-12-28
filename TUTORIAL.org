@@ -15,13 +15,13 @@ Run the following to install org-pm and to activate auto-parsing and auto-copyin
 ;; Auto-parse project configs after saving a buffer:
 (setq org-pm-auto-parse t)
 ;; Auto-copy contents of project components after saving a buffer:
-(setq org-pm-auto-copy-mode 'on-save)
+(setq org-pm-auto-copy 'on-save)
 #+END_SRC
 
 The auto-parse and auto-copy features are optional.  The default settings are:
 
 =org-pm-auto-parse: t=
-=org-pm-auto-copy-mode: 'on-save=
+=org-pm-auto-copy: 'on-save=
 
 , and are deactivated by default.  You can also deactivate auto-copy and auto-parse for individual files by setting the values of respective properties in those files to nil.  See documentation for details.  It is recommended to try out org-pm with the auto-features activated at first, because it greatly simplifies its use.
 

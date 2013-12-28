@@ -6,7 +6,7 @@ Org-pm is a kind or pre-processor for org-publish.  It does 3 things:
 
 1. It creates project definitions from specifications written as sections of an org mode file.  In this way, an org mode file can define any number of projects.
 2. It copies files or parts of files to any number of projects, which can then be published in the usual way with org-publish.
-3. Save the =org-publish-projects-alist= between sessions, along with the list of files containing parts that should be copied to projects.
+3. It saves the =org-publish-projects-alist= between sessions, along with the list of files containing parts that should be copied to projects, and with a list of the location of duplicate project definitions (definitions with the same name in more than one files or sections).
 
 To define a project, one writes the properties and the values as subsections of a section.
 
@@ -18,19 +18,40 @@ Org-pm provides interactive commands for adding projects to files or sections.  
 
 * Defining projects
 
+To define an Org-mode publishing project, one writes the properties of the project as subheadings of a section, and the values as contents of the section or as further text in the headline of the section.  The name of the project is given in the heading containing the property subsections.  The entire definition is placed in another section with the tag =PROJECT_DEFS=.
 
+Org-pm automatically creates two more projects for each project definition found under the section tagged =PROJECT_DEFS=:
+
+1. A /static/ component project (See http://orgmode.org/worg/org-tutorials/org-publish-html-tutorial.html#sec-3-2 about the static component.)  The name of the static project is derived from the original name like this: =<original-project-name>-static=.  The default base-directory and publish-directory of the project are defined as subdirectories of the original project paths by adding "/static/".  One can override these defaults and further configure the static project component by adding properties to the basic project definition:  Any properties that start with the string "static-" will be used as properties of the static project, without the "static-" prefix (see example "project1" below).
+2. A /publish/ component project (http://orgmode.org/worg/org-tutorials/org-publish-html-tutorial.html#sec-3-3) for publishing both the original (org-mode) project and the static component with one command.  The name of the publish component is =<original-project-name>-publish=.
+
+For example:
+
+** This section contains project definitions                  :PROJECT_DEFS:
+
+*** project1
+
+**** base-directory "~/Site-Source/project1/"
+**** publishing-directory "~/Sites/project1/"
+**** with-tags t
+**** publishing-function 'org-publish-org-to-html
+**** preamble
+: <p>This is a test.</p>
+: <hr>
+**** static-base-directory "~Site-Source/project1/css/"
+**** static-publishing-directory "~Sites/project1/css/"
 
 * Specifying projects, folders and file-names to copy files or sections to
 
-A single string is used to specify the project, folder and file-name where a file or section should be copied to.  The three parts are separated by =@=.
+A single string is used to specify the project, folder and file-name where a file or section should be copied to.  The project-name, folder, and file-name parts are separated by an at-mark (=@=).
 
 *IMPORTANT*: Because org-mode has problems tags that contain a dot (=.=), use hash (=#=) instead of a dot in a file or folder name when putting it in a tag.
 
-Example: The following 5 strings specify 5 different projects and locations to copy a file or section to:
+Example: The following five strings specify five different projects and locations to copy a file or section to:
 
 - =project1= :: The root directory of =project1=, using the name of the current file or the heading of the current section as file name.
 - =project2@news= :: The subdirectory news of =project2=, using the name of the current file.
-- =project3@news/august= :: The sub-subdirectory =news/august/= of =project3=, using the name of the current file.
+- =project3@news/august= :: The sub-subdirectory =news/august/= of =project3=, using the name of the current file or the heading of the current section as file name.
 - =project4@@index= :: The root directory of =project4=, using =index.org= as file name.
 - =project5@static@style#css= :: The subdirectory =static/= of =project5=, using =style.css= as file name.
 
@@ -44,7 +65,7 @@ To specify that the whole file should be copied to a project, one adds the proje
 
 Specifies that the current file should be copied to the root directory of =project1= and to subdirectory =news= of =project2=
 
-*** Copying a section of a file to one or more projects
+*** Copying a section of a file to one mor more projects
 
 To specify that a section should be copied to a project, one adds the project/folder/file-name specification string as tag to that section, enclosed in underscores (=_=).
 
@@ -89,7 +110,7 @@ The following illustrates how the files of a project are retrieved from =org-pm=
         '(("file1.org" "project1" "project2")
           ("file2.org" "project2" "project3")
           ("file3.org" "project1" "project3" "project4")))
-       (project "project3") ;; dummy project
+       (project "project3") ;; dummy project to look for
        found-files) ;; collect files belonging to "project3" here
     (dolist (files org-pm-files-demo )
       (if (member project files) (add-to-list 'found-files (car files))))
@@ -107,14 +128,14 @@ String specifying the path where org-pm saves =org-publish-project-alist= and =o
 
 If true, saving an org-mode file will cause org-pm to do the following:
 
-- parse the file, and stores the names of the projects found in =org-pm-files=
-- create any projects that are defined in the org file and add them to =org-publish-projects-alist=.
+- Parse the file, and store the names of the projects found in =org-pm-files=
+- Create any projects that are defined in the org file and add them to =org-publish-projects-alist=.
 - Store any previously found project definitions from different files or sections in =org-pm-project-duplicate-project-defs=, for reference.
 - Save the contents of =org-publish-projects-alist=, =org-pm-files= and =org-pm-duplicate-project-defs= in the file indicated by =org-pm-project-data-file-path=.
 
 The default value of =org-pm-auto-parse= is =t=.
 
-** org-pm-auto-copy-mode
+** org-pm-auto-copy
 
 Indicates when to copy file components to their designated projects.
 

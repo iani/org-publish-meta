@@ -1,0 +1,39 @@
+
+#+BEGIN_SRC elisp
+(org-pm-make-projects)
+#+END_SRC
+
+#+RESULTS:
+| project2-b | :base-extension | org | :recursive | t | :publishing-function | org-publish-org-to-html | :headline-levels | 5 | :auto-preamble | t | :base-directory | /Users/iani2/Documents/Dev/Emacs/org-publish-meta/org | :publishing-directory | /Users/iani2/Documents/Dev/Emacs/org-publish-meta/html | :project-name | project2-b | :node-id | 4A719A44-893F-45CC-A2D0-E9E2AF8B7B89 | :node-filename | /Users/iani2/Documents/Dev/Emacs/org-publish-meta/parse-tests2.org | :project-id | /Users/iani2/Documents/Dev/Emacs/org-publish-meta/parse-tests2.org::#4A719A44-893F-45CC-A2D0-E9E2AF8B7B89 | :last-updated | [2013-12-22 Sun 12:49] | :folder | this is project 2   |
+| project1-b | :base-extension | org | :recursive | t | :publishing-function | org-publish-org-to-html | :headline-levels | 5 | :auto-preamble | t | :base-directory | /Users/iani2/Documents/Dev/Emacs/org-publish-meta/org | :publishing-directory | /Users/iani2/Documents/Dev/Emacs/org-publish-meta/html | :project-name | project1-b | :node-id | B77CA7F9-0E70-4989-A5E6-95E20C48F963 | :node-filename | /Users/iani2/Documents/Dev/Emacs/org-publish-meta/parse-tests2.org | :project-id | /Users/iani2/Documents/Dev/Emacs/org-publish-meta/parse-tests2.org::#B77CA7F9-0E70-4989-A5E6-95E20C48F963 | :last-updated | [2013-12-22 Sun 12:49] | :folder | this is a project 1 |
+
+#+BEGIN_SRC elisp
+org-publish-project-alist
+#+END_SRC
+
+#+BEGIN_SRC elisp
+org-pm-project-def-duplicates
+#+END_SRC
+
+#+RESULTS:
+| project1-b | /Users/iani2/Documents/Dev/Emacs/org-publish-meta/parse-tests.org::#B77CA7F9-0E70-4989-A5E6-95E20C48F963 |
+| project2-b | /Users/iani2/Documents/Dev/Emacs/org-publish-meta/parse-tests.org::#4A719A44-893F-45CC-A2D0-E9E2AF8B7B89 |
+
+
+
+
+
+** test                                                       :PROJECT_DEFS:
+
+*** project1-b
+:PROPERTIES:
+:ID:       B77CA7F9-0E70-4989-A5E6-95E20C48F963
+:END:
+asdf asdf asdf asdf 
+**** folder "this is a project 1"
+*** project2-b
+:PROPERTIES:
+:ID:       4A719A44-893F-45CC-A2D0-E9E2AF8B7B89
+:END:
+**** folder "this is project 2"
+
