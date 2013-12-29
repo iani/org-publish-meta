@@ -4,18 +4,18 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>Org-publish-meta: Easy projects for Org-mode</title>
-<!-- 2013-12-30 Mon 00:05 -->
+<!-- 2013-12-30 Mon 00:16 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="I Z" />
-<link href="{{.}}/static/bootstrap.min.css" rel="stylesheet" media="screen">
-<link href="{{.}}/static/worg.min.css" rel="stylesheet" type="text/css">
+<link href="./static/bootstrap.min.css" rel="stylesheet" media="screen">
+<link href="./static/worg.min.css" rel="stylesheet" type="text/css">
 </head>
 <body>
 <div id="org-div-home-and-up">
- <a accesskey="h" href="{{.}}/"> UP </a>
+ <a accesskey="h" href="./"> UP </a>
  |
- <a accesskey="H" href="{{.}}/"> HOME </a>
+ <a accesskey="H" href="./"> HOME </a>
 </div><div id="content">
 <h1 class="title">Org-publish-meta: Easy projects for Org-mode</h1>
 <div id="table-of-contents">
@@ -642,7 +642,7 @@ Edit the file containing the auto-saved data for org-pom.
 <h3 id="sec-2-14">Providing relative paths to root of published project</h3>
 <div class="outline-text-3" id="text-2-14">
 <p>
-This makes sure that when a file is copied to a subfolder of the publishing directory, the paths pointing to includes such as css, images, etc. will be converted to show to the root of the project, so that links work.  Such links must be marked using the string <code>{{.}}</code> to denote the relative root to the published project, that is, the <code>publishing-directory</code>.
+This makes sure that when a file is copied to a subfolder of the publishing directory, the paths pointing to includes such as css, images, etc. will be converted to show to the root of the project, so that links work.  Such links must be marked using the string <code>.</code> to denote the relative root to the published project, that is, the <code>publishing-directory</code>.
 </p>
 
 <div class="org-src-container">
@@ -651,7 +651,7 @@ This makes sure that when a file is copied to a subfolder of the publishing dire
   <span style="color: #465a61; font-style: italic;">"Provide relative path for link."</span>
   (<span style="color: #728a05;">when</span> (org-export-derived-backend-p backend 'html)
     (replace-regexp-in-string
-     <span style="color: #259185;">"{{.}}"</span>
+     <span style="color: #259185;">"."</span>
      (org-make-relpath-string
       (plist-get info <span style="color: #728a05;">:publishing-directory</span>)
       (plist-get info '<span style="color: #728a05;">:input-file</span>))
@@ -1547,7 +1547,7 @@ Dealing with the above:
 </div>
 <div id="postamble" class="status">
 <p class="author">Author: I Z</p>
-<p class="date">Created: 2013-12-30 Mon 00:05</p>
+<p class="date">Created: 2013-12-30 Mon 00:16</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 24.3.1 (<a href="http://orgmode.org">Org</a> mode 8.2.4)</p>
 <p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>
