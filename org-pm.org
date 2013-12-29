@@ -620,6 +620,9 @@ Utility functions
         (load-file org-pm-project-data-file-path)))
 #+END_SRC
 
+#+RESULTS:
+: org-pm-load-all-project-data
+
 ** org-pm-save-all-project-data
 
 #+BEGIN_SRC emacs-lisp

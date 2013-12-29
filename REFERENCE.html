@@ -4,230 +4,119 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>REFERENCE</title>
-<!-- 2013-12-28 Sat 01:18 -->
+<!-- 2013-12-30 Mon 00:03 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="I Z" />
-<style type="text/css">
- <!--/*--><![CDATA[/*><!--*/
-  .title  { text-align: center; }
-  .todo   { font-family: monospace; color: red; }
-  .done   { color: green; }
-  .tag    { background-color: #eee; font-family: monospace;
-            padding: 2px; font-size: 80%; font-weight: normal; }
-  .timestamp { color: #bebebe; }
-  .timestamp-kwd { color: #5f9ea0; }
-  .right  { margin-left: auto; margin-right: 0px;  text-align: right; }
-  .left   { margin-left: 0px;  margin-right: auto; text-align: left; }
-  .center { margin-left: auto; margin-right: auto; text-align: center; }
-  .underline { text-decoration: underline; }
-  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
-  p.verse { margin-left: 3%; }
-  pre {
-    border: 1px solid #ccc;
-    box-shadow: 3px 3px 3px #eee;
-    padding: 8pt;
-    font-family: monospace;
-    overflow: auto;
-    margin: 1.2em;
-  }
-  pre.src {
-    position: relative;
-    overflow: visible;
-    padding-top: 1.2em;
-  }
-  pre.src:before {
-    display: none;
-    position: absolute;
-    background-color: white;
-    top: -10px;
-    right: 10px;
-    padding: 3px;
-    border: 1px solid black;
-  }
-  pre.src:hover:before { display: inline;}
-  pre.src-sh:before    { content: 'sh'; }
-  pre.src-bash:before  { content: 'sh'; }
-  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
-  pre.src-R:before     { content: 'R'; }
-  pre.src-perl:before  { content: 'Perl'; }
-  pre.src-java:before  { content: 'Java'; }
-  pre.src-sql:before   { content: 'SQL'; }
-
-  table { border-collapse:collapse; }
-  td, th { vertical-align:top;  }
-  th.right  { text-align: center;  }
-  th.left   { text-align: center;   }
-  th.center { text-align: center; }
-  td.right  { text-align: right;  }
-  td.left   { text-align: left;   }
-  td.center { text-align: center; }
-  dt { font-weight: bold; }
-  .footpara:nth-child(2) { display: inline; }
-  .footpara { display: block; }
-  .footdef  { margin-bottom: 1em; }
-  .figure { padding: 1em; }
-  .figure p { text-align: center; }
-  .inlinetask {
-    padding: 10px;
-    border: 2px solid gray;
-    margin: 10px;
-    background: #ffffcc;
-  }
-  #org-div-home-and-up
-   { text-align: right; font-size: 70%; white-space: nowrap; }
-  textarea { overflow-x: auto; }
-  .linenr { font-size: smaller }
-  .code-highlighted { background-color: #ffff00; }
-  .org-info-js_info-navigation { border-style: none; }
-  #org-info-js_console-label
-    { font-size: 10px; font-weight: bold; white-space: nowrap; }
-  .org-info-js_search-highlight
-    { background-color: #ffff00; color: #000000; font-weight: bold; }
-  /*]]>*/-->
-</style>
-<script type="text/javascript">
-/*
-@licstart  The following is the entire license notice for the
-JavaScript code in this tag.
-
-Copyright (C) 2012-2013 Free Software Foundation, Inc.
-
-The JavaScript code in this tag is free software: you can
-redistribute it and/or modify it under the terms of the GNU
-General Public License (GNU GPL) as published by the Free Software
-Foundation, either version 3 of the License, or (at your option)
-any later version.  The code is distributed WITHOUT ANY WARRANTY;
-without even the implied warranty of MERCHANTABILITY or FITNESS
-FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
-
-As additional permission under GNU GPL version 3 section 7, you
-may distribute non-source (e.g., minimized or compacted) forms of
-that code without the copy of the GNU GPL normally required by
-section 4, provided you include this license notice and a URL
-through which recipients can access the Corresponding Source.
-
-
-@licend  The above is the entire license notice
-for the JavaScript code in this tag.
-*/
-<!--/*--><![CDATA[/*><!--*/
- function CodeHighlightOn(elem, id)
- {
-   var target = document.getElementById(id);
-   if(null != target) {
-     elem.cacheClassElem = elem.className;
-     elem.cacheClassTarget = target.className;
-     target.className = "code-highlighted";
-     elem.className   = "code-highlighted";
-   }
- }
- function CodeHighlightOff(elem, id)
- {
-   var target = document.getElementById(id);
-   if(elem.cacheClassElem)
-     elem.className = elem.cacheClassElem;
-   if(elem.cacheClassTarget)
-     target.className = elem.cacheClassTarget;
- }
-/*]]>*///-->
-</script>
+<link href="{{.}}/static/bootstrap.min.css" rel="stylesheet" media="screen">
+<link href="{{.}}/static/worg.min.css" rel="stylesheet" type="text/css">
 </head>
 <body>
-<div id="content">
+<div id="org-div-home-and-up">
+ <a accesskey="h" href="{{.}}/"> UP </a>
+ |
+ <a accesskey="H" href="{{.}}/"> HOME </a>
+</div><div id="content">
 <h1 class="title">REFERENCE</h1>
 <div id="table-of-contents">
 <h2>Table of Contents</h2>
 <div id="text-table-of-contents">
 <ul>
-<li><a href="#sec-1">1. Overview</a></li>
-<li><a href="#sec-2">2. Defining projects</a>
+<li><a href="#sec-1">Overview</a>
 <ul>
-<li><a href="#sec-2-1">2.1. This section contains project definitions&#xa0;&#xa0;&#xa0;<span class="tag"><span class="PROJECT_DEFS">PROJECT_DEFS</span></span></a>
+<li><a href="#sec-1-1">Project definitions as Org-mode sections</a></li>
+<li><a href="#sec-1-2">Tags and properties specify project, folder and file-name for publishing</a></li>
+<li><a href="#sec-1-3">Interactive adding/removing to/from projects, template generation</a></li>
+</ul>
+</li>
+<li><a href="#sec-2">Defining projects</a>
 <ul>
-<li><a href="#sec-2-1-1">2.1.1. project1</a>
+<li><a href="#sec-2-1">This section contains project definitions&#xa0;&#xa0;&#xa0;<span class="tag"><span class="PROJECT_DEFS">PROJECT_DEFS</span></span></a>
 <ul>
-<li><a href="#sec-2-1-1-1">2.1.1.1. base-directory "~/Site-Source/project1/"</a></li>
-<li><a href="#sec-2-1-1-2">2.1.1.2. publishing-directory "~/Sites/project1/"</a></li>
-<li><a href="#sec-2-1-1-3">2.1.1.3. with-tags t</a></li>
-<li><a href="#sec-2-1-1-4">2.1.1.4. publishing-function 'org-publish-org-to-html</a></li>
-<li><a href="#sec-2-1-1-5">2.1.1.5. preamble</a></li>
-<li><a href="#sec-2-1-1-6">2.1.1.6. static-base-directory "~Site-Source/project1/css"</a></li>
-<li><a href="#sec-2-1-1-7">2.1.1.7. static-publishing-directory "~Sites/project1/css"</a></li>
+<li><a href="#sec-2-1-1">project1</a>
+<ul>
+<li><a href="#sec-2-1-1-1">base-directory "~/Site-Source/project1/"</a></li>
+<li><a href="#sec-2-1-1-2">publishing-directory "~/Sites/project1/"</a></li>
+<li><a href="#sec-2-1-1-3">with-tags t</a></li>
+<li><a href="#sec-2-1-1-4">publishing-function 'org-publish-org-to-html</a></li>
+<li><a href="#sec-2-1-1-5">preamble</a></li>
+<li><a href="#sec-2-1-1-6">static-base-directory "~Site-Source/project1/css/"</a></li>
+<li><a href="#sec-2-1-1-7">static-publishing-directory "~Sites/project1/css/"</a></li>
 </ul>
 </li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a href="#sec-3">3. Specifying projects, folders and file-names to copy files or sections to</a>
+<li><a href="#sec-3">Specifying projects, folders and file-names to copy files or sections to</a>
 <ul>
-<li><a href="#sec-3-1">3.1. Copying an entire file to one or more projects</a>
+<li><a href="#sec-3-1">NOTE: Avoid hyphens (<code>-</code>) in project names</a></li>
+<li><a href="#sec-3-2">Copying an entire file to one or more projects</a>
 <ul>
-<li><a href="#sec-3-1-1">3.1.1. Copying a section of a file to one or more projects</a>
+<li><a href="#sec-3-2-1">Copying a section of a file to one or more projects</a>
 <ul>
-<li><a href="#sec-3-1-1-1">3.1.1.1. about this site&#xa0;&#xa0;&#xa0;<span class="tag"><span class="_project1_">_project1_</span></span></a></li>
-<li><a href="#sec-3-1-1-2">3.1.1.2. tutorial 1&#xa0;&#xa0;&#xa0;<span class="tag"><span class="_project2_tutorials_">_project2@tutorials_</span></span></a></li>
-<li><a href="#sec-3-1-1-3">3.1.1.3. Default Style&#xa0;&#xa0;&#xa0;<span class="tag"><span class="_project2_static_style_css_">_project2@static@style#css_</span></span></a></li>
-<li><a href="#sec-3-1-1-4">3.1.1.4. examples&#xa0;&#xa0;&#xa0;<span class="tag"><span class="_project1_">_project1_</span>&#xa0;<span class="_project2_">_project2_</span></span></a></li>
+<li><a href="#sec-3-2-1-1">about this site&#xa0;&#xa0;&#xa0;<span class="tag"><span class="_project1_">_project1_</span></span></a></li>
+<li><a href="#sec-3-2-1-2">tutorial 1&#xa0;&#xa0;&#xa0;<span class="tag"><span class="_project2_tutorials_">_project2@tutorials_</span></span></a></li>
+<li><a href="#sec-3-2-1-3">Default Style&#xa0;&#xa0;&#xa0;<span class="tag"><span class="_project2_static_style_css_">_project2@static@style#css_</span></span></a></li>
+<li><a href="#sec-3-2-1-4">examples&#xa0;&#xa0;&#xa0;<span class="tag"><span class="_project1_">_project1_</span>&#xa0;<span class="_project2_">_project2_</span></span></a></li>
 </ul>
 </li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a href="#sec-4">4. <span class="todo TODO">TODO</span> Variables</a>
+<li><a href="#sec-4">Variables</a>
 <ul>
-<li><a href="#sec-4-1">4.1. org-pm-files</a></li>
-<li><a href="#sec-4-2">4.2. org-pm-project-data-file-path</a></li>
-<li><a href="#sec-4-3">4.3. org-pm-auto-parse</a></li>
-<li><a href="#sec-4-4">4.4. org-pm-auto-copy-mode</a></li>
-<li><a href="#sec-4-5">4.5. org-pm-default-project-name</a></li>
-<li><a href="#sec-4-6">4.6. org-pm-default-project-org-folder</a></li>
-<li><a href="#sec-4-7">4.7. org-pm-default-project-html-folder</a></li>
+<li><a href="#sec-4-1">org-pm-files</a></li>
+<li><a href="#sec-4-2">org-pm-project-data-file-path</a></li>
+<li><a href="#sec-4-3">org-pm-auto-parse</a></li>
+<li><a href="#sec-4-4">org-pm-auto-copy</a></li>
+<li><a href="#sec-4-5">org-pm-default-project-name</a></li>
+<li><a href="#sec-4-6">org-pm-default-project-org-folder</a></li>
+<li><a href="#sec-4-7">org-pm-default-project-html-folder</a></li>
 </ul>
 </li>
-<li><a href="#sec-5">5. <span class="todo TODO">TODO</span> Main functions and commands</a>
+<li><a href="#sec-5">Main functions and commands</a>
 <ul>
-<li><a href="#sec-5-1">5.1. org-pm-add-file-to-project</a></li>
-<li><a href="#sec-5-2">5.2. org-pm-remove-file-from-project</a></li>
-<li><a href="#sec-5-3">5.3. org-pm-add-section-to-project</a></li>
-<li><a href="#sec-5-4">5.4. org-pm-remove-section-from-project</a></li>
-<li><a href="#sec-5-5">5.5. org-pm-parse-buffer</a></li>
-<li><a href="#sec-5-6">5.6. org-pm-publish</a></li>
-<li><a href="#sec-5-7">5.7. org-pm-make-projects (called by org-pm-parse-buffer)</a></li>
-<li><a href="#sec-5-8">5.8. org-pm-make-component-project-list:</a></li>
-<li><a href="#sec-5-9">5.9. org-pm-copy-components:</a></li>
-<li><a href="#sec-5-10">5.10. org-pm-enable-auto:</a></li>
-<li><a href="#sec-5-11">5.11. org-pm-disable-auto:</a></li>
+<li><a href="#sec-5-1">org-pm-add-file-to-project</a></li>
+<li><a href="#sec-5-2">org-pm-remove-file-from-project</a></li>
+<li><a href="#sec-5-3">org-pm-add-section-to-project</a></li>
+<li><a href="#sec-5-4">org-pm-remove-section-from-project</a></li>
+<li><a href="#sec-5-5">org-pm-parse-buffer</a></li>
+<li><a href="#sec-5-6">org-pm-publish</a></li>
+<li><a href="#sec-5-7">org-pm-make-projects (called by org-pm-parse-buffer)</a></li>
+<li><a href="#sec-5-8">org-pm-make-component-project-list:</a></li>
+<li><a href="#sec-5-9">org-pm-copy-components:</a></li>
+<li><a href="#sec-5-10">org-pm-enable-auto:</a></li>
+<li><a href="#sec-5-11">org-pm-disable-auto:</a></li>
 </ul>
 </li>
-<li><a href="#sec-6">6. Storing Project Data</a>
+<li><a href="#sec-6">Storing Project Data</a>
 <ul>
-<li><a href="#sec-6-1">6.1. Org-mode project definition data (<code>org-publish-project-alist</code>)</a></li>
-<li><a href="#sec-6-2">6.2. The target projects for every file and node (<code>org-pm-project-components</code>)</a></li>
+<li><a href="#sec-6-1">Org-mode project definition data (<code>org-publish-project-alist</code>)</a></li>
+<li><a href="#sec-6-2">The target projects for every file and node (<code>org-pm-project-components</code>)</a></li>
 </ul>
 </li>
-<li><a href="#sec-7">7. Tasks involved, and when they are done</a>
+<li><a href="#sec-7">Tasks involved, and when they are done</a>
 <ul>
-<li><a href="#sec-7-1">7.1. Three main tasks: Specification, Configuration, Publication</a>
+<li><a href="#sec-7-1">Three main tasks: Specification, Configuration, Publication</a>
 <ul>
-<li><a href="#sec-7-1-1">7.1.1. Specifying configurations through properties and tags in an org file</a></li>
-<li><a href="#sec-7-1-2">7.1.2. Reading configurations from file data</a></li>
-<li><a href="#sec-7-1-3">7.1.3. Copying files or sections (nodes) of files to a project based on configurations</a></li>
+<li><a href="#sec-7-1-1">Specifying configurations through properties and tags in an org file</a></li>
+<li><a href="#sec-7-1-2">Reading configurations from file data</a></li>
+<li><a href="#sec-7-1-3">Copying files or sections (nodes) of files to a project based on configurations</a></li>
 </ul>
 </li>
-<li><a href="#sec-7-2">7.2. Adding and deleting files or sections to/from proejcts</a>
+<li><a href="#sec-7-2">Adding and deleting files or sections to/from proejcts</a>
 <ul>
-<li><a href="#sec-7-2-1">7.2.1. Adding a file to a project</a></li>
-<li><a href="#sec-7-2-2">7.2.2. Removing a file from a project</a></li>
-<li><a href="#sec-7-2-3">7.2.3. Adding a section to a project</a></li>
-<li><a href="#sec-7-2-4">7.2.4. Removing a section from a project</a></li>
-<li><a href="#sec-7-2-5">7.2.5. Data integrity checks</a>
+<li><a href="#sec-7-2-1">Adding a file to a project</a></li>
+<li><a href="#sec-7-2-2">Removing a file from a project</a></li>
+<li><a href="#sec-7-2-3">Adding a section to a project</a></li>
+<li><a href="#sec-7-2-4">Removing a section from a project</a></li>
+<li><a href="#sec-7-2-5">Data integrity checks</a>
 <ul>
-<li><a href="#sec-7-2-5-1">7.2.5.1. Duplicate IDs</a></li>
-<li><a href="#sec-7-2-5-2">7.2.5.2. Obsolete files</a></li>
-<li><a href="#sec-7-2-5-3">7.2.5.3. Broken links</a></li>
+<li><a href="#sec-7-2-5-1">Duplicate IDs</a></li>
+<li><a href="#sec-7-2-5-2">Obsolete files</a></li>
+<li><a href="#sec-7-2-5-3">Broken links</a></li>
 </ul>
 </li>
 </ul>
@@ -239,43 +128,57 @@ for the JavaScript code in this tag.
 </div>
 
 <div id="outline-container-sec-1" class="outline-2">
-<h2 id="sec-1"><span class="section-number-2">1</span> Overview</h2>
+<h2 id="sec-1">Overview</h2>
 <div class="outline-text-2" id="text-1">
 <p>
 Org-pm is a kind or pre-processor for org-publish.  It does 3 things:
 </p>
 
 <ol class="org-ol">
-<li>It creates project definitions from specifications written as sections of an org mode file.  In this way, an org mode file can define any number of projects.
+<li>It creates project definitions from specifications written as sections of an org mode file.  An org mode file can define any number of projects.
 </li>
 <li>It copies files or parts of files to any number of projects, which can then be published in the usual way with org-publish.
 </li>
-<li>Save the <code>org-publish-projects-alist</code> between sessions, along with the list of files containing parts that should be copied to projects.
+<li>It saves the <code>org-publish-projects-alist</code> between sessions, along with the list of files containing parts that should be copied to projects, and with a list of the location of duplicate project definitions (definitions with the same name in more than one files or sections).
 </li>
 </ol>
-
+</div>
+<div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1">Project definitions as Org-mode sections</h3>
+<div class="outline-text-3" id="text-1-1">
 <p>
-To define a project, one writes the properties and the values as subsections of a section.
+Org-pm defines org-mode publishing projects as plain-text Org-mode sections.  The publishing options and their values (<a href="http://orgmode.org/manual/Publishing-options.html">http://orgmode.org/manual/Publishing-options.html</a>) are written as subsections of that section.  Sections that contain project definitions are marked with the tag "PROJECT_DEFS".  Multiple such sections can exist, and each section can contain more than one project definition.
 </p>
+</div>
+</div>
 
+<div id="outline-container-sec-1-2" class="outline-3">
+<h3 id="sec-1-2">Tags and properties specify project, folder and file-name for publishing</h3>
+<div class="outline-text-3" id="text-1-2">
 <p>
 To specify which projects to copy a file or section to, org-pm uses properties and tags. The values of properties or tags specify the project and optionally also the subfolder path and the file name where the file or section should be copied to.
 </p>
 
 <p>
-One can include files for css or other scripts as sections of an org file, which are copied out as source files before publication.
+One can include files for css or other scripts as sections of an org file.  These are copied out as source files before publication.
 </p>
+</div>
+</div>
 
+<div id="outline-container-sec-1-3" class="outline-3">
+<h3 id="sec-1-3">Interactive adding/removing to/from projects, template generation</h3>
+<div class="outline-text-3" id="text-1-3">
 <p>
 Org-pm provides interactive commands for adding projects to files or sections.  It creates and inserts templates for new projects in the current file.  It keeps track of duplicate project definitions, that is definitions of a project with the same name which are stored in more than one locations (sections) in one or more files.  The command <code>org-pm-list-project-defs</code> creates an org file listing the locations of all project definitions, including the duplicates, with links for going to the definitions.
 </p>
 </div>
 </div>
+</div>
 <div id="outline-container-sec-2" class="outline-2">
-<h2 id="sec-2"><span class="section-number-2">2</span> Defining projects</h2>
+<h2 id="sec-2">Defining projects</h2>
 <div class="outline-text-2" id="text-2">
 <p>
-To define an Org-mode publishing project, one writes the properties of the project as subheadings of a section, and the values as contents of the section or as further text in the headline of the section.  The name of the project is given in the heading containing the property subsections.  The entire definition is placed in another section with the tag <code>PROJECT_DEFS</code>.
+To define an Org-mode publishing project, one writes the publishing options of the project (<a href="http://orgmode.org/manual/Publishing-options.html">http://orgmode.org/manual/Publishing-options.html</a>) as subheadings of a section, and the values as contents of the section or as further text in the headline of the section.  The name of the project is given in the heading containing the property subsections.  The entire definition is placed in another section with the tag <code>PROJECT_DEFS</code>.
 </p>
 
 <p>
@@ -283,7 +186,7 @@ Org-pm automatically creates two more projects for each project definition found
 </p>
 
 <ol class="org-ol">
-<li>An <i>static</i> component project (See <a href="http://orgmode.org/worg/org-tutorials/org-publish-html-tutorial.html#sec-3-2">http://orgmode.org/worg/org-tutorials/org-publish-html-tutorial.html#sec-3-2</a> about the static component.)  The name of the static project is derived from the original name like this: <code>&lt;original-project-name&gt;-static</code>.  The default base-directory and publish-directory of the project are derived from the original project paths by adding "<i>static</i>".  One can override these defaults and further configure the static project component by adding properties to the basic project definition:  Any properties that start with the string "static-" will be used as properties of the static project (without the "static-" prefix).
+<li>A <i>static</i> component project (See <a href="http://orgmode.org/worg/org-tutorials/org-publish-html-tutorial.html#sec-3-2">http://orgmode.org/worg/org-tutorials/org-publish-html-tutorial.html#sec-3-2</a> about the static component.)  The name of the static project is derived from the original name like this: <code>&lt;original-project-name&gt;-static</code>.  The default base-directory and publish-directory of the project are defined as subdirectories of the original project paths by adding "<i>static</i>".  One can override these defaults and further configure the static project component by adding properties to the basic project definition:  Any properties that start with the string "static-" will be used as properties of the static project, without the "static-" prefix (see example "project1" below).
 </li>
 <li>A <i>publish</i> component project (<a href="http://orgmode.org/worg/org-tutorials/org-publish-html-tutorial.html#sec-3-3">http://orgmode.org/worg/org-tutorials/org-publish-html-tutorial.html#sec-3-3</a>) for publishing both the original (org-mode) project and the static component with one command.  The name of the publish component is <code>&lt;original-project-name&gt;-publish</code>.
 </li>
@@ -295,25 +198,27 @@ For example:
 </div>
 
 <div id="outline-container-sec-2-1" class="outline-3">
-<h3 id="sec-2-1"><span class="section-number-3">2.1</span> This section contains project definitions&#xa0;&#xa0;&#xa0;<span class="tag"><span class="PROJECT_DEFS">PROJECT_DEFS</span></span></h3>
+<h3 id="sec-2-1">This section contains project definitions&#xa0;&#xa0;&#xa0;<span class="tag"><span class="PROJECT_DEFS">PROJECT_DEFS</span></span></h3>
 <div class="outline-text-3" id="text-2-1">
 </div><div id="outline-container-sec-2-1-1" class="outline-4">
-<h4 id="sec-2-1-1"><span class="section-number-4">2.1.1</span> project1</h4>
+<h4 id="sec-2-1-1"><a id="ID-5F4BC8DE-1750-47D3-AB0E-40411860EA69" name="ID-5F4BC8DE-1750-47D3-AB0E-40411860EA69"></a>project1</h4>
 <div class="outline-text-4" id="text-2-1-1">
-</div><div id="outline-container-sec-2-1-1-1" class="outline-5">
-<h5 id="sec-2-1-1-1"><span class="section-number-5">2.1.1.1</span> base-directory "~/Site-Source/project1/"</h5>
+</div>
+
+<div id="outline-container-sec-2-1-1-1" class="outline-5">
+<h5 id="sec-2-1-1-1">base-directory "~/Site-Source/project1/"</h5>
 </div>
 <div id="outline-container-sec-2-1-1-2" class="outline-5">
-<h5 id="sec-2-1-1-2"><span class="section-number-5">2.1.1.2</span> publishing-directory "~/Sites/project1/"</h5>
+<h5 id="sec-2-1-1-2">publishing-directory "~/Sites/project1/"</h5>
 </div>
 <div id="outline-container-sec-2-1-1-3" class="outline-5">
-<h5 id="sec-2-1-1-3"><span class="section-number-5">2.1.1.3</span> with-tags t</h5>
+<h5 id="sec-2-1-1-3">with-tags t</h5>
 </div>
 <div id="outline-container-sec-2-1-1-4" class="outline-5">
-<h5 id="sec-2-1-1-4"><span class="section-number-5">2.1.1.4</span> publishing-function 'org-publish-org-to-html</h5>
+<h5 id="sec-2-1-1-4">publishing-function 'org-publish-org-to-html</h5>
 </div>
 <div id="outline-container-sec-2-1-1-5" class="outline-5">
-<h5 id="sec-2-1-1-5"><span class="section-number-5">2.1.1.5</span> preamble</h5>
+<h5 id="sec-2-1-1-5">preamble</h5>
 <div class="outline-text-5" id="text-2-1-1-5">
 <pre class="example">
 &lt;p&gt;This is a test.&lt;/p&gt;
@@ -323,19 +228,19 @@ For example:
 </div>
 
 <div id="outline-container-sec-2-1-1-6" class="outline-5">
-<h5 id="sec-2-1-1-6"><span class="section-number-5">2.1.1.6</span> static-base-directory "~Site-Source/project1/css"</h5>
+<h5 id="sec-2-1-1-6">static-base-directory "~Site-Source/project1/css/"</h5>
 </div>
 <div id="outline-container-sec-2-1-1-7" class="outline-5">
-<h5 id="sec-2-1-1-7"><span class="section-number-5">2.1.1.7</span> static-publishing-directory "~Sites/project1/css"</h5>
+<h5 id="sec-2-1-1-7">static-publishing-directory "~Sites/project1/css/"</h5>
 </div>
 </div>
 </div>
 </div>
 <div id="outline-container-sec-3" class="outline-2">
-<h2 id="sec-3"><span class="section-number-2">3</span> Specifying projects, folders and file-names to copy files or sections to</h2>
+<h2 id="sec-3">Specifying projects, folders and file-names to copy files or sections to</h2>
 <div class="outline-text-2" id="text-3">
 <p>
-A single string is used to specify the project, folder and file-name where a file or section should be copied to.  The project-name, folder, and file-name parts are separated by <code>@</code>.
+A single string is used to specify the project, folder and file-name where a file or section should be copied to.  The project-name, folder, and file-name parts are separated by an at-mark (<code>@</code>).
 </p>
 
 <p>
@@ -343,7 +248,7 @@ A single string is used to specify the project, folder and file-name where a fil
 </p>
 
 <p>
-Example: The following 5 strings specify 5 different projects and locations to copy a file or section to:
+Example: The following five strings specify five different projects and locations to copy a file or section to:
 </p>
 
 <dl class="org-dl">
@@ -351,7 +256,7 @@ Example: The following 5 strings specify 5 different projects and locations to c
 </dd>
 <dt> <code>project2@news</code> </dt><dd>The subdirectory news of <code>project2</code>, using the name of the current file.
 </dd>
-<dt> <code>project3@news/august</code> </dt><dd>The sub-subdirectory <code>news/august/</code> of <code>project3</code>, using the name of the current file.
+<dt> <code>project3@news/august</code> </dt><dd>The sub-subdirectory <code>news/august/</code> of <code>project3</code>, using the name of the current file or the heading of the current section as file name.
 </dd>
 <dt> <code>project4@@index</code> </dt><dd>The root directory of <code>project4</code>, using <code>index.org</code> as file name.
 </dd>
@@ -361,10 +266,18 @@ Example: The following 5 strings specify 5 different projects and locations to c
 </div>
 
 <div id="outline-container-sec-3-1" class="outline-3">
-<h3 id="sec-3-1"><span class="section-number-3">3.1</span> Copying an entire file to one or more projects</h3>
+<h3 id="sec-3-1">NOTE: Avoid hyphens (<code>-</code>) in project names</h3>
 <div class="outline-text-3" id="text-3-1">
 <p>
-To specify that the whole file should be copied to a project, one adds the project specification string as value of property <code>PROJECT</code>.  More than one project can be specified in the same file in this way. For example:
+Org-mode cannot use hyphens (<code>-</code>) in tags.  If you create a project whose name contains a hyphen, you will not be able to specify that project as a target using a tag to a heading.  Therefore, project names should not contain hyphens.
+</p>
+</div>
+</div>
+<div id="outline-container-sec-3-2" class="outline-3">
+<h3 id="sec-3-2">Copying an entire file to one or more projects</h3>
+<div class="outline-text-3" id="text-3-2">
+<p>
+To specify that the whole file should be copied to a project, add the project specification string as value of property <code>PROJECT</code>.  More than one project can be specified in the same file in this way. For example:
 </p>
 
 <pre class="example">
@@ -377,9 +290,9 @@ Specifies that the current file should be copied to the root directory of <code>
 </p>
 </div>
 
-<div id="outline-container-sec-3-1-1" class="outline-4">
-<h4 id="sec-3-1-1"><span class="section-number-4">3.1.1</span> Copying a section of a file to one or more projects</h4>
-<div class="outline-text-4" id="text-3-1-1">
+<div id="outline-container-sec-3-2-1" class="outline-4">
+<h4 id="sec-3-2-1">Copying a section of a file to one or more projects</h4>
+<div class="outline-text-4" id="text-3-2-1">
 <p>
 To specify that a section should be copied to a project, one adds the project/folder/file-name specification string as tag to that section, enclosed in underscores (<code>_</code>).
 </p>
@@ -397,33 +310,33 @@ Examples:
 </p>
 </div>
 
-<div id="outline-container-sec-3-1-1-1" class="outline-5">
-<h5 id="sec-3-1-1-1"><span class="section-number-5">3.1.1.1</span> about this site&#xa0;&#xa0;&#xa0;<span class="tag"><span class="_project1_">_project1_</span></span></h5>
-<div class="outline-text-5" id="text-3-1-1-1">
+<div id="outline-container-sec-3-2-1-1" class="outline-5">
+<h5 id="sec-3-2-1-1">about this site&#xa0;&#xa0;&#xa0;<span class="tag"><span class="_project1_">_project1_</span></span></h5>
+<div class="outline-text-5" id="text-3-2-1-1">
 <p>
 Copy this section to file <code>about-this-site.org</code> in the base directory of <code>project1</code>.
 </p>
 </div>
 </div>
-<div id="outline-container-sec-3-1-1-2" class="outline-5">
-<h5 id="sec-3-1-1-2"><span class="section-number-5">3.1.1.2</span> tutorial 1&#xa0;&#xa0;&#xa0;<span class="tag"><span class="_project2_tutorials_">_project2@tutorials_</span></span></h5>
-<div class="outline-text-5" id="text-3-1-1-2">
+<div id="outline-container-sec-3-2-1-2" class="outline-5">
+<h5 id="sec-3-2-1-2">tutorial 1&#xa0;&#xa0;&#xa0;<span class="tag"><span class="_project2_tutorials_">_project2@tutorials_</span></span></h5>
+<div class="outline-text-5" id="text-3-2-1-2">
 <p>
 Copy this section to file <code>tutorial-1.org</code> in subdirectory <code>tutorials</code> of <code>project2</code>.
 </p>
 </div>
 </div>
-<div id="outline-container-sec-3-1-1-3" class="outline-5">
-<h5 id="sec-3-1-1-3"><span class="section-number-5">3.1.1.3</span> Default Style&#xa0;&#xa0;&#xa0;<span class="tag"><span class="_project2_static_style_css_">_project2@static@style#css_</span></span></h5>
-<div class="outline-text-5" id="text-3-1-1-3">
+<div id="outline-container-sec-3-2-1-3" class="outline-5">
+<h5 id="sec-3-2-1-3">Default Style&#xa0;&#xa0;&#xa0;<span class="tag"><span class="_project2_static_style_css_">_project2@static@style#css_</span></span></h5>
+<div class="outline-text-5" id="text-3-2-1-3">
 <p>
 Copy this section to file <code>style.css</code> in subdirectory <code>static</code> of <code>project2</code>.  Note: hash (<code>#</code>) is used instead of dot (<code>.</code>) in the tag, because Org-mode has problems with recognizing tags containing dots.
 </p>
 </div>
 </div>
-<div id="outline-container-sec-3-1-1-4" class="outline-5">
-<h5 id="sec-3-1-1-4"><span class="section-number-5">3.1.1.4</span> examples&#xa0;&#xa0;&#xa0;<span class="tag"><span class="_project1_">_project1_</span>&#xa0;<span class="_project2_">_project2_</span></span></h5>
-<div class="outline-text-5" id="text-3-1-1-4">
+<div id="outline-container-sec-3-2-1-4" class="outline-5">
+<h5 id="sec-3-2-1-4">examples&#xa0;&#xa0;&#xa0;<span class="tag"><span class="_project1_">_project1_</span>&#xa0;<span class="_project2_">_project2_</span></span></h5>
+<div class="outline-text-5" id="text-3-2-1-4">
 <p>
 Copy this section to file examples.org, in the root directories of projects <code>project1</code> and <code>project2</code>.
 </p>
@@ -433,12 +346,12 @@ Copy this section to file examples.org, in the root directories of projects <cod
 </div>
 </div>
 <div id="outline-container-sec-4" class="outline-2">
-<h2 id="sec-4"><span class="section-number-2">4</span> <span class="todo TODO">TODO</span> Variables</h2>
+<h2 id="sec-4">Variables</h2>
 <div class="outline-text-2" id="text-4">
 </div>
 
 <div id="outline-container-sec-4-1" class="outline-3">
-<h3 id="sec-4-1"><span class="section-number-3">4.1</span> org-pm-files</h3>
+<h3 id="sec-4-1">org-pm-files</h3>
 <div class="outline-text-3" id="text-4-1">
 <p>
 Saves a list of paths of all files containing components that should be copied to projects, together with the list of projects that are specified by components of that file.  No other information is stored, because it can always be retrieved from the contents of the file itself.  The list of projects is needed to find all files belonging to a project.
@@ -459,7 +372,7 @@ The following illustrates how the files of a project are retrieved from <code>or
       '((<span style="color: #259185;">"file1.org"</span> <span style="color: #259185;">"project1"</span> <span style="color: #259185;">"project2"</span>)
         (<span style="color: #259185;">"file2.org"</span> <span style="color: #259185;">"project2"</span> <span style="color: #259185;">"project3"</span>)
         (<span style="color: #259185;">"file3.org"</span> <span style="color: #259185;">"project1"</span> <span style="color: #259185;">"project3"</span> <span style="color: #259185;">"project4"</span>)))
-     (project <span style="color: #259185;">"project3"</span>) <span style="color: #465a61; font-style: italic;">;; </span><span style="color: #465a61; font-style: italic;">dummy project</span>
+     (project <span style="color: #259185;">"project3"</span>) <span style="color: #465a61; font-style: italic;">;; </span><span style="color: #465a61; font-style: italic;">dummy project to look for</span>
      found-files) <span style="color: #465a61; font-style: italic;">;; </span><span style="color: #465a61; font-style: italic;">collect files belonging to "project3" here</span>
   (<span style="color: #728a05;">dolist</span> (files org-pm-files-demo )
     (<span style="color: #728a05;">if</span> (member project files) (add-to-list 'found-files (car files))))
@@ -469,7 +382,7 @@ The following illustrates how the files of a project are retrieved from <code>or
 </div>
 </div>
 <div id="outline-container-sec-4-2" class="outline-3">
-<h3 id="sec-4-2"><span class="section-number-3">4.2</span> org-pm-project-data-file-path</h3>
+<h3 id="sec-4-2">org-pm-project-data-file-path</h3>
 <div class="outline-text-3" id="text-4-2">
 <p>
 String specifying the path where org-pm saves <code>org-publish-project-alist</code> and <code>org-pm-files</code>.  These are all the data that need to be saved between sessions in order to preserve the current state of org-pm projects.  The default value of <code>org-pm-project-data-file-path</code> is: <code>~/.emacs.d/savefile/org-pm-project-data.el</code>.
@@ -477,16 +390,16 @@ String specifying the path where org-pm saves <code>org-publish-project-alist</c
 </div>
 </div>
 <div id="outline-container-sec-4-3" class="outline-3">
-<h3 id="sec-4-3"><span class="section-number-3">4.3</span> org-pm-auto-parse</h3>
+<h3 id="sec-4-3">org-pm-auto-parse</h3>
 <div class="outline-text-3" id="text-4-3">
 <p>
 If true, saving an org-mode file will cause org-pm to do the following:
 </p>
 
 <ul class="org-ul">
-<li>parse the file, and stores the names of the projects found in <code>org-pm-files</code>
+<li>Parse the file, and store the names of the projects found in <code>org-pm-files</code>
 </li>
-<li>create any projects that are defined in the org file and add them to <code>org-publish-projects-alist</code>.
+<li>Create any projects that are defined in the org file and add them to <code>org-publish-projects-alist</code>.
 </li>
 <li>Store any previously found project definitions from different files or sections in <code>org-pm-project-duplicate-project-defs</code>, for reference.
 </li>
@@ -500,7 +413,7 @@ The default value of <code>org-pm-auto-parse</code> is <code>t</code>.
 </div>
 </div>
 <div id="outline-container-sec-4-4" class="outline-3">
-<h3 id="sec-4-4"><span class="section-number-3">4.4</span> org-pm-auto-copy-mode</h3>
+<h3 id="sec-4-4">org-pm-auto-copy</h3>
 <div class="outline-text-3" id="text-4-4">
 <p>
 Indicates when to copy file components to their designated projects.
@@ -525,25 +438,25 @@ Default value: <code>on-save</code>
 </div>
 </div>
 <div id="outline-container-sec-4-5" class="outline-3">
-<h3 id="sec-4-5"><span class="section-number-3">4.5</span> org-pm-default-project-name</h3>
+<h3 id="sec-4-5">org-pm-default-project-name</h3>
 </div>
 
 <div id="outline-container-sec-4-6" class="outline-3">
-<h3 id="sec-4-6"><span class="section-number-3">4.6</span> org-pm-default-project-org-folder</h3>
+<h3 id="sec-4-6">org-pm-default-project-org-folder</h3>
 </div>
 
 <div id="outline-container-sec-4-7" class="outline-3">
-<h3 id="sec-4-7"><span class="section-number-3">4.7</span> org-pm-default-project-html-folder</h3>
+<h3 id="sec-4-7">org-pm-default-project-html-folder</h3>
 </div>
 </div>
 
 <div id="outline-container-sec-5" class="outline-2">
-<h2 id="sec-5"><span class="section-number-2">5</span> <span class="todo TODO">TODO</span> Main functions and commands</h2>
+<h2 id="sec-5">Main functions and commands</h2>
 <div class="outline-text-2" id="text-5">
 </div>
 
 <div id="outline-container-sec-5-1" class="outline-3">
-<h3 id="sec-5-1"><span class="section-number-3">5.1</span> org-pm-add-file-to-project</h3>
+<h3 id="sec-5-1">org-pm-add-file-to-project</h3>
 <div class="outline-text-3" id="text-5-1">
 <p>
 Ask the user interactively to input the name of a project to which the present buffer should be added.  Add the buffer to the project through either buffer property <code>#+PROJECT:</code> or section tag.  Also ask for folder where to put file of buffer.  If needed, create project definition and add it to buffer.  Created any needed folders.
@@ -580,19 +493,19 @@ Steps in detail:
 </div>
 </div>
 <div id="outline-container-sec-5-2" class="outline-3">
-<h3 id="sec-5-2"><span class="section-number-3">5.2</span> org-pm-remove-file-from-project</h3>
+<h3 id="sec-5-2">org-pm-remove-file-from-project</h3>
 </div>
 
 <div id="outline-container-sec-5-3" class="outline-3">
-<h3 id="sec-5-3"><span class="section-number-3">5.3</span> org-pm-add-section-to-project</h3>
+<h3 id="sec-5-3">org-pm-add-section-to-project</h3>
 </div>
 
 <div id="outline-container-sec-5-4" class="outline-3">
-<h3 id="sec-5-4"><span class="section-number-3">5.4</span> org-pm-remove-section-from-project</h3>
+<h3 id="sec-5-4">org-pm-remove-section-from-project</h3>
 </div>
 
 <div id="outline-container-sec-5-5" class="outline-3">
-<h3 id="sec-5-5"><span class="section-number-3">5.5</span> org-pm-parse-buffer</h3>
+<h3 id="sec-5-5">org-pm-parse-buffer</h3>
 <div class="outline-text-3" id="text-5-5">
 <p>
 This command parses the current buffer in order to do 3 things:
@@ -635,7 +548,7 @@ Steps to incorporate:
 </div>
 </div>
 <div id="outline-container-sec-5-6" class="outline-3">
-<h3 id="sec-5-6"><span class="section-number-3">5.6</span> org-pm-publish</h3>
+<h3 id="sec-5-6">org-pm-publish</h3>
 <div class="outline-text-3" id="text-5-6">
 <p>
 Select a project to publish from the projects targeted by current buffer.
@@ -647,15 +560,15 @@ Since a file containing org-pm tags can be anywhere outside an org-mode project 
 </div>
 </div>
 <div id="outline-container-sec-5-7" class="outline-3">
-<h3 id="sec-5-7"><span class="section-number-3">5.7</span> org-pm-make-projects (called by org-pm-parse-buffer)</h3>
+<h3 id="sec-5-7">org-pm-make-projects (called by org-pm-parse-buffer)</h3>
 </div>
 
 <div id="outline-container-sec-5-8" class="outline-3">
-<h3 id="sec-5-8"><span class="section-number-3">5.8</span> org-pm-make-component-project-list:</h3>
+<h3 id="sec-5-8">org-pm-make-component-project-list:</h3>
 </div>
 
 <div id="outline-container-sec-5-9" class="outline-3">
-<h3 id="sec-5-9"><span class="section-number-3">5.9</span> org-pm-copy-components:</h3>
+<h3 id="sec-5-9">org-pm-copy-components:</h3>
 <div class="outline-text-3" id="text-5-9">
 <p>
 org-pm-copy-components can be called explicitly by the user as a command.
@@ -667,15 +580,15 @@ If org-pm-auto-copy is enabled, then it is called automatically whenever a proje
 </div>
 </div>
 <div id="outline-container-sec-5-10" class="outline-3">
-<h3 id="sec-5-10"><span class="section-number-3">5.10</span> org-pm-enable-auto:</h3>
+<h3 id="sec-5-10">org-pm-enable-auto:</h3>
 </div>
 
 <div id="outline-container-sec-5-11" class="outline-3">
-<h3 id="sec-5-11"><span class="section-number-3">5.11</span> org-pm-disable-auto:</h3>
+<h3 id="sec-5-11">org-pm-disable-auto:</h3>
 </div>
 </div>
 <div id="outline-container-sec-6" class="outline-2">
-<h2 id="sec-6"><span class="section-number-2">6</span> Storing Project Data</h2>
+<h2 id="sec-6">Storing Project Data</h2>
 <div class="outline-text-2" id="text-6">
 <p>
 Org-pm stores project data to a file, so that previously defined projects are available when one restarts emacs.
@@ -695,11 +608,11 @@ The data stored are:
 </div>
 
 <div id="outline-container-sec-6-1" class="outline-3">
-<h3 id="sec-6-1"><span class="section-number-3">6.1</span> Org-mode project definition data (<code>org-publish-project-alist</code>)</h3>
+<h3 id="sec-6-1">Org-mode project definition data (<code>org-publish-project-alist</code>)</h3>
 </div>
 
 <div id="outline-container-sec-6-2" class="outline-3">
-<h3 id="sec-6-2"><a id="ID-A912E617-30B3-4827-89D1-BAA449A8EC49" name="ID-A912E617-30B3-4827-89D1-BAA449A8EC49"></a><span class="section-number-3">6.2</span> The target projects for every file and node (<code>org-pm-project-components</code>)</h3>
+<h3 id="sec-6-2"><a id="ID-A912E617-30B3-4827-89D1-BAA449A8EC49" name="ID-A912E617-30B3-4827-89D1-BAA449A8EC49"></a>The target projects for every file and node (<code>org-pm-project-components</code>)</h3>
 <div class="outline-text-3" id="text-6-2">
 
 <p>
@@ -731,7 +644,7 @@ Where &lt;ID&gt; is the ID property of the section as provided by org-id-get-cre
 </div>
 </div>
 <div id="outline-container-sec-7" class="outline-2">
-<h2 id="sec-7"><span class="section-number-2">7</span> Tasks involved, and when they are done</h2>
+<h2 id="sec-7">Tasks involved, and when they are done</h2>
 <div class="outline-text-2" id="text-7">
 <p>
 There are two main steps in the org-pm publish process:
@@ -751,14 +664,14 @@ Additionally, there are tasks needed to keep the data of the project consistent,
 </div>
 
 <div id="outline-container-sec-7-1" class="outline-3">
-<h3 id="sec-7-1"><span class="section-number-3">7.1</span> Three main tasks: Specification, Configuration, Publication</h3>
+<h3 id="sec-7-1">Three main tasks: Specification, Configuration, Publication</h3>
 <div class="outline-text-3" id="text-7-1">
 </div><div id="outline-container-sec-7-1-1" class="outline-4">
-<h4 id="sec-7-1-1"><span class="section-number-4">7.1.1</span> Specifying configurations through properties and tags in an org file</h4>
+<h4 id="sec-7-1-1">Specifying configurations through properties and tags in an org file</h4>
 </div>
 
 <div id="outline-container-sec-7-1-2" class="outline-4">
-<h4 id="sec-7-1-2"><span class="section-number-4">7.1.2</span> Reading configurations from file data</h4>
+<h4 id="sec-7-1-2">Reading configurations from file data</h4>
 <div class="outline-text-4" id="text-7-1-2">
 <p>
 Parsing a file to find project definitions and components of projects
@@ -766,26 +679,26 @@ Parsing a file to find project definitions and components of projects
 </div>
 </div>
 <div id="outline-container-sec-7-1-3" class="outline-4">
-<h4 id="sec-7-1-3"><span class="section-number-4">7.1.3</span> Copying files or sections (nodes) of files to a project based on configurations</h4>
+<h4 id="sec-7-1-3">Copying files or sections (nodes) of files to a project based on configurations</h4>
 </div>
 </div>
 <div id="outline-container-sec-7-2" class="outline-3">
-<h3 id="sec-7-2"><span class="section-number-3">7.2</span> Adding and deleting files or sections to/from proejcts</h3>
+<h3 id="sec-7-2">Adding and deleting files or sections to/from proejcts</h3>
 <div class="outline-text-3" id="text-7-2">
 </div><div id="outline-container-sec-7-2-1" class="outline-4">
-<h4 id="sec-7-2-1"><span class="section-number-4">7.2.1</span> Adding a file to a project</h4>
+<h4 id="sec-7-2-1">Adding a file to a project</h4>
 </div>
 
 <div id="outline-container-sec-7-2-2" class="outline-4">
-<h4 id="sec-7-2-2"><span class="section-number-4">7.2.2</span> Removing a file from a project</h4>
+<h4 id="sec-7-2-2">Removing a file from a project</h4>
 </div>
 
 <div id="outline-container-sec-7-2-3" class="outline-4">
-<h4 id="sec-7-2-3"><span class="section-number-4">7.2.3</span> Adding a section to a project</h4>
+<h4 id="sec-7-2-3">Adding a section to a project</h4>
 </div>
 
 <div id="outline-container-sec-7-2-4" class="outline-4">
-<h4 id="sec-7-2-4"><span class="section-number-4">7.2.4</span> Removing a section from a project</h4>
+<h4 id="sec-7-2-4">Removing a section from a project</h4>
 <div class="outline-text-4" id="text-7-2-4">
 <p>
 <b>*</b>
@@ -793,12 +706,12 @@ Parsing a file to find project definitions and components of projects
 </div>
 </div>
 <div id="outline-container-sec-7-2-5" class="outline-4">
-<h4 id="sec-7-2-5"><span class="section-number-4">7.2.5</span> Data integrity checks</h4>
+<h4 id="sec-7-2-5">Data integrity checks</h4>
 <div class="outline-text-4" id="text-7-2-5">
 </div>
 
 <div id="outline-container-sec-7-2-5-1" class="outline-5">
-<h5 id="sec-7-2-5-1"><span class="section-number-5">7.2.5.1</span> Duplicate IDs</h5>
+<h5 id="sec-7-2-5-1">Duplicate IDs</h5>
 <div class="outline-text-5" id="text-7-2-5-1">
 <p>
 Duplicate IDs arise when a section of a file is copied to another location along with its IDs
@@ -806,11 +719,11 @@ Duplicate IDs arise when a section of a file is copied to another location along
 </div>
 </div>
 <div id="outline-container-sec-7-2-5-2" class="outline-5">
-<h5 id="sec-7-2-5-2"><span class="section-number-5">7.2.5.2</span> Obsolete files</h5>
+<h5 id="sec-7-2-5-2">Obsolete files</h5>
 </div>
 
 <div id="outline-container-sec-7-2-5-3" class="outline-5">
-<h5 id="sec-7-2-5-3"><span class="section-number-5">7.2.5.3</span> Broken links</h5>
+<h5 id="sec-7-2-5-3">Broken links</h5>
 <div class="outline-text-5" id="text-7-2-5-3">
 <p>
 Broken links arise when
@@ -823,7 +736,7 @@ Broken links arise when
 </div>
 <div id="postamble" class="status">
 <p class="author">Author: I Z</p>
-<p class="date">Created: 2013-12-28 Sat 01:18</p>
+<p class="date">Created: 2013-12-30 Mon 00:03</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 24.3.1 (<a href="http://orgmode.org">Org</a> mode 8.2.4)</p>
 <p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>

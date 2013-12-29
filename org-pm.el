@@ -25,8 +25,7 @@ and puts it in org-pm-files.
 Function org-pm-copy-to-project searches through all lists in org-pm-files,
 collects the list of files that belong to a project,
 parses each file to find which components should be copied,
-and copies the found components to the project.
-")
+and copies the found components to the project.")
 
 (defvar org-pm-project-def-duplicates nil
   "List of links to files/sections which contains project definitions
@@ -56,7 +55,7 @@ projects generated automatically with org-pm-make-project-template.
 The path is initialized at code loading time by function org-pm-init-project-template-name.
 org-pm-make-project-template uses it to make project templates.")
 
-(defvar org-pm-default-project-name "org-pm-default"
+(defvar org-pm-default-project-name "org_pm_default"
 "Name of default, auto-generated project.")
 
 (defvar org-pm-default-project-org-folder "~/pm-org"
@@ -77,6 +76,23 @@ org-pm-make-project-template uses it to make project templates.")
 Used to provide initial contents when creating a project plist in
 org-pm-make-default-project-plist. "
 )
+
+(defun org-get-header-property (property &optional all)
+  "Get property from buffer variable.  Returns only fist match except if ALL is defined.
+NOTE: Also works if editing subtree narrowed or in separate narrowed buffer. "
+  (with-current-buffer
+      (current-buffer)
+    (save-excursion
+      (save-restriction
+        (save-match-data
+          (widen)
+          (goto-char (point-min))
+          (let (values)
+            (while (re-search-forward (format "^#\\+%s:?[ \t]*\\(.*\\)" property) nil t)
+              (add-to-list 'values (substring-no-properties (match-string 1))))
+            (if all
+                values
+              (car values))))))))
 
 (defun org-get-drawer (drawer-name)
   "Get the contents of the drawer named 'drawer-name', at current section."
@@ -303,6 +319,58 @@ Save updated project, file and duplicate lists to disk."
               path)
       (setq path (concat path "/..")))))
 
+(defun org-html-toc (depth info)
+  "Build a table of contents.
+DEPTH is an integer specifying the depth of the table.  INFO is a
+plist used as a communication channel.  Return the table of
+contents as a string, or nil if it is empty."
+  (let ((toc-heading (plist-get info :toc-heading))
+        (toc-entries
+         (mapcar (lambda (headline)
+                   (cons (org-html--format-toc-headline headline info)
+                         (org-export-get-relative-level headline info)))
+                 (org-export-collect-headlines info depth)))
+        (outer-tag (if (and (org-html-html5-p info)
+                            (plist-get info :html-html5-fancy))
+                       "nav"
+                     "div")))
+    (when toc-entries
+      (unless toc-heading (setq toc-heading "Table of Contents"))
+      (concat (format "<%s id=\"table-of-contents\">\n" outer-tag)
+              (format "<h%d>%s</h%d>\n"
+                      org-html-toplevel-hlevel
+                      (org-html--translate toc-heading info)
+                      org-html-toplevel-hlevel)
+              "<div id=\"text-table-of-contents\">"
+              (org-html--toc-text toc-entries)
+              "</div>\n"
+              (format "</%s>\n" outer-tag)))))
+
+(add-hook 'after-save-hook 'org-pm-maybe-parse-and-copy)
+
+(defun org-pm-maybe-parse-and-copy ()
+  "This function is run whenever a file is saved.
+If org-pm-auto-parse is true, make projects whose definitions are in this buffer.
+If org-pm-auto-copy is set to 'on-save, then copy the file and sections
+specified to their project base directory folders."
+  (when (equal major-mode 'org-mode)
+    (if org-pm-auto-parse
+        ;; if org-pm-auto-copy is not nil, then don't save here:
+        (org-pm-make-projects org-pm-auto-copy))
+    (if (equal org-pm-auto-copy 'on-save)
+        ;; Always save if running this.
+        (org-pm-copy-components-to-projects))))
+
+(defun org-pm-do-auto ()
+  (interactive)
+  (setq org-pm-auto-parse t)
+  (setq org-pm-auto-copy 'on-save))
+
+(defun org-pm-dont-auto ()
+  (interactive)
+  (setq org-pm-auto-parse nil)
+  (setq org-pm-auto-copy nil))
+
 (defun org-pm-load-all-project-data ()
   "Load project alist, project file lists, duplicate project def lists
 from previously saved date on disk."
@@ -341,7 +409,7 @@ from previously saved date on disk."
          (setq org-publish-project-alist)
          (org-pm-save-all-project-data))))
 
-(defun org-pm-make-projects ()
+(defun org-pm-make-projects (&optional do-not-save-now)
   "Construct the projects for all project definitions found in current file.
 Project definitions are those nodes which are contained in nodes tagged as
 PROJECT_DEFS.
@@ -372,7 +440,8 @@ and the new id is stored in the project."
           (setq projects (cons (org-pm-parse-project-def entry template) projects))))
      "PROJECT_DEFS")
     (mapcar 'org-pm-check-add-project projects)
-    (org-pm-save-all-project-data)))
+    (unless do-not-save-now (org-pm-save-all-project-data))
+    (message "Org-pm defined %d projects" (length projects))))
 
 (defun org-pm-parse-project-def (proj-node &optional template)
   "Create a project definition list based on the contents of the
@@ -457,14 +526,14 @@ to the id of the main project."
           (-flatten
            (-map
             (lambda (pair)
-              (list (intern (replace-regexp-in-string "^:static-" ":"
+              (list (intern (replace-regexp-in-string "^:static_" ":"
                                                       (symbol-name (car pair))))
                     (cadr pair)))
                      (-filter
-                      (lambda (pair) (string-match "^:static-"
+                      (lambda (pair) (string-match "^:static_"
                                                    (symbol-name (car pair))))
                       (-partition 2 p-def)))))
-    (setq static-project-name (concat "static-" p-name))
+    (setq static-project-name (concat "static_" p-name))
     (setq org-publish-project-alist
           (assoc-replace org-publish-project-alist
                          static-project-name static-project))
@@ -473,28 +542,7 @@ to the id of the main project."
                          (concat "combined-" p-name)
                          (list :components
                                p-name static-project-name))))
-
   project)
-
-(defun org-pm-query-select-project (new-project old-project)
-  "Check if new project definition is from a different source than old-project.
-  If yes, then ask the user which of the project definitions to keep.
-  Post info about the rejected definition so that user can remove or edit it.
-  Return the selected project so that it is added by org-pm-add-project,
-  replacing the previous entry for this project."
-  (let ((selection new-project))
-    (unless (equal (plist-get (cdr new-project) :source-id)
-                   (plist-get (cdr old-project) :source-id))
-      (setq selection (must-write-the-code-for-query-selection new-project old-project))
-      (must-write-the-code-for-message-about-rejected
-       (if (eq selection new-project) old-project new-project)))
-    selection))
-
-(defun org-pm-add-project (project)
-  "Add project to org-pm-project-alist.
-  If previous project with same name exist, replace it."
-  (setq org-publish-project-alist
-        (assoc-replace org-publish-project-alist (car project) (cdr project))))
 
 (defun org-pm-add-file-to-project ()
   "Add the file of the current buffer to a project selected or input by the user.
@@ -546,68 +594,172 @@ to the id of the main project."
     (unless (file-exists-p path) (make-directory path))
     path))
 
-(defun org-pm-register-project-components ()
-  "Parse current buffer, looking for projects added for the whole file (with property
-=#+PROJECT:= or for sections (with tags enclosed in =_=). Collect names of all projects
-found in a list. Put the list in the assoc list stored in =org-pm-files=, using the
-full path of the file as key. Function =org-pm-copy-to-project= scans this list to find
-if the file contains any components that should be copied to the project, and copies
- them."
-  (interactive)
-
-  (let (projects (filename (buffer-file-name (current-buffer))))
-    (mapcar (lambda (project)
-              (add-to-list 'projects (org-pm-get-project-name project)))
-            (org-get-header-property "PROJECT" t))
-    (org-map-entries
-     '(let ((tags (plist-get (cadr (org-element-at-point)) :tags)))
-        (dolist (tag tags)
-          (if (string-match  "^_.*_$" tag)
-              (add-to-list 'projects (org-pm-get-project-name tag))))
-        ))
-    (setq org-pm-files (assoc-replace org-pm-files filename projects))
-    (message "Result: %s" projects)))
-
-(defun org-pm-get-project-name (name-and-folder)
-  (car (split-string name-and-folder "@")))
-
-;; Note: for setting the project name to the car of the split, and the
-;; folder to the cdr of the split, see
-;; http://www.cs.cmu.edu/Groups/AI/html/cltl/clm/node94.html
-;; and http://clhs.lisp.se/Body/m_mult_2.htm
-;; on how to do multiple-value-setq
-;; Here example from site 2 above:
-;; (multiple-value-setq (a b c) (values 1 2))
-
-(defun org-pm-copy-components ()
-  "Identify and copy the components that are marked to belong to projects."
-
-)
-
-;; This version does both the registering and the copying.
 ;; Will replace org-pm-register-project-components.
-(defun org-pm-process-file ()
-  "Identify and copy the components that are marked to belong to projects.
+(defvar *org-pm-missing-projects* nil
+"Names of projects referenced in a file, whose definition is not found.
+For reporting.")
+
+(defvar *org-pm-updated-projects* nil
+  "Names of projects to which components in a file were copied.
+For reporting")
+
+(defvar org-pm-report-after-copying-p t
+"If not-nil, org-pm-copy-components-to-projects will post a report
+of projects not found or of projects targeted when finishing.")
+
+(defun org-pm-copy-components-to-projects (&optional do-not-save-now)
+  "Find which parts of the file go to which to projects, and copy them
+to the base-directories of these projects.  Also save the projects found in
+list org-pm-files for this project, using the full path of this file as key.
+This list is saved and can be used later to update the contents of any project
+by finding all the files that contribute to this project.
+
 Parse current buffer, looking for projects added for the whole file (with property
 =#+PROJECT:= or for sections (with tags enclosed in =_=). Collect names of all projects
 found in a list. Put the list in the assoc list stored in =org-pm-files=, using the full
 path of the file as key. Function =org-pm-copy-to-project= scans this list to find if
-the file contains any components that should be copied to the project, and copies them."
-    (interactive)
+the file contains any components that should be copied to the project, and copies them.
 
-    (let ((filename (buffer-file-name (current-buffer)))
-          projects components project file folder)
-      (mapcar (lambda (project)
-                (add-to-list 'projects (org-pm-get-project-name project)))
-              (org-get-header-property "PROJECT" t))
-      (org-map-entries
-       '(let ((tags (plist-get (cadr (org-element-at-point)) :tags)))
-          (dolist (tag tags)
-            (if (string-match  "^_.*_$" tag)
-                (add-to-list 'projects (org-pm-get-project-name tag))))
-          ))
-      (setq org-pm-files (assoc-replace org-pm-files filename projects))
-      (message "Result: %s" projects)))
+components: List of file and/or ids of any sections that are copied to projects.
+              Each element is of the form:
+              (component (project folder file) (project folder file)...)
+Components is added to org-pm-files and auto-saved."
+
+  (interactive)
+  (let* ((fullpath (buffer-file-name (current-buffer)))
+        (filename (file-name-nondirectory fullpath))
+        components file-components (origin-buffer (current-buffer)))
+    (setq file-components
+          (-map (lambda (component) (org-pm-parse-component component filename))
+                (org-get-header-property "PROJECT" t)))
+    (org-map-entries
+     '(let* (name
+             (node (cadr (org-element-at-point)))
+             (pspecs (-filter (lambda (tag) (string-match "^_.*_$" tag))
+                              (plist-get node :tags))))
+        (when pspecs
+          (setq name (plist-get node :raw-value))
+          (setq components
+                (cons
+                 (cons
+                  (plist-get node :begin)
+                  (-map
+                   (lambda (component) (org-pm-parse-component component name))
+                   pspecs))
+                 components)))))
+    (if file-components
+        (setq components (cons (cons "FILE" file-components) components)))
+    (setq org-pm-files (assoc-replace org-pm-files fullpath components))
+    ;; first save, then do the copying:
+    (unless do-not-save-now (org-pm-save-all-project-data))
+    (setq *org-pm-missing-projects* nil)
+    (setq *org-pm-updated-projects* nil)
+    (dolist (comp components)
+      (let ((pos (car comp))
+            (target-buffer (get-buffer-create "*org-pm-copy-buf*")))
+
+        (cond ((equal "FILE" pos)
+               (set-buffer target-buffer)
+               (insert-buffer origin-buffer)
+               (dolist (proj (cdr comp)) (org-pm-save-buffer proj target-buffer)))
+             (t
+              (set-buffer origin-buffer)
+              (goto-char pos)
+              (org-copy-subtree)
+              (set-buffer target-buffer)
+              (org-paste-subtree 1)
+              (dolist (proj (cdr comp)) (org-pm-save-buffer proj target-buffer))))
+       (kill-buffer target-buffer)))
+    (if org-pm-report-after-copying-p
+        (if *org-pm-missing-projects*
+         (grizzl-completing-read "These projects could not be found"
+                                 (grizzl-make-index *org-pm-missing-projects*))
+       (grizzl-completing-read "Copied components to these projects"
+                               (grizzl-make-index *org-pm-updated-projects*))))
+    (message "Result: %s" components)))
+
+(defun org-pm-parse-component (component filename)
+  (let ((parts
+         (-take 3 (split-string
+                   (concat (replace-regexp-in-string "#" "." component) "@@") "@"))))
+    (setq parts
+          (cons (replace-regexp-in-string
+                 "^_" "" (replace-regexp-in-string "_$" "" (car parts)))
+                (cdr parts)))
+    (unless (equal 0 (length (caddr parts)))
+        (setq filename (caddr parts)))
+    (setq filename (replace-regexp-in-string " " "-" filename))
+    (unless (string-match ".org$" filename)
+      (setq filename (concat filename ".org")))
+    (setq parts (-replace-at 2 filename parts))
+    parts))
+
+
+(defun org-pm-save-buffer (specs buffer)
+  (let ((target-path (org-pm-make-target specs)))
+    (make-directory (file-name-directory target-path) t)
+    (write-region nil nil target-path)
+    ))
+
+;; superseded by org-pm-save-buffer:
+(defun org-pm-copy-file (specs &optional path-of-file-to-copy-from)
+  "Dopy the contents of file specified in path-of-filet-copy-from
+to the target location given by specs.
+If path-of-file-to-copy-from is nil, then copy the contents of the current
+buffer.
+NOTE: path-of-file-to-copy-from : NOT YET IMPLEMENTED."
+  (let ((origin-buffer (current-buffer))
+        (target-buffer (get-buffer-create "*org-pm-copy-buf*"))
+        (target-path (org-pm-make-target specs)))
+    (set-buffer target-buffer)
+    (insert-buffer origin-buffer)
+    ;; Shall we switch-on COMMENT for all exported sections here?
+    ;; Do READMORE conversion?
+    ;; (message "org-pm-copy-file copying to this path:\n %s" target-path)
+    (make-directory (file-name-directory target-path) t)
+    (write-region nil nil target-path)
+    (kill-buffer target-buffer)))
+
+;; superseded by org-pm-save-buffer:
+(defun org-pm-copy-section (specs)
+  (org-pm-make-target specs))
+
+(defun org-pm-make-target (specs)
+  (let* ((project-name (car specs))
+         (folder (cadr specs))
+         (slash (if (string-match "/$" folder) "" "/"))
+         (project (assoc project-name org-publish-project-alist)))
+    (cond (project
+           (add-to-list '*org-pm-updated-projects* project-name)
+           (concat (plist-get (cdr project) :base-directory)
+                   folder slash (caddr specs)))
+          (t
+           (add-to-list '*org-pm-missing-projects* project-name)
+           nil))))
+
+;; Fix grizzl-completing-read to display custom prompt
+(defun grizzl-completing-read (prompt index)
+  "Performs a completing-read in the minibuffer using INDEX to fuzzy search.
+Each key pressed in the minibuffer filters down the list of matches."
+  (minibuffer-with-setup-hook
+      (lambda ()
+        (setq *grizzl-current-result* nil)
+        (setq *grizzl-current-selection* 0)
+        (grizzl-mode 1)
+        (lexical-let*
+            ((hookfun (lambda ()
+                        (setq *grizzl-current-result*
+                              (grizzl-search (minibuffer-contents)
+                                             index
+                                             *grizzl-current-result*))
+                        (grizzl-display-result index prompt)))
+             (exitfun (lambda ()
+                        (grizzl-mode -1)
+                        (remove-hook 'post-command-hook    hookfun t))))
+          (add-hook 'minibuffer-exit-hook exitfun nil t)
+          (add-hook 'post-command-hook    hookfun nil t)))
+    (read-from-minibuffer (if prompt prompt ">>> "))
+    (grizzl-selected-result index)))
 
 (defun org-pm-list-duplicate-project-defs ()
   "List project definitions of same name that are found in more than one file or section.
@@ -657,7 +809,7 @@ So we filter them out."
     (insert "PROJECT DEFINITIONS")
     (dolist (project (-remove (lambda (proj)
                                 (or (string-match "^combined-" (car proj))
-                                    (string-match "^static-" (car proj))))
+                                    (string-match "^static_" (car proj))))
                               org-publish-project-alist))
       (setq node-id (plist-get (cdr project) :node-id))
       (insert "\n** "
@@ -725,3 +877,36 @@ duplicate definition (or to remove it)."
 Marked the entire section containing duplicate project definition.
 Type C-space C-space to de-select region and deactivate mark")
     ))
+
+(add-hook 'org-mode-hook
+  (lambda ()
+    (define-key org-mode-map (kbd "H-m a") 'org-pm-toggle-auto)
+    (define-key org-mode-map (kbd "H-m s") 'org-pm-save-and-update)
+    (define-key org-mode-map (kbd "H-m v") 'org-pm-toggle-verbose)
+    (define-key org-mode-map (kbd "H-m l") 'org-pm-list-project-defs)
+    (define-key org-mode-map (kbd "H-m m") 'org-pm-make-projects)
+    (define-key org-mode-map (kbd "H-m c") 'org-pm-copy-components-to-projects)
+    (define-key org-mode-map (kbd "H-m t") 'org-pm-make-project-template)))
+
+(defun org-pm-toggle-auto ()
+  (interactive)
+  (setq org-pm-auto-parse (not org-pm-auto-parse))
+  (if org-pm-auto-parse ;; stay in sync with auto parse!
+      (setq org-pm-auto-copy 'on-save)
+    (setq org-pm-auto-copy nil))
+  (if org-pm-auto-parse
+      (message "Org-pm auto-save and copy activated.")
+    (message "Org-pm auto-save and copy deactivated.")))
+
+(defun org-pm-save-and-update ()
+  (interactive)
+  (org-edit-src-save)
+  (org-pm-make-projects)
+  (org-pm-copy-components-to-projects))
+
+(defun org-pm-toggle-verbose ()
+  (interactive)
+  (setq org-pm-report-after-copying-p (not org-pm-report-after-copying-p))
+  (if org-pm-report-after-copying-p
+      (message "Reporting after copying activated")
+    (message "Reporting after copying deactivated")))
