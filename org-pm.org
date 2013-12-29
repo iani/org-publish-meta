@@ -1,4 +1,5 @@
 #+TODO: TODO UNDERWAY | DONE CANCELLED
+#+PROJECT: alpha@folder@name
 * UNDERWAY Variables
 :PROPERTIES:
 :DATE:     <2013-12-18 Wed 11:52>
@@ -179,7 +180,7 @@ CLOSED: [2013-12-18 Wed 22:16]
 :DATE:     <2013-12-16 Mon 02:50>
 :END:
 
-#+BEGIN_SRC elisp
+#+BEGIN_SRC emacs-lisp
   (defun org-get-header-property (property &optional all)
     "Get property from buffer variable.  Returns only fist match except if ALL is defined.
   NOTE: Also works if editing subtree narrowed or in separate narrowed buffer. "
@@ -378,21 +379,7 @@ NOTE: Removing components from projects is more complex than adding, because we 
           (assoc-add org-pm-files file project-name)))
 #+END_SRC
 
-** TODO org-pm-save-projects-and-components
-:PROPERTIES:
-:DATE:     <2013-12-18 Wed 21:17>
-:ID:       E3ED5198-9807-4051-88E2-4A9A50A0FC7A
-:END:
-
-Save the contents of =org-publish-project-alist= and =org-pm-files= to the file specified in =org-pm-project-data-file-path=.
-
-#+BEGIN_SRC emacs-lisp
-(defun org-pm-save-projects-and-components ()
-
-)
-#+END_SRC
-
-** TODO org-pm-add-project-to-file-header
+** DONE org-pm-add-project-to-file-header
 :PROPERTIES:
 :DATE:     <2013-12-18 Wed 21:17>
 :ID:       3E557B48-9700-4BEE-9D72-D4AC276DCF9C
@@ -435,6 +422,17 @@ Note that edits may cause conflicts when updating org-pm from git.
     (find-file org-pm-project-template-file-name))
 #+END_SRC
 
+** org-pm-edit-saved-project-data
+
+Edit the file containing the auto-saved data for org-pom.
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-edit-saved-project-data ()
+    "Edit the file containing the global project data."
+    (interactive)
+    (find-file org-pm-project-data-file-path))
+#+END_SRC
+
 ** org-pm-show-project-definition-section
 
 #+BEGIN_SRC emacs-lisp
@@ -458,7 +456,7 @@ Note that edits may cause conflicts when updating org-pm from git.
 :END:
 
 #+BEGIN_SRC emacs-lisp
-  (defun org-pm-make-project-template (no-query)
+  (defun org-pm-make-project-template (&optional project-name no-name-query no-query)
     "Create a project definition template and insert it into current file.
   Input project name, base directory and publishing directory from user.
   Skip input step if called with prefix argument.
@@ -471,16 +469,17 @@ Note that edits may cause conflicts when updating org-pm from git.
   Store all 3 in org-publish-project-alists.
   Save updated project, file and duplicate lists to disk."
     (interactive "P")
-    (let* ((project-name "org-pm-default")
-           (base-directory (file-truename "~/org-pm/"))
+    (let* ((base-directory (file-truename "~/org-pm/"))
            (publishing-directory
             (file-truename "~/Sites/org-pm/"))
            (def-node
              (car (org-map-entries '(cadr (org-element-at-point)) "PROJECT_DEFS")))
            (buffer (get-buffer-create "*def*"))
            plist template-string)
+      (unless project-name (setq project-name "org-pm-default"))
+      (unless no-name-query
+        (setq project-name (read-string "Enter project name: " project-name)))
       (unless no-query
-        (setq project-name (read-string "Enter project name: " project-name))
         (setq base-directory (query-make-folder base-directory))
         (setq publishing-directory (query-make-folder publishing-directory)))
       (save-excursion
@@ -503,33 +502,92 @@ Note that edits may cause conflicts when updating org-pm from git.
              (end-of-buffer)
              (insert "\n* COMMENT Project Definitions              :PROJECT_DEFS:\n")
              (org-paste-subtree 2 template-string)))
+      (org-id-get-create)
       (org-pm-check-add-project (org-pm-parse-project-def (cadr (org-element-at-point))))
-      ))
+      (org-pm-save-all-project-data)))
 #+END_SRC
 
-#+RESULTS:
-: org-pm-make-project-template
+** Providing relative paths to root of published project
 
-#+BEGIN_SRC elisp
-    (let ((def-node (org-map-entries '(cadr (org-element-at-point)) "PROJECT_DEFS"))
-        (project)
-        (plist)
-        (buffer (get-buffer-create "*def*")))
-    (set-buffer buffer)
-    (insert-file-contents org-pm-project-template-file-name)
-    (beginning-of-buffer)
-    (when nil
-     (replace-string "PROJECTNAME" (car project))
-     (beginning-of-buffer)
-     (replace-string "BASEDIRECTORY" (plist-get plist :base-directory))
-     (beginning-of-buffer)
-     (replace-string "PUBLISHINGDIRECTORY" (plist-get plist :publishing-directory)))
-    (message "%s" def-node)
-  )
+This makes sure that when a file is copied to a subfolder of the publishing directory, the paths pointing to includes such as css, images, etc. will be converted to show to the root of the project, so that links work.  Such links must be marked using the string ={{.}}= to denote the relative root to the published project, that is, the =publishing-directory=.
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-html-provide-relative-path (string backend info)
+    "Provide relative path for link."
+    (when (org-export-derived-backend-p backend 'html)
+      (replace-regexp-in-string
+       "{{.}}"
+       (org-make-relpath-string
+        (plist-get info :publishing-directory)
+        (plist-get info ':input-file))
+       string)))
+
+  ;;; Add relative path filter to export final output functions
+  (add-to-list 'org-export-filter-final-output-functions
+               'org-html-provide-relative-path)
+
+  (defun org-make-relpath-string (base-path file-path)
+    "create a relative path for reaching base-path from file-path ('./../..' etc)"
+    (let (
+          (path ".")
+          (depth (-
+                  (length (split-string (file-name-directory file-path) "/"))
+                  (length (split-string base-path "/")))))
+      (dotimes (number
+                (- depth 1)
+                path)
+        (setq path (concat path "/..")))))
 #+END_SRC
 
-#+RESULTS:
-: #<buffer *def*>
+** Customizing the heading of table of contents
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-html-toc (depth info)
+    "Build a table of contents.
+  DEPTH is an integer specifying the depth of the table.  INFO is a
+  plist used as a communication channel.  Return the table of
+  contents as a string, or nil if it is empty."
+    (let ((toc-heading (plist-get info :toc-heading))
+          (toc-entries
+           (mapcar (lambda (headline)
+                     (cons (org-html--format-toc-headline headline info)
+                           (org-export-get-relative-level headline info)))
+                   (org-export-collect-headlines info depth)))
+          (outer-tag (if (and (org-html-html5-p info)
+                              (plist-get info :html-html5-fancy))
+                         "nav"
+                       "div")))
+      (when toc-entries
+        (unless toc-heading (setq toc-heading "Table of Contents"))
+        (concat (format "<%s id=\"table-of-contents\">\n" outer-tag)
+                (format "<h%d>%s</h%d>\n"
+                        org-html-toplevel-hlevel
+                        (org-html--translate toc-heading info)
+                        org-html-toplevel-hlevel)
+                "<div id=\"text-table-of-contents\">"
+                (org-html--toc-text toc-entries)
+                "</div>\n"
+                (format "</%s>\n" outer-tag)))))
+#+END_SRC
+* Setup auto-parse and auto-copy
+
+#+BEGIN_SRC emacs-lisp
+
+  (add-hook 'after-save-hook 'org-pm-maybe-parse-and-copy)
+
+  (defun org-pm-maybe-parse-and-copy ()
+    "This function is run whenever a file is saved.
+  If org-pm-auto-parse is true, make projects whose definitions are in this buffer.
+  If org-pm-auto-copy is set to 'on-save, then copy the file and sections
+  specified to their project base directory folders."
+    (when (equal major-mode 'org-mode)
+      (if org-pm-auto-parse
+          ;; if org-pm-auto-copy is not nil, then don't save here:
+          (org-pm-make-projects org-pm-auto-copy))
+      (if (equal org-pm-auto-copy 'on-save)
+          ;; Always save if running this.
+          (org-pm-copy-components-to-projects))))
+#+END_SRC
 
 * Main functions and commands
 :PROPERTIES:
@@ -575,23 +633,33 @@ Note that edits may cause conflicts when updating org-pm from git.
                  buffer)))
 #+END_SRC
 
-#+RESULTS:
-: dump
+** org-pm-reset-project-list
 
-** DONE org-pm-make-projects (called by org-pm-parse-buffer)
 #+BEGIN_SRC emacs-lisp
-  (defun org-pm-make-projects ()
+  (defun org-pm-reset-project-list ()
+    "Set org-publish-project-alist to nil.  Save"
+    (interactive)
+    (cond ((y-or-n-p "Really erase all projects and save?")
+           (setq org-publish-project-alist)
+           (org-pm-save-all-project-data))))
+#+END_SRC
+
+** DONE org-pm-make-projects
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-make-projects (&optional do-not-save-now)
     "Construct the projects for all project definitions found in current file.
   Project definitions are those nodes which are contained in nodes tagged as
   PROJECT_DEFS.
   Note about project definition node-IDs:
   Section IDs of project definitions are used only as links
-  to point to the position in the file where a project definition is,.
+  to point to the position in the file where a project definition is, located.
   They do nod identify a project.  A project is identified by its name.
   Therefore:
   The node-id of a project is set to <full-file-path>::#<section id>.
   When a duplicate section id is found in a definition, it is replaced by a new one,
   and the new id is stored in the project."
+    (interactive)
+    (unless org-publish-project-alist (org-pm-load-all-project-data))
     (let ((template (org-pm-make-default-project-plist))
           levels id ids projects)
       (org-map-entries
@@ -608,7 +676,9 @@ Note that edits may cause conflicts when updating org-pm from git.
             (setq ids (cons id ids))
             (setq projects (cons (org-pm-parse-project-def entry template) projects))))
        "PROJECT_DEFS")
-      (mapcar 'org-pm-check-add-project projects)))
+      (mapcar 'org-pm-check-add-project projects)
+      (unless do-not-save-now (org-pm-save-all-project-data))
+      (message "Org-pm defined %d projects" (length projects))))
 #+END_SRC
 
 ** org-pm-parse-project-def
@@ -680,7 +750,7 @@ Note that edits may cause conflicts when updating org-pm from git.
   Also create static and combined project components.
   Create alternate ids for the latter, by appending -static and -combined
   to the id of the main project."
-    (unless org-publish-project-alist (org-pm-load-project-lists))
+    (unless org-publish-project-alist (org-pm-load-all-project-data))
     (let* ((p-name (car project))
            (p-def (cdr project))
            (prev-proj (assoc p-name org-publish-project-alist))
@@ -697,12 +767,15 @@ Note that edits may cause conflicts when updating org-pm from git.
       (setq org-publish-project-alist
             (assoc-replace org-publish-project-alist p-name p-def))
       (setq static-project
-            (-flatten (-map
-                       (lambda (pair)
-                         (list (replace-regexp-in-string "^static-" "" (car pair))
-                               (cadr pair)))
+            (-flatten
+             (-map
+              (lambda (pair)
+                (list (intern (replace-regexp-in-string "^:static-" ":"
+                                                        (symbol-name (car pair))))
+                      (cadr pair)))
                        (-filter
-                        (lambda (pair) (string-match "^static-" (car pair)))
+                        (lambda (pair) (string-match "^:static-"
+                                                     (symbol-name (car pair))))
                         (-partition 2 p-def)))))
       (setq static-project-name (concat "static-" p-name))
       (setq org-publish-project-alist
@@ -713,59 +786,8 @@ Note that edits may cause conflicts when updating org-pm from git.
                            (concat "combined-" p-name)
                            (list :components
                                  p-name static-project-name))))
-
     project)
-
 #+END_SRC
-
-** org-pm-query-select-project
-#+BEGIN_SRC emacs-lisp
-  (defun org-pm-query-select-project (new-project old-project)
-    "Check if new project definition is from a different source than old-project.
-    If yes, then ask the user which of the project definitions to keep.
-    Post info about the rejected definition so that user can remove or edit it.
-    Return the selected project so that it is added by org-pm-add-project,
-    replacing the previous entry for this project."
-    (let ((selection new-project))
-      (unless (equal (plist-get (cdr new-project) :source-id)
-                     (plist-get (cdr old-project) :source-id))
-        (setq selection (must-write-the-code-for-query-selection new-project old-project))
-        (must-write-the-code-for-message-about-rejected
-         (if (eq selection new-project) old-project new-project)))
-      selection))
-#+END_SRC
-
-** org-pm-add-project
-#+BEGIN_SRC emacs-lisp
-  (defun org-pm-add-project (project)
-    "Add project to org-pm-project-alist.
-    If previous project with same name exist, replace it."
-    (setq org-publish-project-alist
-          (assoc-replace org-publish-project-alist (car project) (cdr project))))
-
-#+END_SRC
-
-For test purposes:
-
-#+BEGIN_SRC elisp
-  (global-set-key (kbd "C-c C-x t") 'org-pm-make-projects)
-#+END_SRC
-
-** old org-pm-parse-buffer notes
-
-This command parses the current file in order to do 3 things:
-
-1. Create project definitions. (org-pm-make-projects)
-2. Find which parts of the file are stored in which project, and store the results in org-pm-files. (org-pm-make-component-project-list)
-3. Save the resulting configurations by writing =org-publish-project-alist= and =org-pm-files= to the file whose path is contained in =org-pm-project-data-file-path=
-
-org-pm-parse-buffer can be called explicitly by the user as a command.
-
-If org-pm-auto-parse is enabled, then it is called automatically whenever a buffer is saved.
-
-*** IMPORTANT: When scanning for which projects are
-NOTE: Removing components from projects is more complex than adding, because we should also remove the files of the components from the base directory of the project.  Therefore: org-pm-parse-buffer must remove any files of components that no longer exist.  How to do this?
-
 
 ** UNDERWAY org-pm-add-file-to-project:
 :PROPERTIES:
@@ -801,7 +823,7 @@ If project name input by user does not correspond to an existing project, offer 
       (setq project (org-pm-query-make-default-project project-name))
       (org-pm-add-project-to-file-header project-name)
       (org-pm-add-project-file project-name (buffer-file-name (current-buffer)))
-      (org-pm-save-projects-and-components)
+      (org-pm-save-all-project-data)
       (org-pm-make-project-template project)
       (message
        "Added project named: %s to file: %s\nBase directory is: %s\nPublishing directory is: %s"
@@ -810,39 +832,6 @@ If project name input by user does not correspond to an existing project, offer 
        (plist-get (cdr project) :base-directory)
        (plist-get (cdr project) :publishing-directory))))
   #+END_SRC
-
-** TODO org-pm-query-make-project-template MUST REVIEW! FIXME!
-
-REWRITE THIS TO use org-pm-make-project-template.
-
-Ask for:
-1. Project name
-2. base directory
-3. publishing directory
-
-Pass these as arguments to org-pm-make-project-template.
-
-#+BEGIN_SRC emacs-lisp
-  (defun org-pm-query-make-project-template ()
-    "Input project name, base directory and publishing directory from user.
-  Then pass these as arguments to org-pm-make-project-template"
-    (unless (y-or-n-p (format "Create project '%s'? " project-name))
-      (error "Project creation cancelled."))
-    (let (plist)
-      (setq plist (org-pm-make-default-project-plist))
-      (setq plist
-            (plist-put
-             plist :base-directory
-             (query-make-folder (plist-get plist :base-directory)
-                                "Base directory:")))
-      (setq plist
-            (plist-put
-             plist :publishing-directory
-             (query-make-folder (plist-get plist :publishing-directory)
-                                "Publishing directory:")))
-      (cons project-name plist)))
-#+END_SRC
-
 ** query-make-folder
 #+BEGIN_SRC emacs-lisp
   (defun query-make-folder (path &optional prompt-string)
@@ -878,56 +867,7 @@ If project name input by user does not correspond to an existing project, offer 
 
 Remove current section (node) from a project interactively selected by user.
 
-** UNDERWAY org-pm-register-project-components
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-TO BE REPLACED BY org-pm-process-file
-org-pm-process-file starts by incorporating the code from this function
-and adds to it the copying of the components found.
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-Parse current buffer, looking for projects added for the whole file (with property =#+PROJECT:= or for sections (with tags enclosed in =_=). Collect names of all projects found in a list.
-Put the list in the assoc list stored in =org-pm-files=, using the full path of the file as key. Function =org-pm-copy-to-project= scans this list to find if the file contains any components that should be copied to the project, and copies them.
-
-#+begin_src emacs-lisp :tangle yes
-  (defun org-pm-register-project-components ()
-    "Parse current buffer, looking for projects added for the whole file (with property
-  =#+PROJECT:= or for sections (with tags enclosed in =_=). Collect names of all projects
-  found in a list. Put the list in the assoc list stored in =org-pm-files=, using the
-  full path of the file as key. Function =org-pm-copy-to-project= scans this list to find
-  if the file contains any components that should be copied to the project, and copies
-   them."
-    (interactive)
-
-    (let (projects (filename (buffer-file-name (current-buffer))))
-      (mapcar (lambda (project)
-                (add-to-list 'projects (org-pm-get-project-name project)))
-              (org-get-header-property "PROJECT" t))
-      (org-map-entries
-       '(let ((tags (plist-get (cadr (org-element-at-point)) :tags)))
-          (dolist (tag tags)
-            (if (string-match  "^_.*_$" tag)
-                (add-to-list 'projects (org-pm-get-project-name tag))))
-          ))
-      (setq org-pm-files (assoc-replace org-pm-files filename projects))
-      (message "Result: %s" projects)))
-
-  (defun org-pm-get-project-name (name-and-folder)
-    (car (split-string name-and-folder "@")))
-
-  ;; Note: for setting the project name to the car of the split, and the
-  ;; folder to the cdr of the split, see
-  ;; http://www.cs.cmu.edu/Groups/AI/html/cltl/clm/node94.html
-  ;; and http://clhs.lisp.se/Body/m_mult_2.htm
-  ;; on how to do multiple-value-setq
-  ;; Here example from site 2 above:
-  ;; (multiple-value-setq (a b c) (values 1 2))
-#+end_src
-
-#+RESULTS:
-: org-pm-get-project-name
-
-** org-pm-process file (replaces: org-pm-register-project-components)
+** org-pm-copy-components-to-projects
 
 - org-pm-copy-components can be called explicitly by the user as a command.
 - If org-pm-auto-copy is enabled, then it is called automatically.
@@ -943,38 +883,77 @@ Version 1 lengthens the publishing time.
 The accumulated delay of copying project components from all files when publishing may be more distracting than the delay of copying components of a single project.  Additionally, it is better to be able to check the condition of a project at any stage, and to have it updated as soon as a file is saved.  So I start by setting the default to copy components when the file is saved.
 
 #+BEGIN_SRC emacs-lisp
-  (defun org-pm-copy-components ()
-    "Identify and copy the components that are marked to belong to projects."
-
-  )
-
-  ;; This version does both the registering and the copying.
   ;; Will replace org-pm-register-project-components.
-  (defun org-pm-process-file ()
-    "Identify and copy the components that are marked to belong to projects.
+  (defun org-pm-copy-components-to-projects (&optional do-not-save-now)
+    "Find which parts of the file go to which to projects, and copy them
+  to the base-directories of these projects.  Also save the projects found in
+  list org-pm-files for this project, using the full path of this file as key.
+  This list is saved and can be used later to update the contents of any project
+  by finding all the files that contribute to this project.
+
   Parse current buffer, looking for projects added for the whole file (with property
   =#+PROJECT:= or for sections (with tags enclosed in =_=). Collect names of all projects
   found in a list. Put the list in the assoc list stored in =org-pm-files=, using the full
   path of the file as key. Function =org-pm-copy-to-project= scans this list to find if
-  the file contains any components that should be copied to the project, and copies them."
-      (interactive)
+  the file contains any components that should be copied to the project, and copies them.
 
-      (let ((filename (buffer-file-name (current-buffer)))
-            projects components project file folder)
-        (mapcar (lambda (project)
-                  (add-to-list 'projects (org-pm-get-project-name project)))
-                (org-get-header-property "PROJECT" t))
-        (org-map-entries
-         '(let ((tags (plist-get (cadr (org-element-at-point)) :tags)))
-            (dolist (tag tags)
-              (if (string-match  "^_.*_$" tag)
-                  (add-to-list 'projects (org-pm-get-project-name tag))))
-            ))
-        (setq org-pm-files (assoc-replace org-pm-files filename projects))
-        (message "Result: %s" projects)))
+  - components: List of file and/or ids of any sections that are copied to projects.
+                Each element is of the form:
+                (component (project folder file) (project folder file)...)
+  Saved to org-pm-files."
+    (interactive)
+    (let* ((fullpath (buffer-file-name (current-buffer)))
+          (filename (file-name-nondirectory fullpath))
+          components)
+      (setq components
+            (-map (lambda (component) (org-pm-parse-component component filename))
+                  (org-get-header-property "PROJECT" t)))
+      (if components (setq components (list (cons "FILE" components))))
+      (org-map-entries
+       '(let* (name
+               (node (cadr (org-element-at-point)))
+               (pspecs (-filter (lambda (tag) (string-match "^_.*_$" tag))
+                                (plist-get node :tags))))
+          (when pspecs
+            (setq name (plist-get node :raw-value))
+            (setq components
+                  (cons
+                   (cons
+                    (plist-get node :begin)
+                    (-map
+                     (lambda (component) (org-pm-parse-component component name))
+                     pspecs))
+                   components)))))
+      (setq org-pm-files (assoc-replace org-pm-files fullpath components))
+      ;; first save, then do the copying:
+      (unless do-not-save-now (org-pm-save-all-project-data))
+      (dolist (comp components)
+        (if (equal "FILE" (car comp))
+            (dolist (proj (cdr comp)) (org-pm-copy-file proj))
+          (dolist (proj (cdr comp)) (org-pm-copy-section proj))))
+      (message "Result: %s" components)))
+
+  (defun org-pm-parse-component (component filename)
+    (let ((parts
+           (-take 3 (split-string
+                     (concat (replace-regexp-in-string "#" "." component) "@@") "@"))))
+      (unless (equal 0 (length (caddr parts)))
+          (setq filename (caddr parts)))
+      (setq filename (replace-regexp-in-string " " "-" filename))
+      (unless (string-match ".org$" filename)
+        (setq filename (concat filename ".org")))
+      (setq parts (-replace-at 2 filename parts))
+      parts))
+
+  (defun org-pm-copy-file (specs))
+
+  (defun org-pm-copy-section (specs))
 #+END_SRC
 
-** TODO org-pm-publish: Select a project to publish from the projects targeted by current buffer.
+** TODO org-pm-publish: Select a project to publish from the projects targeted by current buffer. :_test_:
+:PROPERTIES:
+:ID:       688C2A25-277F-4263-95C9-FFFDA2F15E87
+:END:
 
 Since a file containing org-pm tags can be anywhere outside an org-mode project folder, one cannot use org-publish-current-project to automatically provide the target project based on the file.  Therefore, use =org-pm-publish= instead to select the desired project to publish from a list of projects that are targeted by the current file.
 
@@ -1026,8 +1005,10 @@ CLOSED: [2013-12-22 Sun 14:30]
   in a separate org-mode buffer, and provide links to both file and section.
   Also list duplicate project definitions,
   i.e. definitions of same name that are found in more than one file or section.
-  Skip those static and combined projects created by the system,
-  i.e. projects whose ids end in -static and -combined."
+  Note: static and combined projects created by the system
+  are not checked and added as duplicates by org-pm-check-add-project.
+  But they are in org-publish-project-alist, which we use for this list.
+  So we filter them out."
 
     (interactive)
 
@@ -1035,37 +1016,41 @@ CLOSED: [2013-12-22 Sun 14:30]
         (error "There are no project definitions at all."))
 
     (let ((buffer (get-buffer-create "*org-pm-project-definitions*"))
-          node-id)
+          node-id dir)
       (switch-to-buffer buffer)
       (org-mode)
       (delete-region (point-min) (point-max))
       (org-insert-heading)
       (insert "PROJECT DEFINITIONS")
-      (dolist (project org-publish-project-alist)
+      (dolist (project (-remove (lambda (proj)
+                                  (or (string-match "^combined-" (car proj))
+                                      (string-match "^static-" (car proj))))
+                                org-publish-project-alist))
         (setq node-id (plist-get (cdr project) :node-id))
-        (unless (or
-                 (string-match "^static-" node-id)
-                 (string-match "^combined-" node-id))
-         (insert "\n** "
-                 (car project)
-                 " (click [[elisp:(org-pm-search-link \""
-                 (plist-get (cdr project) :project-id)
-                 "\")][*HERE*]] to edit)\n")
-         (insert "file: file:" (plist-get (cdr project) :node-filename) "\n")
-         (insert "node: id:" node-id "\n")
-         (let ((duplicates (cdr (assoc (car project) org-pm-project-def-duplicates))))
-           (if duplicates
-               (dolist (def duplicates)
-                 (let ((path-and-id (split-string def "::#")))
-                   (insert "\n*** duplicate: ")
-                   (insert
-                    " (click [[elisp:(org-pm-search-link \""
-                    def
-                    "\")][*HERE*]] to edit)"
-                    )
-                   (insert "\nfile: file:" (car path-and-id) "\n")
-                   (insert "node: " "id:" (cadr path-and-id) "\n")))
-             (insert "\nThere no duplicate definitions for this project!\n")))))))
+        (insert "\n** "
+                (car project)
+                " (click [[elisp:(org-pm-search-link \""
+                (plist-get (cdr project) :project-id)
+                "\")][*HERE*]] to edit definition)\n")
+        (setq dir (plist-get (cdr project) :base-directory))
+        (insert "base dir: [[elisp:(dired\"" dir "\")][" dir "]]\n" )
+        (setq dir (plist-get (cdr project) :publishing-directory))
+        (insert "publishing dir: [[elisp:(dired\"" dir "\")][" dir "]]\n" )
+        (insert "file: file:" (plist-get (cdr project) :node-filename) "\n")
+        (insert "node: id:" node-id "\n")
+        (let ((duplicates (cdr (assoc (car project) org-pm-project-def-duplicates))))
+          (if duplicates
+              (dolist (def duplicates)
+                (let ((path-and-id (split-string def "::#")))
+                  (insert "\n*** duplicate: ")
+                  (insert
+                   " (click [[elisp:(org-pm-search-link \""
+                   def
+                   "\")][*HERE*]] to edit)"
+                   )
+                  (insert "\nfile: file:" (car path-and-id) "\n")
+                  (insert "node: " "id:" (cadr path-and-id) "\n")))
+            (insert "\nThere no duplicate definitions for this project!\n"))))))
 #+END_SRC
 
 #+RESULTS:
@@ -1085,8 +1070,9 @@ Currently, links to IDs that are not in org-link-locations are not found by org-
       (org-back-to-heading)
       (org-show-subtree)
       (org-mark-element)
+      (recenter-top-bottom 1)
       (message "
-  Marked the entire section containing project definition.
+  ---> Marked the entire section containing project definition.
   Type C-space C-space to de-select region and deactivate mark.")))
 #+END_SRC
 
@@ -1144,19 +1130,43 @@ Dealing with the above:
 3. could be delegated to commands that a user can call independently of the main specification and publishing process.
 4. could be handled like No. 3.
 
+
 * COMMENT Project Definitions              :PROJECT_DEFS:
 ** org-pm-default
 :PROPERTIES:
-:ID:       7F35BA92-3A62-4E62-AB79-123F3B61174E
+:ID:       5F6A7EFA-7491-49CB-9985-26D53BB17F34
 :END:
-
 *** base-directory "/Users/iani2/org-pm/"
 *** base-extension "org"
+*** recursive t
 *** publishing-directory "/Users/iani2/Sites/org-pm/"
 *** publishing-function 'org-html-publish-to-html
 *** headline-levels 4
+*** auto-preamble t
 *** section-numbers nil
 *** with-toc t
 *** html-preamble t
+*** with-author t
+*** with-creator t
+*** with-emphasize t
+*** with-sub-superscript nil
+*** with-tables t
+*** with-tags t
+*** with-tasks t
+*** with-todo-keywords nil
+*** html-head-include-scripts t
+*** with-latex t
+*** with-drawers nil
+*** html-link-up "{{.}}/"
+*** html-link-home "{{.}}/"
+*** toc-heading "Contents"
+*** html-head
+<link href="{{.}}/static/bootstrap.min.css" rel="stylesheet" media="screen">
+<link href="{{.}}/static/worg.min.css" rel="stylesheet" type="text/css">
+*** html-head-include-default-style nil
+*** html-head-include-scripts nil
 *** static-base-directory "/Users/iani2/org-pm/static/"
 *** static-publishing-directory "/Users/iani2/Sites/org-pm/static/"
+*** static-base-extension "css\\|js\\|less\\|sass\\|php\\|rb\\|py\\|pdf\\|jpg\\|gif\\|png"
+*** static-publishing-function 'org-publish-attachment
+*** static-recursive t

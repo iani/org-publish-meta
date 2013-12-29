@@ -1,0 +1,218 @@
+#    -*- mode: org -*-
+
+
+Archived entries from file /Users/iani2/Documents/Dev/Emacs/org-publish-meta/org-pm.org
+
+
+* UNDERWAY org-pm-register-project-components
+:PROPERTIES:
+:ARCHIVE_TIME: 2013-12-29 Sun 05:21
+:ARCHIVE_FILE: ~/Documents/Dev/Emacs/org-publish-meta/org-pm.org
+:ARCHIVE_OLPATH: Main functions and commands
+:ARCHIVE_CATEGORY: org-pm
+:ARCHIVE_TODO: UNDERWAY
+:END:
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+TO BE REPLACED BY org-pm-process-file
+org-pm-process-file starts by incorporating the code from this function
+and adds to it the copying of the components found.
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+Parse current buffer, looking for projects added for the whole file (with property =#+PROJECT:= or for sections (with tags enclosed in =_=). Collect names of all projects found in a list.
+Put the list in the assoc list stored in =org-pm-files=, using the full path of the file as key. Function =org-pm-copy-to-project= scans this list to find if the file contains any components that should be copied to the project, and copies them.
+
+#+begin_src emacs-lisp :tangle yes
+  (defun org-pm-register-project-components ()
+    "Parse current buffer, looking for projects added for the whole file (with property
+  =#+PROJECT:= or for sections (with tags enclosed in =_=). Collect names of all projects
+  found in a list. Put the list in the assoc list stored in =org-pm-files=, using the
+  full path of the file as key. Function =org-pm-copy-to-project= scans this list to find
+  if the file contains any components that should be copied to the project, and copies
+   them."
+    (interactive)
+
+    (let (projects (filename (buffer-file-name (current-buffer))))
+      (mapcar (lambda (project)
+                (add-to-list 'projects (org-pm-get-project-name project)))
+              (org-get-header-property "PROJECT" t))
+      (org-map-entries
+       '(let ((tags (plist-get (cadr (org-element-at-point)) :tags)))
+          (dolist (tag tags)
+            (if (string-match  "^_.*_$" tag)
+                (add-to-list 'projects (org-pm-get-project-name tag))))
+          ))
+      (setq org-pm-files (assoc-replace org-pm-files filename projects))
+      (message "Result: %s" projects)))
+
+  (defun org-pm-get-project-name (name-and-folder)
+    (car (split-string name-and-folder "@")))
+
+  ;; Note: for setting the project name to the car of the split, and the
+  ;; folder to the cdr of the split, see
+  ;; http://www.cs.cmu.edu/Groups/AI/html/cltl/clm/node94.html
+  ;; and http://clhs.lisp.se/Body/m_mult_2.htm
+  ;; on how to do multiple-value-setq
+  ;; Here example from site 2 above:
+  ;; (multiple-value-setq (a b c) (values 1 2))
+#+end_src
+
+#+RESULTS:
+: org-pm-get-project-name
+
+* UNDERWAY org-pm-register-project-components
+:PROPERTIES:
+:ARCHIVE_TIME: 2013-12-29 Sun 05:22
+:ARCHIVE_FILE: ~/Documents/Dev/Emacs/org-publish-meta/org-pm.org
+:ARCHIVE_OLPATH: Main functions and commands
+:ARCHIVE_CATEGORY: org-pm
+:ARCHIVE_TODO: UNDERWAY
+:END:
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+TO BE REPLACED BY org-pm-process-file
+org-pm-process-file starts by incorporating the code from this function
+and adds to it the copying of the components found.
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+Parse current buffer, looking for projects added for the whole file (with property =#+PROJECT:= or for sections (with tags enclosed in =_=). Collect names of all projects found in a list.
+Put the list in the assoc list stored in =org-pm-files=, using the full path of the file as key. Function =org-pm-copy-to-project= scans this list to find if the file contains any components that should be copied to the project, and copies them.
+
+#+begin_src emacs-lisp :tangle yes
+  (defun org-pm-register-project-components ()
+    "Parse current buffer, looking for projects added for the whole file (with property
+  =#+PROJECT:= or for sections (with tags enclosed in =_=). Collect names of all projects
+  found in a list. Put the list in the assoc list stored in =org-pm-files=, using the
+  full path of the file as key. Function =org-pm-copy-to-project= scans this list to find
+  if the file contains any components that should be copied to the project, and copies
+   them."
+    (interactive)
+
+    (let (projects (filename (buffer-file-name (current-buffer))))
+      (mapcar (lambda (project)
+                (add-to-list 'projects (org-pm-get-project-name project)))
+              (org-get-header-property "PROJECT" t))
+      (org-map-entries
+       '(let ((tags (plist-get (cadr (org-element-at-point)) :tags)))
+          (dolist (tag tags)
+            (if (string-match  "^_.*_$" tag)
+                (add-to-list 'projects (org-pm-get-project-name tag))))
+          ))
+      (setq org-pm-files (assoc-replace org-pm-files filename projects))
+      (message "Result: %s" projects)))
+
+  (defun org-pm-get-project-name (name-and-folder)
+    (car (split-string name-and-folder "@")))
+
+  ;; Note: for setting the project name to the car of the split, and the
+  ;; folder to the cdr of the split, see
+  ;; http://www.cs.cmu.edu/Groups/AI/html/cltl/clm/node94.html
+  ;; and http://clhs.lisp.se/Body/m_mult_2.htm
+  ;; on how to do multiple-value-setq
+  ;; Here example from site 2 above:
+  ;; (multiple-value-setq (a b c) (values 1 2))
+#+end_src
+
+#+RESULTS:
+: org-pm-get-project-name
+
+* UNDERWAY org-pm-register-project-components
+:PROPERTIES:
+:ARCHIVE_TIME: 2013-12-29 Sun 05:22
+:ARCHIVE_FILE: ~/Documents/Dev/Emacs/org-publish-meta/org-pm.org
+:ARCHIVE_OLPATH: Main functions and commands
+:ARCHIVE_CATEGORY: org-pm
+:ARCHIVE_TODO: UNDERWAY
+:END:
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+TO BE REPLACED BY org-pm-process-file
+org-pm-process-file starts by incorporating the code from this function
+and adds to it the copying of the components found.
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+Parse current buffer, looking for projects added for the whole file (with property =#+PROJECT:= or for sections (with tags enclosed in =_=). Collect names of all projects found in a list.
+Put the list in the assoc list stored in =org-pm-files=, using the full path of the file as key. Function =org-pm-copy-to-project= scans this list to find if the file contains any components that should be copied to the project, and copies them.
+
+#+begin_src emacs-lisp :tangle yes
+  (defun org-pm-register-project-components ()
+    "Parse current buffer, looking for projects added for the whole file (with property
+  =#+PROJECT:= or for sections (with tags enclosed in =_=). Collect names of all projects
+  found in a list. Put the list in the assoc list stored in =org-pm-files=, using the
+  full path of the file as key. Function =org-pm-copy-to-project= scans this list to find
+  if the file contains any components that should be copied to the project, and copies
+   them."
+    (interactive)
+
+    (let (projects (filename (buffer-file-name (current-buffer))))
+      (mapcar (lambda (project)
+                (add-to-list 'projects (org-pm-get-project-name project)))
+              (org-get-header-property "PROJECT" t))
+      (org-map-entries
+       '(let ((tags (plist-get (cadr (org-element-at-point)) :tags)))
+          (dolist (tag tags)
+            (if (string-match  "^_.*_$" tag)
+                (add-to-list 'projects (org-pm-get-project-name tag))))
+          ))
+      (setq org-pm-files (assoc-replace org-pm-files filename projects))
+      (message "Result: %s" projects)))
+
+  (defun org-pm-get-project-name (name-and-folder)
+    (car (split-string name-and-folder "@")))
+
+  ;; Note: for setting the project name to the car of the split, and the
+  ;; folder to the cdr of the split, see
+  ;; http://www.cs.cmu.edu/Groups/AI/html/cltl/clm/node94.html
+  ;; and http://clhs.lisp.se/Body/m_mult_2.htm
+  ;; on how to do multiple-value-setq
+  ;; Here example from site 2 above:
+  ;; (multiple-value-setq (a b c) (values 1 2))
+#+end_src
+
+#+RESULTS:
+: org-pm-get-project-name
+
+* UNDERWAY org-pm-register-project-components
+:PROPERTIES:
+:ARCHIVE_TIME: 2013-12-29 Sun 05:51
+:ARCHIVE_FILE: ~/Documents/Dev/Emacs/org-publish-meta/org-pm.org
+:ARCHIVE_OLPATH: Main functions and commands
+:ARCHIVE_CATEGORY: org-pm
+:ARCHIVE_TODO: UNDERWAY
+:END:
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+TO BE REPLACED BY org-pm-process-file
+org-pm-process-file starts by incorporating the code from this function
+and adds to it the copying of the components found.
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+Parse current buffer, looking for projects added for the whole file (with property =#+PROJECT:= or for sections (with tags enclosed in =_=). Collect names of all projects found in a list.
+Put the list in the assoc list stored in =org-pm-files=, using the full path of the file as key. Function =org-pm-copy-to-project= scans this list to find if the file contains any components that should be copied to the project, and copies them.
+
+#+begin_src emacs-lisp :tangle yes
+  (defun org-pm-register-project-components ()
+    "Parse current buffer, looking for projects added for the whole file (with property
+  =#+PROJECT:= or for sections (with tags enclosed in =_=). Collect names of all projects
+  found in a list. Put the list in the assoc list stored in =org-pm-files=, using the
+  full path of the file as key. Function =org-pm-copy-to-project= scans this list to find
+  if the file contains any components that should be copied to the project, and copies
+   them."
+    (interactive)
+
+    (let (projects (filename (buffer-file-name (current-buffer))))
+      (mapcar (lambda (project)
+                (add-to-list 'projects (org-pm-get-project-name project)))
+              (org-get-header-property "PROJECT" t))
+      (org-map-entries
+       '(let ((tags (plist-get (cadr (org-element-at-point)) :tags)))
+          (dolist (tag tags)
+            (if (string-match  "^_.*_$" tag)
+                (add-to-list 'projects (org-pm-get-project-name tag))))
+          ))
+      (setq org-pm-files (assoc-replace org-pm-files filename projects))
+      (message "Result: %s" projects)))
+#+end_src
+
+#+RESULTS:
+: org-pm-get-project-name

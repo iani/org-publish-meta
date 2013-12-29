@@ -191,10 +191,6 @@ of projects that file belongs. "
   (setq org-pm-files
         (assoc-add org-pm-files file project-name)))
 
-(defun org-pm-save-projects-and-components ()
-
-)
-
 (defun org-pm-add-project-to-file-header (project-name)
   "Add property PROJECT with value project-name at beginning of file."
   (save-excursion
@@ -213,6 +209,11 @@ Note that edits may cause conflicts when updating org-pm from git."
   (interactive)
   (find-file org-pm-project-template-file-name))
 
+(defun org-pm-edit-saved-project-data ()
+  "Edit the file containing the global project data."
+  (interactive)
+  (find-file org-pm-project-data-file-path))
+
 (defun org-pm-show-project-definition-section ()
   "Mark all sections tagged PROJECT_DEFS.
   Additionally go to the first section tagged PROJECT_DEFS, if it exists."
@@ -226,7 +227,7 @@ Note that edits may cause conflicts when updating org-pm from git."
        (message "Showing location of first project definition section found."))
      (t (message "No project definitions were found in this file.")))))
 
-(defun org-pm-make-project-template (no-query)
+(defun org-pm-make-project-template (&optional project-name no-name-query no-query)
   "Create a project definition template and insert it into current file.
 Input project name, base directory and publishing directory from user.
 Skip input step if called with prefix argument.
@@ -239,16 +240,17 @@ Create the project as well as its static project and component project.
 Store all 3 in org-publish-project-alists.
 Save updated project, file and duplicate lists to disk."
   (interactive "P")
-  (let* ((project-name "org-pm-default")
-         (base-directory (file-truename "~/org-pm/"))
+  (let* ((base-directory (file-truename "~/org-pm/"))
          (publishing-directory
           (file-truename "~/Sites/org-pm/"))
          (def-node
            (car (org-map-entries '(cadr (org-element-at-point)) "PROJECT_DEFS")))
          (buffer (get-buffer-create "*def*"))
          plist template-string)
+    (unless project-name (setq project-name "org-pm-default"))
+    (unless no-name-query
+      (setq project-name (read-string "Enter project name: " project-name)))
     (unless no-query
-      (setq project-name (read-string "Enter project name: " project-name))
       (setq base-directory (query-make-folder base-directory))
       (setq publishing-directory (query-make-folder publishing-directory)))
     (save-excursion
@@ -271,8 +273,35 @@ Save updated project, file and duplicate lists to disk."
            (end-of-buffer)
            (insert "\n* COMMENT Project Definitions              :PROJECT_DEFS:\n")
            (org-paste-subtree 2 template-string)))
+    (org-id-get-create)
     (org-pm-check-add-project (org-pm-parse-project-def (cadr (org-element-at-point))))
-    ))
+    (org-pm-save-all-project-data)))
+
+(defun org-html-provide-relative-path (string backend info)
+  "Provide relative path for link."
+  (when (org-export-derived-backend-p backend 'html)
+    (replace-regexp-in-string
+     "{{.}}"
+     (org-make-relpath-string
+      (plist-get info :publishing-directory)
+      (plist-get info ':input-file))
+     string)))
+
+;;; Add relative path filter to export final output functions
+(add-to-list 'org-export-filter-final-output-functions
+             'org-html-provide-relative-path)
+
+(defun org-make-relpath-string (base-path file-path)
+  "create a relative path for reaching base-path from file-path ('./../..' etc)"
+  (let (
+        (path ".")
+        (depth (-
+                (length (split-string (file-name-directory file-path) "/"))
+                (length (split-string base-path "/")))))
+    (dotimes (number
+              (- depth 1)
+              path)
+      (setq path (concat path "/..")))))
 
 (defun org-pm-load-all-project-data ()
   "Load project alist, project file lists, duplicate project def lists
@@ -286,7 +315,7 @@ from previously saved date on disk."
 from previously saved date on disk."
   (interactive)
   (dump-vars-to-file
-   '(org-publish-project-alist org-pm-files org-pm-duplicate-project-defs)
+   '(org-publish-project-alist org-pm-files org-pm-project-def-duplicates)
    org-pm-project-data-file-path))
 
 (defun dump-vars-to-file (varlist filename)
@@ -305,18 +334,27 @@ from previously saved date on disk."
         (print (list 'setq var (list 'quote (symbol-value var)))
                buffer)))
 
+(defun org-pm-reset-project-list ()
+  "Set org-publish-project-alist to nil.  Save"
+  (interactive)
+  (cond ((y-or-n-p "Really erase all projects and save?")
+         (setq org-publish-project-alist)
+         (org-pm-save-all-project-data))))
+
 (defun org-pm-make-projects ()
   "Construct the projects for all project definitions found in current file.
 Project definitions are those nodes which are contained in nodes tagged as
 PROJECT_DEFS.
 Note about project definition node-IDs:
 Section IDs of project definitions are used only as links
-to point to the position in the file where a project definition is,.
+to point to the position in the file where a project definition is, located.
 They do nod identify a project.  A project is identified by its name.
 Therefore:
 The node-id of a project is set to <full-file-path>::#<section id>.
 When a duplicate section id is found in a definition, it is replaced by a new one,
 and the new id is stored in the project."
+  (interactive)
+  (unless org-publish-project-alist (org-pm-load-all-project-data))
   (let ((template (org-pm-make-default-project-plist))
         levels id ids projects)
     (org-map-entries
@@ -333,7 +371,8 @@ and the new id is stored in the project."
           (setq ids (cons id ids))
           (setq projects (cons (org-pm-parse-project-def entry template) projects))))
      "PROJECT_DEFS")
-    (mapcar 'org-pm-check-add-project projects)))
+    (mapcar 'org-pm-check-add-project projects)
+    (org-pm-save-all-project-data)))
 
 (defun org-pm-parse-project-def (proj-node &optional template)
   "Create a project definition list based on the contents of the
@@ -386,6 +425,7 @@ to define the project."
                     (plist-put pdef (intern (concat ":" prop-name)) prop-value))))))))
     (cons pname pdef)))
 
+(require 'dash)
 (defun org-pm-check-add-project (project)
   "Add the project definition contained in plist 'project' to org-publish-project-alist,
 replacing any previously existing definition there.  Before replacing, save any
@@ -393,13 +433,17 @@ previously existing project whose definition is in a different file component in
 the variable org-pm-project-def-duplicates:
 If a project with the same name already exists in org-publish-project-alist,
 and that project has a different ID (file path + section ID), then the previously
-existing project definition is added to the list in org-pm-project-def-duplicates."
-  (unless org-publish-project-alist (org-pm-load-project-lists))
+existing project definition is added to the list in org-pm-project-def-duplicates.
+Also create static and combined project components.
+Create alternate ids for the latter, by appending -static and -combined
+to the id of the main project."
+  (unless org-publish-project-alist (org-pm-load-all-project-data))
   (let* ((p-name (car project))
          (p-def (cdr project))
          (prev-proj (assoc p-name org-publish-project-alist))
          (prev-proj-id (plist-get (cdr prev-proj) :project-id))
-         (duplicates (assoc p-name org-pm-project-def-duplicates)))
+         (duplicates (assoc p-name org-pm-project-def-duplicates))
+         static-project static-project-name combined-project)
     (cond
      ((not prev-proj))
      ((equal prev-proj-id (plist-get p-def :project-id)))
@@ -408,7 +452,28 @@ existing project definition is added to the list in org-pm-project-def-duplicate
          (assoc-replace org-pm-project-def-duplicates p-name
                         (add-to-list 'duplicates prev-proj-id)))))
     (setq org-publish-project-alist
-          (assoc-replace org-publish-project-alist p-name p-def)))
+          (assoc-replace org-publish-project-alist p-name p-def))
+    (setq static-project
+          (-flatten
+           (-map
+            (lambda (pair)
+              (list (intern (replace-regexp-in-string "^:static-" ":"
+                                                      (symbol-name (car pair))))
+                    (cadr pair)))
+                     (-filter
+                      (lambda (pair) (string-match "^:static-"
+                                                   (symbol-name (car pair))))
+                      (-partition 2 p-def)))))
+    (setq static-project-name (concat "static-" p-name))
+    (setq org-publish-project-alist
+          (assoc-replace org-publish-project-alist
+                         static-project-name static-project))
+    (setq org-publish-project-alist
+          (assoc-replace org-publish-project-alist
+                         (concat "combined-" p-name)
+                         (list :components
+                               p-name static-project-name))))
+
   project)
 
 (defun org-pm-query-select-project (new-project old-project)
@@ -455,7 +520,7 @@ existing project definition is added to the list in org-pm-project-def-duplicate
     (setq project (org-pm-query-make-default-project project-name))
     (org-pm-add-project-to-file-header project-name)
     (org-pm-add-project-file project-name (buffer-file-name (current-buffer)))
-    (org-pm-save-projects-and-components)
+    (org-pm-save-all-project-data)
     (org-pm-make-project-template project)
     (message
      "Added project named: %s to file: %s\nBase directory is: %s\nPublishing directory is: %s"
@@ -463,25 +528,6 @@ existing project definition is added to the list in org-pm-project-def-duplicate
      (file-name-nondirectory (buffer-file-name (current-buffer)))
      (plist-get (cdr project) :base-directory)
      (plist-get (cdr project) :publishing-directory))))
-
-(defun org-pm-query-make-project-template ()
-  "Input project name, base directory and publishing directory from user.
-Then pass these as arguments to org-pm-make-project-template"
-  (unless (y-or-n-p (format "Create project '%s'? " project-name))
-    (error "Project creation cancelled."))
-  (let (plist)
-    (setq plist (org-pm-make-default-project-plist))
-    (setq plist
-          (plist-put
-           plist :base-directory
-           (query-make-folder (plist-get plist :base-directory)
-                              "Base directory:")))
-    (setq plist
-          (plist-put
-           plist :publishing-directory
-           (query-make-folder (plist-get plist :publishing-directory)
-                              "Publishing directory:")))
-    (cons project-name plist)))
 
 (defun query-make-folder (path &optional prompt-string)
   "If folder at path does not exist, then show dialog offering to user
@@ -588,42 +634,55 @@ Do this in a separate org-mode buffer, and provide links to both file and sectio
     ))
 
 (defun org-pm-list-project-defs ()
-  "List projects by name, giving links to file and node containing the project definition.
-Also list project definitions of same name that are found in more than one file or section.
-Do this in a separate org-mode buffer, and provide links to both file and section."
+  "Build list of projects with links to file and node containing the project definition,
+in a separate org-mode buffer, and provide links to both file and section.
+Also list duplicate project definitions,
+i.e. definitions of same name that are found in more than one file or section.
+Note: static and combined projects created by the system
+are not checked and added as duplicates by org-pm-check-add-project.
+But they are in org-publish-project-alist, which we use for this list.
+So we filter them out."
 
   (interactive)
 
   (if (equal 0 (length org-publish-project-alist))
       (error "There are no project definitions at all."))
 
-  (let ((buffer (get-buffer-create "*org-pm-project-definitions*")))
+  (let ((buffer (get-buffer-create "*org-pm-project-definitions*"))
+        node-id dir)
     (switch-to-buffer buffer)
     (org-mode)
     (delete-region (point-min) (point-max))
     (org-insert-heading)
     (insert "PROJECT DEFINITIONS")
-    (dolist (project org-publish-project-alist)
-      ;; (insert (format "\nDEBUG %s\n\n" project))
+    (dolist (project (-remove (lambda (proj)
+                                (or (string-match "^combined-" (car proj))
+                                    (string-match "^static-" (car proj))))
+                              org-publish-project-alist))
+      (setq node-id (plist-get (cdr project) :node-id))
       (insert "\n** "
               (car project)
               " (click [[elisp:(org-pm-search-link \""
               (plist-get (cdr project) :project-id)
-              "\")][*HERE*]] to edit)\n")
+              "\")][*HERE*]] to edit definition)\n")
+      (setq dir (plist-get (cdr project) :base-directory))
+      (insert "base dir: [[elisp:(dired\"" dir "\")][" dir "]]\n" )
+      (setq dir (plist-get (cdr project) :publishing-directory))
+      (insert "publishing dir: [[elisp:(dired\"" dir "\")][" dir "]]\n" )
       (insert "file: file:" (plist-get (cdr project) :node-filename) "\n")
-      (insert "node: id:" (plist-get (cdr project) :node-id) "\n")
+      (insert "node: id:" node-id "\n")
       (let ((duplicates (cdr (assoc (car project) org-pm-project-def-duplicates))))
         (if duplicates
             (dolist (def duplicates)
               (let ((path-and-id (split-string def "::#")))
-               (insert "\n*** duplicate: ")
-               (insert
-                " (click [[elisp:(org-pm-search-link \""
-                def
-                "\")][*HERE*]] to edit)"
-                )
-               (insert "\nfile: file:" (car path-and-id) "\n")
-               (insert "node: " "id:" (cadr path-and-id) "\n")))
+                (insert "\n*** duplicate: ")
+                (insert
+                 " (click [[elisp:(org-pm-search-link \""
+                 def
+                 "\")][*HERE*]] to edit)"
+                 )
+                (insert "\nfile: file:" (car path-and-id) "\n")
+                (insert "node: " "id:" (cadr path-and-id) "\n")))
           (insert "\nThere no duplicate definitions for this project!\n"))))))
 
 (defun org-pm-search-link (link)
@@ -634,8 +693,9 @@ Do this in a separate org-mode buffer, and provide links to both file and sectio
     (org-back-to-heading)
     (org-show-subtree)
     (org-mark-element)
+    (recenter-top-bottom 1)
     (message "
-Marked the entire section containing project definition.
+---> Marked the entire section containing project definition.
 Type C-space C-space to de-select region and deactivate mark.")))
 
 (defun pm/edit-duplicate-project-def ()

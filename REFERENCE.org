@@ -4,7 +4,7 @@
 
 Org-pm is a kind or pre-processor for org-publish.  It does 3 things:
 
-1. It creates project definitions from specifications written as sections of an org mode file.  In this way, an org mode file can define any number of projects.
+1. It creates project definitions from specifications written as sections of an org mode file.  An org mode file can define any number of projects.
 2. It copies files or parts of files to any number of projects, which can then be published in the usual way with org-publish.
 3. It saves the =org-publish-projects-alist= between sessions, along with the list of files containing parts that should be copied to projects, and with a list of the location of duplicate project definitions (definitions with the same name in more than one files or sections).
 ** Project definitions as Org-mode sections
