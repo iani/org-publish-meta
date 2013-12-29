@@ -1,0 +1,169 @@
+@import url(http://fonts.googleapis.com/css?family=Droid+Sans|Droid+Sans+Mono|Droid+Serif);
+
+/*
+  This file combines qin he's org.css definition with the styles needed for: 
+  - home and up links (org-div-home-and-up)
+  - table of contents (table-of-contents)
+*/
+
+/* PART 1: ORG-DIV-HOME-AND-UP, TABLE-OF-CONTENTS */
+
+@media all
+{
+    #org-div-home-and-up {
+	    position: fixed;
+	    right: 0;
+	    top: 0em;
+    }
+    
+    #org-navbar {
+        text-align: center;
+        margin-top: -1.7em;
+        margin-bottom: -0.07em;
+    }
+}
+
+    /* TOC inspired by http://jashkenas.github.com/coffee-script */
+#table-of-contents {
+	font-size: 10pt;
+	position: fixed;
+	right: 0em;
+	top: 4em;
+	background: white;
+	line-height: 12pt;
+	text-align: right;
+	box-shadow: 0 0 1em #777777;
+	-webkit-box-shadow: 0 0 1em #777777;
+	-moz-box-shadow: 0 0 1em #777777;
+	-webkit-border-bottom-left-radius: 5px;
+	-moz-border-radius-bottomleft: 5px;
+	-webkit-border-top-left-radius: 5px;
+	-moz-border-radius-topleft: 5px;
+	/* ensure doesn't flow off the screen when expanded */
+	max-height: 80%;
+	overflow: auto; 
+}
+
+
+#table-of-contents h2 {
+    position: relative;
+    top: -4px;
+	font-size: 11pt;
+	max-width: 9em;
+	border: 0em;
+	font-weight: normal;
+	padding-left: 0.7em;
+	padding-right: 0.7em;
+	padding-top: 0.1em;
+	padding-bottom: 0.0em;
+}
+
+#table-of-contents #text-table-of-contents {
+	display: none;
+	text-align: left; 
+}
+
+#table-of-contents:hover #text-table-of-contents {
+	display: block;
+	padding: 0.5em;
+	margin-top: -1.5em; }
+} /* END OF @media all */
+
+@media screen
+{
+    #table-of-contents {
+	float: right;
+	border: 1px solid #CCC;
+	max-width: 50%;
+^	overflow: auto;
+    }
+} /* END OF @media screen */
+
+/* PART 2: OVERALL LAYOUT */
+
+.title  { text-align: center; }
+.todo   { color: red; }
+.done   { color: green; }
+.tag    { background-color: #add8e6; font-weight:normal }
+.target { }
+.timestamp { color: #bebebe; }
+.timestamp-kwd { color: #5f9ea0; }
+.right  {margin-left:auto; margin-right:0px;  text-align:right;}
+.left   {margin-left:0px;  margin-right:auto; text-align:left;}
+.center {margin-left:auto; margin-right:auto; text-align:center;}
+p.verse { margin-left: 5% }
+pre {
+    border: 1pt solid #AEBDCC;
+    background-color: #F3F5F7;
+    padding: 5pt;
+    font-family: courier, monospace;
+    font-size: 90%;
+    overflow:auto;
+}
+table { border-collapse: collapse; }
+td, th { vertical-align: top;  }
+th.right  { text-align:center;  }
+th.left   { text-align:center;   }
+th.center { text-align:center; }
+td.right  { text-align:right;  }
+td.left   { text-align:left;   }
+td.center { text-align:center; }
+dt { font-weight: bold; }
+div.figure { padding: 0.5em; }
+div.figure p { text-align: center; }
+div.inlinetask {
+    padding:10px;
+    border:2px solid gray;
+    margin:10px;
+    background: #ffffcc;
+}
+textarea { overflow-x: auto; }
+.linenr { font-size:smaller }
+.code-highlighted {background-color:#ffff00;}
+.org-info-js_info-navigation { border-style:none; }
+#org-info-js_console-label { font-size:10px; font-weight:bold;
+                             white-space:nowrap; }
+.org-info-js_search-highlight {background-color:#ffff00; color:#000000;
+                                 font-weight:bold; }
+
+p.postamble { text-align: center;
+	      font-size: 12px;
+	    }
+body {
+    padding-top: 40px;
+    padding-bottom: 40px;	
+    padding-left: 170px;
+    padding-right:170px;
+    text-align:left;
+}
+
+blockquote p {
+	font-size: inherit;
+	font-style: italic;
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
+pre.src,
+pre.example {
+	background-color: #080808;
+	color: #f4f4f4;
+	font-size: 13px;
+}
+
+pre.example {
+	border-top: solid 5px #9c0001;
+	border-bottom: solid 5px #9c0001;
+}
+
+#footnotes {
+	font-style: italic;
+}
+
+#footnotes h2.footnotes {
+	font-size: 18px;
+}
+
+disqus_thread {
+	margin-top: 28px;
+}

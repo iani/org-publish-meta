@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<title>Org-publish-meta (org-pm)</title>
+<!-- 2013-12-29 Sun 22:47 -->
+<meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta  name="generator" content="Org-mode" />
+<meta  name="author" content="Ioannis Zannos (zannos [at] gmail [dot] com)" />
+<link href="./static/bootstrap.min.css" rel="stylesheet" media="screen">
+<link href="./static/worg.min.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+<div id="org-div-home-and-up">
+ <a accesskey="h" href="./"> UP </a>
+ |
+ <a accesskey="H" href="./"> HOME </a>
+</div><div id="content">
+<h1 class="title">Org-publish-meta (org-pm)</h1>
+<div id="table-of-contents">
+<h2>Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">What it is</a></li>
+<li><a href="#sec-2">What it does</a></li>
+<li><a href="#sec-3">How it works</a></li>
+<li><a href="#sec-4">Features</a></li>
+<li><a href="#sec-5">Automation</a></li>
+<li><a href="#sec-6">Getting started</a></li>
+</ul>
+</div>
+</div>
+<p>
+By: Ioannis Zannos (zannos [at] gmail [dot] com)
+</p>
+
+<p>
+Date: December 2013
+</p>
+
+<p>
+<b>Simplify and extend org-publish in Emacs Org-mode.</b>
+</p>
+
+<pre class="example">
+THIS PROJECT IS ONLY AN EARLY DRAFT.
+The code and doc may give an idea of where the project is headed.
+</pre>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">What it is</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+Org-pm (short for org-publish-meta) is an emacs-lisp package that simplifies and extends the task of defining org-mode publication projects, and permits the copying of files or sections of files to multiple projects.
+</p>
+
+<p>
+Org-mode is an Emacs library "for keeping notes, maintaining TODO lists, planning projects, and authoring documents with a fast and effective plain-text system" (<a href="http://orgmode.org/">http://orgmode.org/</a>).
+</p>
+
+<ul class="org-ul">
+<li>For Org-mode see: <a href="http://orgmode.org/">http://orgmode.org/</a>
+</li>
+<li>For Org-mode project publishing mechanism see: <a href="http://orgmode.org/manual/Publishing.html#Publishing">http://orgmode.org/manual/Publishing.html#Publishing</a>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">What it does</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+Org-pm simplifies the definition of org-mode publishing projects, by coding project publishing options as org-mode sections instead of as emacs-lisp code.  It thus eliminates the need to write emacs-lisp code as far as possible.  Furthermore, project definitions as well as css and scripts can be included in the same org-mode files that hold the text contents to be published.  Org-pm makes it possible to publish a single org-mode file or any node (section) of a file to any number of different projects.  It also saves the contents of <code>org-publish-projects-alist</code> between sessions.
+</p>
+</div>
+</div>
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">How it works</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+Org-pm does not require for a file to be placed inside the folder of an Org-mode (publishing) project.  Instead, one specifies in a file or a section (node) of a file, the projects to which it belongs through properties or tags.
+</p>
+
+<p>
+Before publishing a project, all files or parts of files that are registered to this project are copied to the base directory of that project.  One may specify for a file or section to be copied to a subfolder of the project.
+</p>
+
+<p>
+Project definitions (property-lists) are written as nodes (sections) in any org-mode file, using headings as property names and contents as values of the properties.  Special org-mode properties and tags are used to indicate those sections which contain project definitions and also those files and nodes which belong to projects.
+</p>
+
+<p>
+Org-pm scans an org-mode file and adds to <code>org-publish-project-alist</code> any projects that this file may contain.  It also creates a list of the projects to which the file or any of its sections should be copied into variable <code>org-pm-files</code>.  Org-pm automatically saves <code>org-publish-project-alist</code> and <code>org-pm-files</code> to a file for use in further Emacs-sessions.
+</p>
+
+<p>
+Both the scanning of files and the copying of their contents can be made to occur automatically when saving any org-mode file and when publishing a project.  See "Automation" below.
+</p>
+</div>
+</div>
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4">Features</h2>
+<div class="outline-text-2" id="text-4">
+<ul class="org-ul">
+<li>Use keyboard shortcuts to add or remove a file or section to/from any project.
+</li>
+<li>Generate default project automatically and provide project configuration template for further editing.
+</li>
+<li>Generate project definitions from org-mode style contents of sections.
+</li>
+<li>KISS (Keep-It-Simple-Short), very simple way to define projects and to indicate target projects using section headings, tags and properties.
+</li>
+<li>Include CSS, JavaScript and other script files in the org-mode file as sections. Contents of sections are copied as-they-are.  No need to use extra markup or escape characters.
+</li>
+<li>Copy any file or section of file to any one or more projects.
+</li>
+<li>Always automatically save configurations for use in further sessions (no need to manually edit project definitions in emacs-lisp).
+</li>
+<li>Create org-mode buffer containing list of projects, with links for opening the files that contain those definitions.
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5">Automation</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+If the auto-parse option is enabled, then all you need to do to update the configuration of any file that you want to include in org-pm is save it.  The file is then ready for publication according to any specifications included in the file's contents.
+</p>
+
+<p>
+If the auto-copy option is enabled, then org-pm will automatically copy to the source folder of a project any files or sections of files what have been tagged to belong to that project before publishing it.
+</p>
+
+<p>
+Consequently, if both auto-parse and auto-copy are enabled, one can publish files or sections marked by in any file simply by:
+</p>
+
+<ol class="org-ol">
+<li>saving the file. (<code>save-buffer</code> or C-x C-s).
+</li>
+<li>publishing the desired project (<code>org-publish</code> or <code>org-pm-publish</code>)
+</li>
+</ol>
+
+<p>
+Note: Since a file containing org-pm tags can be anywhere outside an org-mode project folder, one <b>cannot</b> use <code>org-publish-current-project</code> to automatically provide the target project based on the file.  Therefore, use <code>org-pm-publish</code> instead to select the desired project to publish from a list of projects that are targeted by the current file.
+</p>
+
+<p>
+See "Getting started" below for enabling auto-parse and auto-copy.
+</p>
+</div>
+</div>
+<div id="outline-container-sec-6" class="outline-2">
+<h2 id="sec-6">Getting started</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+Run the following to install org-pm:
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-elisp"><span style="color: #465a61; font-style: italic;">;; </span><span style="color: #465a61; font-style: italic;">load org-pm package:</span>
+(<span style="color: #728a05;">require</span> '<span style="color: #259185;">org-pm</span>)
+</pre>
+</div>
+
+<p>
+See <a href="TUTORIAL.html">TUTORIAL</a> and <a href="REFERENCE.html">REFERENCE</a> for further help.
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: Ioannis Zannos (zannos [at] gmail [dot] com)</p>
+<p class="date">Created: 2013-12-29 Sun 22:47</p>
+<p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 24.3.1 (<a href="http://orgmode.org">Org</a> mode 8.2.4)</p>
+<p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>

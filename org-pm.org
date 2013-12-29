@@ -1,5 +1,4 @@
 #+TODO: TODO UNDERWAY | DONE CANCELLED
-#+PROJECT: org_pm_default@folder@name
 #+TITLE: Org-publish-meta: Easy projects for Org-mode
 * UNDERWAY Variables
 :PROPERTIES:
@@ -32,18 +31,10 @@ CLOSED: [2013-12-18 Wed 15:23]
 #+RESULTS:
 : org-pm-project-data-file-path
 
-** DONE org-pm-files                                               :_org_pm_default_:
+** DONE org-pm-files
 :PROPERTIES:
 :ID:       A8ABC239-E74B-4654-9850-53C8521E50BA
 :END:
-
-#+BEGIN_SRC elisp
-  (org-back-to-heading)
-  (org-element-at-point)
-#+END_SRC
-
-#+RESULTS:
-| headline | (:raw-value org-pm-files :begin 1050 :end 2474 :pre-blank 0 :hiddenp nil :contents-begin 1136 :contents-end 2473 :level 2 :priority nil :tags (_org_pm_default_) :todo-keyword DONE :todo-type done :post-blank 0 :footnote-section-p nil :archivedp nil :commentedp nil :quotedp nil :ID A8ABC239-E74B-4654-9850-53C8521E50BA :CATEGORY org-pm :title org-pm-files) |
 
 #+BEGIN_SRC emacs-lisp
   (defvar org-pm-files nil
@@ -57,8 +48,7 @@ CLOSED: [2013-12-18 Wed 15:23]
   Function org-pm-copy-to-project searches through all lists in org-pm-files,
   collects the list of files that belong to a project,
   parses each file to find which components should be copied,
-  and copies the found components to the project.
-  ")
+  and copies the found components to the project.")
 #+END_SRC
 
 #+RESULTS:
@@ -909,11 +899,11 @@ The accumulated delay of copying project components from all files when publishi
 
 #+BEGIN_SRC emacs-lisp
   ;; Will replace org-pm-register-project-components.
-  (defvar *missing-projects* nil
+  (defvar *org-pm-missing-projects* nil
   "Names of projects referenced in a file, whose definition is not found.
   For reporting.")
 
-  (defvar *updated-projects* nil
+  (defvar *org-pm-updated-projects* nil
     "Names of projects to which components in a file were copied.
   For reporting")
 
@@ -934,7 +924,7 @@ The accumulated delay of copying project components from all files when publishi
   path of the file as key. Function =org-pm-copy-to-project= scans this list to find if
   the file contains any components that should be copied to the project, and copies them.
 
-  - components: List of file and/or ids of any sections that are copied to projects.
+  components: List of file and/or ids of any sections that are copied to projects.
                 Each element is of the form:
                 (component (project folder file) (project folder file)...)
   Components is added to org-pm-files and auto-saved."
@@ -942,7 +932,7 @@ The accumulated delay of copying project components from all files when publishi
     (interactive)
     (let* ((fullpath (buffer-file-name (current-buffer)))
           (filename (file-name-nondirectory fullpath))
-          components file-components)
+          components file-components (origin-buffer (current-buffer)))
       (setq file-components
             (-map (lambda (component) (org-pm-parse-component component filename))
                   (org-get-header-property "PROJECT" t)))
@@ -961,23 +951,35 @@ The accumulated delay of copying project components from all files when publishi
                      (lambda (component) (org-pm-parse-component component name))
                      pspecs))
                    components)))))
-  "    (if file-components
-          (setq components (cons (cons \"FILE\" file-components) components)))"
+      (if file-components
+          (setq components (cons (cons "FILE" file-components) components)))
       (setq org-pm-files (assoc-replace org-pm-files fullpath components))
       ;; first save, then do the copying:
       (unless do-not-save-now (org-pm-save-all-project-data))
-      (setq *missing-projects* nil)
-      (setq *updated-projects* nil)
+      (setq *org-pm-missing-projects* nil)
+      (setq *org-pm-updated-projects* nil)
       (dolist (comp components)
-        (if (equal "FILE" (car comp))
-            (dolist (proj (cdr comp)) (org-pm-copy-file proj))
-          (dolist (proj (cdr comp)) (org-pm-copy-section proj))))
+        (let ((pos (car comp))
+              (target-buffer (get-buffer-create "*org-pm-copy-buf*")))
+
+          (cond ((equal "FILE" pos)
+                 (set-buffer target-buffer)
+                 (insert-buffer origin-buffer)
+                 (dolist (proj (cdr comp)) (org-pm-save-buffer proj target-buffer)))
+               (t
+                (set-buffer origin-buffer)
+                (goto-char pos)
+                (org-copy-subtree)
+                (set-buffer target-buffer)
+                (org-paste-subtree 1)
+                (dolist (proj (cdr comp)) (org-pm-save-buffer proj target-buffer))))
+         (kill-buffer target-buffer)))
       (if org-pm-report-after-copying-p
-          (if *missing-projects*
+          (if *org-pm-missing-projects*
            (grizzl-completing-read "These projects could not be found"
-                                   (grizzl-make-index *missing-projects*))
+                                   (grizzl-make-index *org-pm-missing-projects*))
          (grizzl-completing-read "Copied components to these projects"
-                                 (grizzl-make-index *updated-projects*))))
+                                 (grizzl-make-index *org-pm-updated-projects*))))
       (message "Result: %s" components)))
 
   (defun org-pm-parse-component (component filename)
@@ -996,37 +998,47 @@ The accumulated delay of copying project components from all files when publishi
       (setq parts (-replace-at 2 filename parts))
       parts))
 
+
+  (defun org-pm-save-buffer (specs buffer)
+    (let ((target-path (org-pm-make-target specs)))
+      (make-directory (file-name-directory target-path) t)
+      (write-region nil nil target-path)
+      ))
+
+  ;; superseded by org-pm-save-buffer:
   (defun org-pm-copy-file (specs &optional path-of-file-to-copy-from)
     "Dopy the contents of file specified in path-of-filet-copy-from
   to the target location given by specs.
   If path-of-file-to-copy-from is nil, then copy the contents of the current
   buffer.
   NOTE: path-of-file-to-copy-from : NOT YET IMPLEMENTED."
-
     (let ((origin-buffer (current-buffer))
           (target-buffer (get-buffer-create "*org-pm-copy-buf*"))
-          (taget-path (org-pm-find-target specs)))
+          (target-path (org-pm-make-target specs)))
       (set-buffer target-buffer)
       (insert-buffer origin-buffer)
       ;; Shall we switch-on COMMENT for all exported sections here?
       ;; Do READMORE conversion?
-      (make-directory (file-name-directory path) t)
-      (write-region nil nil path)
+      ;; (message "org-pm-copy-file copying to this path:\n %s" target-path)
+      (make-directory (file-name-directory target-path) t)
+      (write-region nil nil target-path)
       (kill-buffer target-buffer)))
 
+  ;; superseded by org-pm-save-buffer:
   (defun org-pm-copy-section (specs)
-    (org-pm-find-target specs))
+    (org-pm-make-target specs))
 
-  (defun org-pm-find-target (specs)
+  (defun org-pm-make-target (specs)
     (let* ((project-name (car specs))
+           (folder (cadr specs))
+           (slash (if (string-match "/$" folder) "" "/"))
            (project (assoc project-name org-publish-project-alist)))
       (cond (project
-             (add-to-list '*updated-projects* project-name)
+             (add-to-list '*org-pm-updated-projects* project-name)
              (concat (plist-get (cdr project) :base-directory)
-                     (cadr specs)
-                     (caddr specs)))
+                     folder slash (caddr specs)))
             (t
-             (add-to-list '*missing-projects* project-name)
+             (add-to-list '*org-pm-missing-projects* project-name)
              nil))))
 
   ;; Fix grizzl-completing-read to display custom prompt
@@ -1222,6 +1234,41 @@ Note: Naming this function org-pm-edit-duplicate-project-def disabled the auto-d
 
 Note: I use the Hyper-m  (= Mac fn key m) as prefix, because it is not likely to be occupied by other packages.  Users can easily remap.
 
+#+BEGIN_SRC emacs-lisp
+  (add-hook 'org-mode-hook
+    (lambda ()
+      (define-key org-mode-map (kbd "H-m a") 'org-pm-toggle-auto)
+      (define-key org-mode-map (kbd "H-m s") 'org-pm-save-and-update)
+      (define-key org-mode-map (kbd "H-m v") 'org-pm-toggle-verbose)
+      (define-key org-mode-map (kbd "H-m l") 'org-pm-list-project-defs)
+      (define-key org-mode-map (kbd "H-m m") 'org-pm-make-projects)
+      (define-key org-mode-map (kbd "H-m c") 'org-pm-copy-components-to-projects)
+      (define-key org-mode-map (kbd "H-m t") 'org-pm-make-project-template)))
+
+  (defun org-pm-toggle-auto ()
+    (interactive)
+    (setq org-pm-auto-parse (not org-pm-auto-parse))
+    (if org-pm-auto-parse ;; stay in sync with auto parse!
+        (setq org-pm-auto-copy 'on-save)
+      (setq org-pm-auto-copy nil))
+    (if org-pm-auto-parse
+        (message "Org-pm auto-save and copy activated.")
+      (message "Org-pm auto-save and copy deactivated.")))
+
+  (defun org-pm-save-and-update ()
+    (interactive)
+    (org-edit-src-save)
+    (org-pm-make-projects)
+    (org-pm-copy-components-to-projects))
+
+  (defun org-pm-toggle-verbose ()
+    (interactive)
+    (setq org-pm-report-after-copying-p (not org-pm-report-after-copying-p))
+    (if org-pm-report-after-copying-p
+        (message "Reporting after copying activated")
+      (message "Reporting after copying deactivated")))
+
+#+END_SRC
 
 
 * Cleaning up duplicate links and dead projects+files
@@ -1240,14 +1287,14 @@ Dealing with the above:
 
 
 * COMMENT Project Definitions              :PROJECT_DEFS:
-** org_pm_default
+** org_pm
 :PROPERTIES:
 :ID:       5F6A7EFA-7491-49CB-9985-26D53BB17F34
 :END:
-*** base-directory "/Users/iani2/org-pm/"
+*** base-directory "/Users/iani2/Documents/Dev/Emacs/org-publish-meta/"
 *** base-extension "org"
 *** recursive t
-*** publishing-directory "/Users/iani2/Sites/org-pm/"
+*** publishing-directory "/Users/iani2/Documents/Dev/Emacs/org-publish-meta/"
 *** publishing-function 'org-html-publish-to-html
 *** headline-levels 4
 *** auto-preamble t
@@ -1273,8 +1320,8 @@ Dealing with the above:
 <link href="{{.}}/static/worg.min.css" rel="stylesheet" type="text/css">
 *** html-head-include-default-style nil
 *** html-head-include-scripts nil
-*** static_base-directory "/Users/iani2/org-pm/static/"
-*** static_publishing-directory "/Users/iani2/Sites/org-pm/static/"
+*** static_base-directory "/Users/iani2/Documents/Dev/Emacs/org-publish-meta/static/"
+*** static_publishing-directory "/Users/iani2/Documents/Dev/Emacs/org-publish-meta/static/"
 *** static_base-extension "css\\|js\\|less\\|sass\\|php\\|rb\\|py\\|pdf\\|jpg\\|gif\\|png"
 *** static_publishing-function 'org-publish-attachment
 *** static_recursive t
