@@ -7,10 +7,7 @@ Date: December 2013
 
 *Simplify and extend org-publish in Emacs Org-mode.*
 
-#+BEGIN_EXAMPLE
-THIS PROJECT IS ONLY AN EARLY DRAFT.
-The code and doc may give an idea of where the project is headed.
-#+END_EXAMPLE
+The project is still in alpha.
 
 * What it is
 
