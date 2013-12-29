@@ -101,6 +101,10 @@ If the auto-copy option is enabled (see Tutorial section 1: Installation and bas
 :DATE:     <2013-12-18 Wed 10:43>
 :END:
 
+Note: Do not use hyphens (=-=) in project names, because org-mode cannot recognize tags that contain hyphens.
+
+http://stackoverflow.com/questions/15511892/any-way-to-extend-org-mode-tags-to-include-characters-like
+
 ** Adding the containing file to a project definition
 :PROPERTIES:
 :DATE:     <2013-12-18 Wed 10:43>

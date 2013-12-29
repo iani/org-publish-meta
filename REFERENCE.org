@@ -30,6 +30,9 @@ For example:
 ** This section contains project definitions                  :PROJECT_DEFS:
 
 *** project1
+:PROPERTIES:
+:ID:       5F4BC8DE-1750-47D3-AB0E-40411860EA69
+:END:
 
 **** base-directory "~/Site-Source/project1/"
 **** publishing-directory "~/Sites/project1/"
@@ -55,8 +58,13 @@ Example: The following five strings specify five different projects and location
 - =project4@@index= :: The root directory of =project4=, using =index.org= as file name.
 - =project5@static@style#css= :: The subdirectory =static/= of =project5=, using =style.css= as file name.
 
+** NOTE: Avoid hyphens (=-=) in project names
+
+Org-mode cannot use hyhpens (=-=) in tags.  If you create a project whose name contains a hyphen, you will not be able to specify that project as a target using a tag to a heading.  Therefore, project names should not contain hyphens.
+
 ** Copying an entire file to one or more projects
-To specify that the whole file should be copied to a project, one adds the project specification string as value of property =PROJECT=.  More than one project can be specified in the same file in this way. For example:
+
+To specify that the whole file should be copied to a project, add the project specification string as value of property =PROJECT=.  More than one project can be specified in the same file in this way. For example:
 
 #+BEGIN_EXAMPLE
 ,#+PROJECT: project1
