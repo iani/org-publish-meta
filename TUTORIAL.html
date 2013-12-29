@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<title>TUTORIAL</title>
+<!-- 2013-12-30 Mon 00:04 -->
+<meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta  name="generator" content="Org-mode" />
+<meta  name="author" content="I Z" />
+<link href="{{.}}/static/bootstrap.min.css" rel="stylesheet" media="screen">
+<link href="{{.}}/static/worg.min.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+<div id="org-div-home-and-up">
+ <a accesskey="h" href="{{.}}/"> UP </a>
+ |
+ <a accesskey="H" href="{{.}}/"> HOME </a>
+</div><div id="content">
+<h1 class="title">TUTORIAL</h1>
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">TUTORIAL</a>
+<ul>
+<li><a href="#sec-1-1">Installation and basic configuration</a></li>
+<li><a href="#sec-1-2">First steps: Adding and removing files, the default project</a>
+<ul>
+<li><a href="#sec-1-2-1">Add a file to a project</a></li>
+<li><a href="#sec-1-2-2">Remove a file from a project</a></li>
+<li><a href="#sec-1-2-3">The default project</a></li>
+<li><a href="#sec-1-2-4">CONSIDER_IMPLEMENTING_THIS_FEATURE Auto-generated default project definition template</a></li>
+</ul>
+</li>
+<li><a href="#sec-1-3">Publishing a project</a>
+<ul>
+<li><a href="#sec-1-3-1">Automatic parsing and copying with standard emacs/org-mode saving and publishing commands</a></li>
+<li><a href="#sec-1-3-2">Explicit execution of parsing and copying files through commands</a></li>
+</ul>
+</li>
+<li><a href="#sec-1-4">Writing a new project definition</a></li>
+<li><a href="#sec-1-5">Adding the containing file to a project definition</a></li>
+<li><a href="#sec-1-6">Adding a node of a file to a project</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">TUTORIAL</h2>
+<div class="outline-text-2" id="text-1">
+</div>
+
+<div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1">Installation and basic configuration</h3>
+<div class="outline-text-3" id="text-1-1">
+
+<p>
+Run the following to install org-pm and to activate auto-parsing and auto-copying:
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-elisp">(<span style="color: #728a05;">require</span> '<span style="color: #259185;">org-pm</span>)
+<span style="color: #465a61; font-style: italic;">;; </span><span style="color: #465a61; font-style: italic;">Auto-parse project configs after saving a buffer:</span>
+(setq org-pm-auto-parse t)
+<span style="color: #465a61; font-style: italic;">;; </span><span style="color: #465a61; font-style: italic;">Auto-copy contents of project components after saving a buffer:</span>
+(setq org-pm-auto-copy 'on-save)
+</pre>
+</div>
+
+<p>
+The auto-parse and auto-copy features are optional.  The default settings are:
+</p>
+
+<p>
+<code>org-pm-auto-parse: t</code>
+<code>org-pm-auto-copy: 'on-save</code>
+</p>
+
+<p>
+, and are deactivated by default.  You can also deactivate auto-copy and auto-parse for individual files by setting the values of respective properties in those files to nil.  See documentation for details.  It is recommended to try out org-pm with the auto-features activated at first, because it greatly simplifies its use.
+</p>
+</div>
+</div>
+<div id="outline-container-sec-1-2" class="outline-3">
+<h3 id="sec-1-2">First steps: Adding and removing files, the default project</h3>
+<div class="outline-text-3" id="text-1-2">
+</div><div id="outline-container-sec-1-2-1" class="outline-4">
+<h4 id="sec-1-2-1">Add a file to a project</h4>
+<div class="outline-text-4" id="text-1-2-1">
+
+<p>
+Command: org-pm-add-file-to-project
+Keyboard shortcut: C-c A.
+</p>
+
+<p>
+The command org-pm-add-file-to-project (C-c A) lets the user select a project from a list of existing projects displayed in the menu buffer, and adds the file of the current buffer to the selected project.  If there is no project defined, the command offers to create a default project (see below).
+</p>
+
+<p>
+To add a file to a project, org-pm-add-file-to-project adds the name of the project in property PROJECT by adding a line like this at the beginning of the org-mode file:
+</p>
+
+<pre class="example">
+#+PROJECT: projectname
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-1-2-2" class="outline-4">
+<h4 id="sec-1-2-2">Remove a file from a project</h4>
+<div class="outline-text-4" id="text-1-2-2">
+
+<p>
+Command: org-pm-remove-file-from-project
+Keyboard shortcut: C-c R.
+</p>
+
+<p>
+The command org-pm-remove-file-from-project (C-c R) lets the user select a project from a list of projects to which this project has been added, displayed in the menu buffer, and removes the file of the current buffer from the selected project.  It also removes the corresponding property or tag from the current buffer.
+</p>
+</div>
+</div>
+<div id="outline-container-sec-1-2-3" class="outline-4">
+<h4 id="sec-1-2-3">The default project</h4>
+<div class="outline-text-4" id="text-1-2-3">
+
+<p>
+If no project is yet defined, then org-pm offers to create a default project, like this:
+</p>
+
+<ul class="org-ul">
+<li>The name of the default project is "org-pm-default".
+</li>
+<li>The folder from which the default project reads the org files, and where org-pm will be copying files to, is ~/pm-org
+</li>
+<li>The folder to which the the default project will be publishing the converted (html and other) files is ~/pm-html
+</li>
+</ul>
+
+<p>
+If the folders for the default project do not exist already, then org-pm creates them.
+</p>
+
+<p>
+You can customize the name and folders of the default project by setting the corresponding variables, like this:
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-elisp">(setq org-pm-default-project-name <span style="color: #259185;">"my-site"</span>)
+(setq org-pm-default-project-org-folder <span style="color: #259185;">"~/Documents/org"</span>)
+(setq org-pm-default-project-html-folder <span style="color: #259185;">"~/Sites"</span>)
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-1-2-4" class="outline-4">
+<h4 id="sec-1-2-4">CONSIDER_IMPLEMENTING_THIS_FEATURE Auto-generated default project definition template</h4>
+<div class="outline-text-4" id="text-1-2-4">
+
+<p>
+When org-pm creates the default project for the first time, it places a file named org-pm-project-template.org in the org-folder of the project which contains the template definition of the project in org-pm manner.  This file can be used as example for defining own projects.  The project definition also adds the org-pm-project-template.org file to the exclude list of the default project.  So the template file is not published in the project by Org.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-1-3" class="outline-3">
+<h3 id="sec-1-3">Publishing a project</h3>
+<div class="outline-text-3" id="text-1-3">
+</div>
+
+<div id="outline-container-sec-1-3-1" class="outline-4">
+<h4 id="sec-1-3-1">Automatic parsing and copying with standard emacs/org-mode saving and publishing commands</h4>
+<div class="outline-text-4" id="text-1-3-1">
+<p>
+If the
+</p>
+<ul class="org-ul">
+<li>Save any buffers th
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-1-3-2" class="outline-4">
+<h4 id="sec-1-3-2">Explicit execution of parsing and copying files through commands</h4>
+<div class="outline-text-4" id="text-1-3-2">
+<p>
+If the auto-parse option is enabled (see Tutorial section 1: Installation and basic configuration), then all you need to do to update the configuration of any file that you want to include in org-pm is save it.  The file is then ready for publication according to any specifications included in the file contents.
+</p>
+
+<p>
+If the auto-parse option is not enabled, then call command org-pm-parse-file to update any project definitions contained in the file and also register any parts of the file (nodes, or the file itself) which are marked to be copied to any projects.
+</p>
+
+<p>
+If the auto-copy option is enabled (see Tutorial section 1: Installation and basic configuration), then org-pm
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-1-4" class="outline-3">
+<h3 id="sec-1-4">Writing a new project definition</h3>
+<div class="outline-text-3" id="text-1-4">
+
+<p>
+Note: Do not use hyphens (<code>-</code>) in project names, because org-mode cannot recognize tags that contain hyphens.
+</p>
+
+<p>
+<a href="http://stackoverflow.com/questions/15511892/any-way-to-extend-org-mode-tags-to-include-characters-like">http://stackoverflow.com/questions/15511892/any-way-to-extend-org-mode-tags-to-include-characters-like</a>
+</p>
+</div>
+</div>
+<div id="outline-container-sec-1-5" class="outline-3">
+<h3 id="sec-1-5">Adding the containing file to a project definition</h3>
+<div class="outline-text-3" id="text-1-5">
+</div>
+</div>
+<div id="outline-container-sec-1-6" class="outline-3">
+<h3 id="sec-1-6">Adding a node of a file to a project</h3>
+<div class="outline-text-3" id="text-1-6">
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: I Z</p>
+<p class="date">Created: 2013-12-30 Mon 00:04</p>
+<p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 24.3.1 (<a href="http://orgmode.org">Org</a> mode 8.2.4)</p>
+<p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>
