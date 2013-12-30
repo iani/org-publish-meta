@@ -39,11 +39,11 @@ See functions:
 - pm/edit-duplicate-project-def"
 )
 
-(defvar org-pm-auto-parse t
+(defvar org-pm-auto-parse nil
   "If not nil, automatically parse a org-mode buffer
  for org-pm data before saving it.")
 
-(defvar org-pm-auto-copy 'on-save
+(defvar org-pm-auto-copy nil ;; 'on-save
 "If not nil, automatically copy file components to a project to the
 project's source folder before publishing.")
 
@@ -63,19 +63,6 @@ org-pm-make-project-template uses it to make project templates.")
 
 (defvar org-pm-default-project-html-folder "~/pm-html"
   "Path of folder for html (published website) files of default project.")
-
-(defvar org-pm-default-project-plist
-  '(
-    :base-extension "org"
-    :recursive t
-    :publishing-function org-publish-org-to-html
-    :headline-levels 5
-    :auto-preamble t
-  )
-"The defalt properties for publishing a project with html.
-Used to provide initial contents when creating a project plist in
-org-pm-make-default-project-plist. "
-)
 
 (defun org-get-header-property (property &optional all)
   "Get property from buffer variable.  Returns only fist match except if ALL is defined.
@@ -187,14 +174,6 @@ export them with the main file."
   (setq alist (assoc-remove-key alist key))
   (setq alist (cons (cons key newlist) alist)))
 
-(defun org-pm-make-default-project-plist ()
-  "Construct default plist for publishing a project in html."
-  (let ((plist (copy-sequence org-pm-default-project-plist)))
-    (setq plist (plist-put plist :base-directory
-                           (file-truename org-pm-default-project-org-folder)))
-    (setq plist (plist-put plist :publishing-directory
-                           (file-truename org-pm-default-project-html-folder)))))
-
 (defun org-pm-add-project-file (project-name file)
   "In list org-pm-files, add the project-name to the list
 of projects that file bel ongs. "
@@ -299,13 +278,12 @@ Save updated project, file and duplicate lists to disk."
     (replace-regexp-in-string
      "{{.}}"
      (org-make-relpath-string
-      ;; FIXME: These parameters are not correct
-      ;; Which paths to use???
-      (plist-get info :publishing-directory)
+      (plist-get info :base-directory)
+      ;; distance of input file from base-directory = relative path!
       (plist-get info ':input-file))
      string)))
 
-;;; Add relative path filter to export final output functions
+  ;;; Add relative path filter to export final output functions
 (add-to-list 'org-export-filter-final-output-functions
              'org-html-provide-relative-path)
 
@@ -740,6 +718,7 @@ NOTE: path-of-file-to-copy-from : NOT YET IMPLEMENTED."
            nil))))
 
 ;; Fix grizzl-completing-read to display custom prompt
+(require 'grizzl)
 (defun grizzl-completing-read (prompt index)
   "Performs a completing-read in the minibuffer using INDEX to fuzzy search.
 Each key pressed in the minibuffer filters down the list of matches."

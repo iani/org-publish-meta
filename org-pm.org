@@ -116,59 +116,6 @@ CLOSED: [2013-12-18 Wed 15:23]
 #+RESULTS:
 : org-pm-project-template-file-name
 
-** DONE org-pm-default-project-name
-CLOSED: [2013-12-18 Wed 15:28]
-:PROPERTIES:
-:ID:       3C9E0229-923D-4527-B2FE-903792AA5452
-:END:
-
-#+BEGIN_SRC emacs-lisp
-  (defvar org-pm-default-project-name "org_pm_default"
-  "Name of default, auto-generated project.")
-#+END_SRC
-
-** DONE org-pm-default-project-org-folder
-CLOSED: [2013-12-18 Wed 15:28]
-:PROPERTIES:
-:ID:       3475B9CF-FDDF-4760-8CF1-FE22DC2AA589
-:END:
-
-#+BEGIN_SRC emacs-lisp
-  (defvar org-pm-default-project-org-folder "~/pm-org"
-  "Path of folder for source files of default project.")
-#+END_SRC
-
-** DONE org-pm-default-project-html-folder
-CLOSED: [2013-12-18 Wed 15:28]
-:PROPERTIES:
-:ID:       92AFE11D-6A08-4D77-A2E9-BF0A196271F8
-:END:
-
-#+BEGIN_SRC emacs-lisp
-  (defvar org-pm-default-project-html-folder "~/pm-html"
-    "Path of folder for html (published website) files of default project.")
-#+END_SRC
-
-** DONE org-pm-default-project-plist
-CLOSED: [2013-12-18 Wed 22:16]
-:PROPERTIES:
-:ID:       7539D61D-95E4-4308-B1C4-F86669E921B7
-:END:
-#+BEGIN_SRC emacs-lisp
-  (defvar org-pm-default-project-plist
-    '(
-      :base-extension "org"
-      :recursive t
-      :publishing-function org-publish-org-to-html
-      :headline-levels 5
-      :auto-preamble t
-    )
-  "The defalt properties for publishing a project with html.
-  Used to provide initial contents when creating a project plist in
-  org-pm-make-default-project-plist. "
-  )
-#+END_SRC
-
 * Auxiliary functions
 :PROPERTIES:
 :DATE:     <2013-12-18 Wed 17:24>
@@ -224,9 +171,7 @@ CLOSED: [2013-12-18 Wed 22:16]
         (buffer-substring drawer-begin (point)))))
 #+END_SRC
 
- test ** Set state of current heading to COMMENT
-
-
+** Set state of current heading to COMMENT
 
 This function is derived by modifying org-toggle-comment.
 
@@ -326,23 +271,6 @@ CLOSED: [2013-12-19 Thu 09:01]
 #+RESULTS:
 : assoc-replace
 
-** DONE org-pm-make-default-project-alist
-CLOSED: [2013-12-19 Thu 02:12]
-:PROPERTIES:
-:ID:       29715E74-6E71-43C0-A50C-F312C3173645
-:END:
-#+BEGIN_SRC emacs-lisp
-  (defun org-pm-make-default-project-plist ()
-    "Construct default plist for publishing a project in html."
-    (let ((plist (copy-sequence org-pm-default-project-plist)))
-      (setq plist (plist-put plist :base-directory
-                             (file-truename org-pm-default-project-org-folder)))
-      (setq plist (plist-put plist :publishing-directory
-                             (file-truename org-pm-default-project-html-folder)))))
-#+END_SRC
-
-#+RESULTS:
-: org-pm-make-default-project-plist
 ** DONE org-pm-add-project-file
 CLOSED: [2013-12-19 Thu 09:14]
 :PROPERTIES:
@@ -392,20 +320,6 @@ NOTE: Removing components from projects is more complex than adding, because we 
         (widen)
         (beginning-of-buffer)
         (insert (format "#+PROJECT: %s\n" project-name)))))
-#+END_SRC
-
-** TODO org-pm-get-section-projects
-:PROPERTIES:
-:DATE:     <2013-12-18 Wed 21:17>
-:ID:       02A9DD60-795A-462D-A803-91E8D719560B
-:END:
-
-Get list of all projects to which any individual sections in the file should be copied. Such projects Projects are named by tags in sections.  The tags must be enclosed in underscores "_". For example, if a section has the tag =_blog_= it will be copied to be published in project named =blog=.
-
-#+BEGIN_SRC emacs-lisp
-(defun org-pm-get-section-projects ()
-
-)
 #+END_SRC
 
 ** org-pm-edit-project-template
@@ -545,6 +459,8 @@ This makes sure that when a file is copied to a subfolder of the publishing dire
 
 ** Customizing the heading of table of contents
 
+Overwriing org-html-toc to use property :toc-heading as string for the Table of Contents heading.  Default is "Table of Contents".
+
 #+BEGIN_SRC emacs-lisp
   (defun org-html-toc (depth info)
     "Build a table of contents.
@@ -598,7 +514,33 @@ This makes sure that when a file is copied to a subfolder of the publishing dire
 :DATE:     <2013-12-18 Wed 11:16>
 :END:
 
-** org-pm-do-auto / org-pm-dont-auto
+** Auto-saving and parsing of documents on save
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-toggle-auto ()
+    (interactive)
+    (setq org-pm-auto-parse (not org-pm-auto-parse))
+    (if org-pm-auto-parse ;; stay in sync with auto parse!
+        (setq org-pm-auto-copy 'on-save)
+      (setq org-pm-auto-copy nil))
+    (if org-pm-auto-parse
+        (message "Org-pm auto-save and copy activated.")
+      (message "Org-pm auto-save and copy deactivated.")))
+
+  (defun org-pm-save-and-update ()
+    (interactive)
+    (org-edit-src-save)
+    (org-pm-make-projects)
+    (org-pm-copy-components-to-projects))
+
+  (defun org-pm-toggle-verbose ()
+    (interactive)
+    (setq org-pm-report-after-copying-p (not org-pm-report-after-copying-p))
+    (if org-pm-report-after-copying-p
+        (message "Reporting after copying activated")
+      (message "Reporting after copying deactivated")))
+#+END_SRC
+*** org-pm-do-auto / org-pm-dont-auto
 
 Utility functions
 
@@ -613,8 +555,8 @@ Utility functions
     (setq org-pm-auto-parse nil)
     (setq org-pm-auto-copy nil))
 #+END_SRC
-
-** org-pm-load-all-project-data
+** Persistence: Saving and loading project data
+*** org-pm-load-all-project-data
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-load-all-project-data ()
@@ -628,7 +570,7 @@ Utility functions
 #+RESULTS:
 : org-pm-load-all-project-data
 
-** org-pm-save-all-project-data
+*** org-pm-save-all-project-data
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-save-all-project-data ()
@@ -656,7 +598,9 @@ Utility functions
                  buffer)))
 #+END_SRC
 
-** org-pm-reset-project-list
+** Creating and managing project definitions
+
+*** org-pm-reset-project-list
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-reset-project-list ()
@@ -667,7 +611,7 @@ Utility functions
            (org-pm-save-all-project-data))))
 #+END_SRC
 
-** DONE org-pm-make-projects
+*** DONE org-pm-make-projects
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-make-projects (&optional do-not-save-now)
     "Construct the projects for all project definitions found in current file.
@@ -704,7 +648,7 @@ Utility functions
       (message "Org-pm defined %d projects" (length projects))))
 #+END_SRC
 
-** org-pm-parse-project-def
+*** org-pm-parse-project-def
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-parse-project-def (proj-node &optional template)
@@ -759,7 +703,7 @@ Utility functions
       (cons pname pdef)))
 #+END_SRC
 
-** org-pm-check-add-project
+*** org-pm-check-add-project
 #+BEGIN_SRC emacs-lisp
   (require 'dash)
   (defun org-pm-check-add-project (project)
@@ -811,6 +755,7 @@ Utility functions
                                  p-name static-project-name))))
     project)
 #+END_SRC
+
 
 ** UNDERWAY org-pm-add-file-to-project:
 :PROPERTIES:
@@ -1013,29 +958,6 @@ The accumulated delay of copying project components from all files when publishi
       (write-region nil nil target-path)
       ))
 
-  ;; superseded by org-pm-save-buffer:
-  (defun org-pm-copy-file (specs &optional path-of-file-to-copy-from)
-    "Dopy the contents of file specified in path-of-filet-copy-from
-  to the target location given by specs.
-  If path-of-file-to-copy-from is nil, then copy the contents of the current
-  buffer.
-  NOTE: path-of-file-to-copy-from : NOT YET IMPLEMENTED."
-    (let ((origin-buffer (current-buffer))
-          (target-buffer (get-buffer-create "*org-pm-copy-buf*"))
-          (target-path (org-pm-make-target specs)))
-      (set-buffer target-buffer)
-      (insert-buffer origin-buffer)
-      ;; Shall we switch-on COMMENT for all exported sections here?
-      ;; Do READMORE conversion?
-      ;; (message "org-pm-copy-file copying to this path:\n %s" target-path)
-      (make-directory (file-name-directory target-path) t)
-      (write-region nil nil target-path)
-      (kill-buffer target-buffer)))
-
-  ;; superseded by org-pm-save-buffer:
-  (defun org-pm-copy-section (specs)
-    (org-pm-make-target specs))
-
   (defun org-pm-make-target (specs)
     (let* ((project-name (car specs))
            (folder (cadr specs))
@@ -1082,13 +1004,6 @@ The accumulated delay of copying project components from all files when publishi
 :END:
 
 Since a file containing org-pm tags can be anywhere outside an org-mode project folder, one cannot use org-publish-current-project to automatically provide the target project based on the file.  Therefore, use =org-pm-publish= instead to select the desired project to publish from a list of projects that are targeted by the current file.
-
-** org-pm-enable-auto:
-
-** org-pm-disable-auto:
-:PROPERTIES:
-:ID:       5D8EF403-7567-4C82-B919-37ED86C3D268
-:END:
 
 ** DONE org-pm-list-dupicate-project-defs
 CLOSED: [2013-12-22 Sun 12:21]
@@ -1253,30 +1168,6 @@ Note: I use the Hyper-m  (= Mac fn key m) as prefix, because it is not likely to
       (define-key org-mode-map (kbd "H-m m") 'org-pm-make-projects)
       (define-key org-mode-map (kbd "H-m c") 'org-pm-copy-components-to-projects)
       (define-key org-mode-map (kbd "H-m t") 'org-pm-make-project-template)))
-
-  (defun org-pm-toggle-auto ()
-    (interactive)
-    (setq org-pm-auto-parse (not org-pm-auto-parse))
-    (if org-pm-auto-parse ;; stay in sync with auto parse!
-        (setq org-pm-auto-copy 'on-save)
-      (setq org-pm-auto-copy nil))
-    (if org-pm-auto-parse
-        (message "Org-pm auto-save and copy activated.")
-      (message "Org-pm auto-save and copy deactivated.")))
-
-  (defun org-pm-save-and-update ()
-    (interactive)
-    (org-edit-src-save)
-    (org-pm-make-projects)
-    (org-pm-copy-components-to-projects))
-
-  (defun org-pm-toggle-verbose ()
-    (interactive)
-    (setq org-pm-report-after-copying-p (not org-pm-report-after-copying-p))
-    (if org-pm-report-after-copying-p
-        (message "Reporting after copying activated")
-      (message "Reporting after copying deactivated")))
-
 #+END_SRC
 
 
