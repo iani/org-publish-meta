@@ -282,7 +282,7 @@ Parsing a file to find project definitions and components of projects
 
 *** Copying files or sections (nodes) of files to a project based on configurations
 
-** Adding and deleting files or sections to/from proejcts
+** Adding and deleting files or sections to/from projects
 
 *** Adding a file to a project
 

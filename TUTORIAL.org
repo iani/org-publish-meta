@@ -18,12 +18,11 @@ Run the following to install org-pm and to activate auto-parsing and auto-copyin
 (setq org-pm-auto-copy 'on-save)
 #+END_SRC
 
-The auto-parse and auto-copy features are optional.  The default settings are:
+The auto-parse and auto-copy features are optional.
 
-=org-pm-auto-parse: t=
-=org-pm-auto-copy: 'on-save=
+The command org-pm-toggle-auto can be used to toggle between auto-scanning and copying on save and manual mode.
 
-, and are deactivated by default.  You can also deactivate auto-copy and auto-parse for individual files by setting the values of respective properties in those files to nil.  See documentation for details.  It is recommended to try out org-pm with the auto-features activated at first, because it greatly simplifies its use.
+(Not yet implemented:) You can also deactivate auto-copy and auto-parse for individual files by setting the values of respective properties in those files to nil.  See documentation for details.  It is recommended to try out org-pm with the auto-features activated at first, because it greatly simplifies its use.
 
 ** First steps: Adding and removing files, the default project
 *** Add a file to a project

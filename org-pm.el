@@ -299,6 +299,8 @@ Save updated project, file and duplicate lists to disk."
     (replace-regexp-in-string
      "{{.}}"
      (org-make-relpath-string
+      ;; FIXME: These parameters are not correct
+      ;; Which paths to use???
       (plist-get info :publishing-directory)
       (plist-get info ':input-file))
      string)))

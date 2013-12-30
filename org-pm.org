@@ -81,7 +81,7 @@ CLOSED: [2013-12-18 Wed 15:23]
 :END:
 
 #+BEGIN_SRC emacs-lisp
-  (defvar org-pm-auto-parse t
+  (defvar org-pm-auto-parse nil
     "If not nil, automatically parse a org-mode buffer
    for org-pm data before saving it.")
 #+END_SRC
@@ -93,7 +93,7 @@ CLOSED: [2013-12-18 Wed 15:23]
 :END:
 
 #+BEGIN_SRC emacs-lisp
-  (defvar org-pm-auto-copy 'on-save
+  (defvar org-pm-auto-copy nil ;; 'on-save
   "If not nil, automatically copy file components to a project to the
   project's source folder before publishing.")
 #+END_SRC
@@ -517,11 +517,12 @@ This makes sure that when a file is copied to a subfolder of the publishing dire
       (replace-regexp-in-string
        "{{.}}"
        (org-make-relpath-string
-        (plist-get info :publishing-directory)
+        (plist-get info :base-directory)
+        ;; distance of input file from base-directory = relative path!
         (plist-get info ':input-file))
        string)))
 
-  ;;; Add relative path filter to export final output functions
+    ;;; Add relative path filter to export final output functions
   (add-to-list 'org-export-filter-final-output-functions
                'org-html-provide-relative-path)
 
@@ -536,7 +537,11 @@ This makes sure that when a file is copied to a subfolder of the publishing dire
                 (- depth 1)
                 path)
         (setq path (concat path "/..")))))
+
 #+END_SRC
+
+#+RESULTS:
+: org-make-relpath-string
 
 ** Customizing the heading of table of contents
 
@@ -1045,6 +1050,7 @@ The accumulated delay of copying project components from all files when publishi
              nil))))
 
   ;; Fix grizzl-completing-read to display custom prompt
+  (require 'grizzl)
   (defun grizzl-completing-read (prompt index)
     "Performs a completing-read in the minibuffer using INDEX to fuzzy search.
   Each key pressed in the minibuffer filters down the list of matches."
@@ -1297,7 +1303,7 @@ Dealing with the above:
 *** base-directory "/Users/iani2/Documents/Dev/Emacs/org-publish-meta/"
 *** base-extension "org"
 *** recursive t
-*** publishing-directory "/Users/iani2/Documents/Dev/Emacs/org-publish-meta/"
+*** publishing-directory "/ssh:iani@larigot.avarts.ionio.gr:Sites/org-pm/"
 *** publishing-function 'org-html-publish-to-html
 *** headline-levels 4
 *** auto-preamble t
@@ -1324,7 +1330,7 @@ Dealing with the above:
 *** html-head-include-default-style nil
 *** html-head-include-scripts nil
 *** static_base-directory "/Users/iani2/Documents/Dev/Emacs/org-publish-meta/static/"
-*** static_publishing-directory "/Users/iani2/Documents/Dev/Emacs/org-publish-meta/static/"
+*** static_publishing-directory "/ssh:iani@larigot.avarts.ionio.gr:Sites/org-pm/static/"
 *** static_base-extension "css\\|js\\|less\\|sass\\|php\\|rb\\|py\\|pdf\\|jpg\\|gif\\|png"
 *** static_publishing-function 'org-publish-attachment
 *** static_recursive t
