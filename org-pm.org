@@ -389,7 +389,7 @@ Edit the file containing the auto-saved data for org-pom.
              (car (org-map-entries '(cadr (org-element-at-point)) "PROJECT_DEFS")))
            (buffer (get-buffer-create "*def*"))
            plist template-string)
-      (unless project-name (setq project-name "org-pm-default"))
+      (unless project-name (setq project-name "org_pm_default"))
       (unless no-name-query
         (setq project-name (read-string "Enter project name: " project-name)))
       (unless no-query
@@ -428,13 +428,16 @@ This makes sure that when a file is copied to a subfolder of the publishing dire
   (defun org-html-provide-relative-path (string backend info)
     "Provide relative path for link."
     (when (org-export-derived-backend-p backend 'html)
-      (replace-regexp-in-string
-       "{{.}}"
-       (org-make-relpath-string
-        (plist-get info :base-directory)
-        ;; distance of input file from base-directory = relative path!
-        (plist-get info ':input-file))
-       string)))
+      (let ((base-dir (plist-get info :base-directory))
+            (input-file (plist-get info :input-file)))
+        (when (and base-dir input-file)
+          (replace-regexp-in-string
+           "{{.}}"
+           (org-make-relpath-string
+            (plist-get info :base-directory)
+            ;; distance of input file from base-directory = relative path!
+            (plist-get info ':input-file))
+           string)))))
 
     ;;; Add relative path filter to export final output functions
   (add-to-list 'org-export-filter-final-output-functions

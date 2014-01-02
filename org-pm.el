@@ -55,15 +55,6 @@ projects generated automatically with org-pm-make-project-template.
 The path is initialized at code loading time by function org-pm-init-project-template-name.
 org-pm-make-project-template uses it to make project templates.")
 
-(defvar org-pm-default-project-name "org_pm_default"
-"Name of default, auto-generated project.")
-
-(defvar org-pm-default-project-org-folder "~/pm-org"
-"Path of folder for source files of default project.")
-
-(defvar org-pm-default-project-html-folder "~/pm-html"
-  "Path of folder for html (published website) files of default project.")
-
 (defun org-get-header-property (property &optional all)
   "Get property from buffer variable.  Returns only fist match except if ALL is defined.
 NOTE: Also works if editing subtree narrowed or in separate narrowed buffer. "
@@ -193,10 +184,6 @@ of projects that file belongs. "
       (widen)
       (beginning-of-buffer)
       (insert (format "#+PROJECT: %s\n" project-name)))))
-
-(defun org-pm-get-section-projects ()
-
-)
 
 (defun org-pm-edit-project-template ()
   "Edit the file containing the global project template.
@@ -340,6 +327,29 @@ specified to their project base directory folders."
     (if (equal org-pm-auto-copy 'on-save)
         ;; Always save if running this.
         (org-pm-copy-components-to-projects))))
+
+(defun org-pm-toggle-auto ()
+  (interactive)
+  (setq org-pm-auto-parse (not org-pm-auto-parse))
+  (if org-pm-auto-parse ;; stay in sync with auto parse!
+      (setq org-pm-auto-copy 'on-save)
+    (setq org-pm-auto-copy nil))
+  (if org-pm-auto-parse
+      (message "Org-pm auto-save and copy activated.")
+    (message "Org-pm auto-save and copy deactivated.")))
+
+(defun org-pm-save-and-update ()
+  (interactive)
+  (org-edit-src-save)
+  (org-pm-make-projects)
+  (org-pm-copy-components-to-projects))
+
+(defun org-pm-toggle-verbose ()
+  (interactive)
+  (setq org-pm-report-after-copying-p (not org-pm-report-after-copying-p))
+  (if org-pm-report-after-copying-p
+      (message "Reporting after copying activated")
+    (message "Reporting after copying deactivated")))
 
 (defun org-pm-do-auto ()
   (interactive)
@@ -681,29 +691,6 @@ Components is added to org-pm-files and auto-saved."
     (write-region nil nil target-path)
     ))
 
-;; superseded by org-pm-save-buffer:
-(defun org-pm-copy-file (specs &optional path-of-file-to-copy-from)
-  "Dopy the contents of file specified in path-of-filet-copy-from
-to the target location given by specs.
-If path-of-file-to-copy-from is nil, then copy the contents of the current
-buffer.
-NOTE: path-of-file-to-copy-from : NOT YET IMPLEMENTED."
-  (let ((origin-buffer (current-buffer))
-        (target-buffer (get-buffer-create "*org-pm-copy-buf*"))
-        (target-path (org-pm-make-target specs)))
-    (set-buffer target-buffer)
-    (insert-buffer origin-buffer)
-    ;; Shall we switch-on COMMENT for all exported sections here?
-    ;; Do READMORE conversion?
-    ;; (message "org-pm-copy-file copying to this path:\n %s" target-path)
-    (make-directory (file-name-directory target-path) t)
-    (write-region nil nil target-path)
-    (kill-buffer target-buffer)))
-
-;; superseded by org-pm-save-buffer:
-(defun org-pm-copy-section (specs)
-  (org-pm-make-target specs))
-
 (defun org-pm-make-target (specs)
   (let* ((project-name (car specs))
          (folder (cadr specs))
@@ -868,26 +855,3 @@ Type C-space C-space to de-select region and deactivate mark")
     (define-key org-mode-map (kbd "H-m m") 'org-pm-make-projects)
     (define-key org-mode-map (kbd "H-m c") 'org-pm-copy-components-to-projects)
     (define-key org-mode-map (kbd "H-m t") 'org-pm-make-project-template)))
-
-(defun org-pm-toggle-auto ()
-  (interactive)
-  (setq org-pm-auto-parse (not org-pm-auto-parse))
-  (if org-pm-auto-parse ;; stay in sync with auto parse!
-      (setq org-pm-auto-copy 'on-save)
-    (setq org-pm-auto-copy nil))
-  (if org-pm-auto-parse
-      (message "Org-pm auto-save and copy activated.")
-    (message "Org-pm auto-save and copy deactivated.")))
-
-(defun org-pm-save-and-update ()
-  (interactive)
-  (org-edit-src-save)
-  (org-pm-make-projects)
-  (org-pm-copy-components-to-projects))
-
-(defun org-pm-toggle-verbose ()
-  (interactive)
-  (setq org-pm-report-after-copying-p (not org-pm-report-after-copying-p))
-  (if org-pm-report-after-copying-p
-      (message "Reporting after copying activated")
-    (message "Reporting after copying deactivated")))
