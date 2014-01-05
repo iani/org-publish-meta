@@ -229,7 +229,7 @@ Save updated project, file and duplicate lists to disk."
            (car (org-map-entries '(cadr (org-element-at-point)) "PROJECT_DEFS")))
          (buffer (get-buffer-create "*def*"))
          plist template-string)
-    (unless project-name (setq project-name "org-pm-default"))
+    (unless project-name (setq project-name "org_pm_default"))
     (unless no-name-query
       (setq project-name (read-string "Enter project name: " project-name)))
     (unless no-query
@@ -262,13 +262,16 @@ Save updated project, file and duplicate lists to disk."
 (defun org-html-provide-relative-path (string backend info)
   "Provide relative path for link."
   (when (org-export-derived-backend-p backend 'html)
-    (replace-regexp-in-string
-     "{{.}}"
-     (org-make-relpath-string
-      (plist-get info :base-directory)
-      ;; distance of input file from base-directory = relative path!
-      (plist-get info ':input-file))
-     string)))
+    (let ((base-dir (plist-get info :base-directory))
+          (input-file (plist-get info :input-file)))
+      (when (and base-dir input-file)
+        (replace-regexp-in-string
+         "{{.}}"
+         (org-make-relpath-string
+          (plist-get info :base-directory)
+          ;; distance of input file from base-directory = relative path!
+          (plist-get info ':input-file))
+         string)))))
 
   ;;; Add relative path filter to export final output functions
 (add-to-list 'org-export-filter-final-output-functions
@@ -413,7 +416,9 @@ When a duplicate section id is found in a definition, it is replaced by a new on
 and the new id is stored in the project."
   (interactive)
   (unless org-publish-project-alist (org-pm-load-all-project-data))
-  (let ((template (org-pm-make-default-project-plist))
+  (let (
+        ;; abandoning template IZ Jan 5, 2014 (6:28 PM)
+        ;; (template (org-pm-make-default-project-plist))
         levels id ids projects)
     (org-map-entries
      '(let
@@ -427,14 +432,17 @@ and the new id is stored in the project."
             (setq id (org-id-get-create))
             (setq entry (plist-put entry :ID id)))
           (setq ids (cons id ids))
-          (setq projects (cons (org-pm-parse-project-def entry template) projects))))
+          ;; (setq projects (cons (org-pm-parse-project-def entry template) projects))
+          (setq projects (cons (org-pm-parse-project-def entry) projects))
+          ))
      "PROJECT_DEFS")
     (mapcar 'org-pm-check-add-project projects)
     (unless do-not-save-now (org-pm-save-all-project-data))
     (message "Org-pm defined %d projects" (length projects))))
 
 (defun org-pm-parse-project-def (proj-node &optional template)
-  "Create a project definition list based on the contents of the
+  "TEmp note: template is no longer used IZ Jan 5, 2014 (6:27 PM)
+Create a project definition list based on the contents of the
 section described in proj-node plist. Convert headings
 to property names and contents to their values.
 Add useful identification data.
@@ -442,7 +450,9 @@ Argument template is a plist with additional properties,
 but may be left out if the section contains all the properties needed
 to define the project."
   (unless org-publish-project-alist (org-pm-load-all-project-data))
-  (let ((pdef (copy-sequence template))
+  (let (
+        ;; (pdef (copy-sequence template))
+        pdef
         (pname (plist-get proj-node :raw-value))
         (begin (plist-get proj-node :contents-begin))
         (node-id (plist-get proj-node :ID))
@@ -529,7 +539,7 @@ to the id of the main project."
                          static-project-name static-project))
     (setq org-publish-project-alist
           (assoc-replace org-publish-project-alist
-                         (concat "combined-" p-name)
+                         (concat "combined_" p-name)
                          (list :components
                                p-name static-project-name))))
   project)
@@ -629,12 +639,13 @@ Components is added to org-pm-files and auto-saved."
                               (plist-get node :tags))))
         (when pspecs
           (setq name (plist-get node :raw-value))
+          (setq date (plist-get node :START_TIME))
           (setq components
                 (cons
                  (cons
                   (plist-get node :begin)
                   (-map
-                   (lambda (component) (org-pm-parse-component component name))
+                   (lambda (component) (org-pm-parse-component component name date))
                    pspecs))
                  components)))))
     (if file-components
@@ -668,7 +679,8 @@ Components is added to org-pm-files and auto-saved."
                                (grizzl-make-index *org-pm-updated-projects*))))
     (message "Result: %s" components)))
 
-(defun org-pm-parse-component (component filename)
+(defun org-pm-parse-component (component filename &optional date)
+  "Parse strings component and filename, and provide project, folder, filename strings."
   (let ((parts
          (-take 3 (split-string
                    (concat (replace-regexp-in-string "#" "." component) "@@") "@"))))
@@ -678,12 +690,31 @@ Components is added to org-pm-files and auto-saved."
                 (cdr parts)))
     (unless (equal 0 (length (caddr parts)))
         (setq filename (caddr parts)))
-    (setq filename (replace-regexp-in-string " " "-" filename))
+    (setq filename (org-pm-make-filename filename date))
     (unless (string-match ".org$" filename)
       (setq filename (concat filename ".org")))
     (setq parts (-replace-at 2 filename parts))
     parts))
 
+(defun org-pm-make-filename (title &optional date)
+  "Convert title of entry into filename.
+Remove non alphanumeric characters.
+Replace spaces by dashes (-).
+Lowercase everything.
+If date is provided, convert date into jekyll- (hexo-, etc.) compatible
+blog entry format, and prepend it.
+Entry title 'Thoughts on [pre-]processing',
+with date <2014-01-05 Sun 10:56>
+becomes: '2014-01-05-thoughts-on-pre-processing' "
+  (let ((filename
+         (downcase
+          (replace-regexp-in-string
+           "-+" "-"
+           (replace-regexp-in-string "[^[:alnum:]]" "-" title)))))
+    (when (and date (string-match
+                     "^<\\([[:digit:]]\\{4\\}-[[:digit:]]\\{2\\}-[[:digit:]]\\{2\\}\\)"
+                     date))
+      (setq filename (concat (substring date 1 11) "-" filename)))))
 
 (defun org-pm-save-buffer (specs buffer)
   (let ((target-path (org-pm-make-target specs)))

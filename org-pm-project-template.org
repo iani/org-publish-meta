@@ -25,8 +25,8 @@
 ** html-head-include-default-style nil
 ** html-head-include-scripts nil
 ** toc-heading "Contents"
-** static-base-directory "BASEDIRECTORYstatic/"
-** static-publishing-directory "PUBLISHINGDIRECTORYstatic/"
+** static-base-directory "BASEDIRECTORY/static"
+** static-publishing-directory "PUBLISHINGDIRECTORY/static"
 ** static-base-extension "css\\|js\\|less\\|sass\\|php\\|rb\\|py\\|pdf\\|jpg\\|gif\\|png"
 ** static-publishing-function 'org-publish-attachment
 ** static-recursive t
