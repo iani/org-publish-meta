@@ -892,9 +892,142 @@ The accumulated delay of copying project components from all files when publishi
   (defvar org-pm-report-after-copying-p t
   "If not-nil, org-pm-copy-components-to-projects will post a report
   of projects not found or of projects targeted when finishing.")
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-get-and-copy-file-project-components (scan-entire-file)
+    "Calls org-pm-get-file-project-components and org-pm-copy-project-components.
+  See there."
+    (interactive "P")
+    (save-excursion
+      (if scan-entire-file (widen))
+      (message "file copied to:\n %s"
+               (org-pm-copy-file-project-components
+                (org-pm-get-file-project-components)))))
+
+  (defun org-pm-get-file-project-components ()
+    "Build list of projects-folders-files to export this buffer to.
+  The list is created from the list of values of property PROJECT
+  that are defined in this buffer.
+  The list is passed to org-pm-copy-file-project-components for copying. "
+    (interactive)
+    (let* ((fullpath (buffer-file-name (current-buffer)))
+           (filename (file-name-nondirectory fullpath))
+           (date (org-get-header-property "DATE" nil))
+           (components (-map (lambda (component)
+                               (org-pm-parse-component component filename date))
+                             (org-get-header-property "PROJECT" t))))
+      (message "components: %s" components)
+      components))
+
+  (defun org-pm-parse-component (component filename &optional date)
+    "Process component and filename, and provide project, folder, filename strings.
+  Splits component to project, folder, filename if separated by @.
+  Constructs blog entry path if date is provided."
+    (let ((parts
+           (-take 3 (split-string
+                     (concat (replace-regexp-in-string "#" "." component) "@@") "@"))))
+      (setq parts
+            (cons (replace-regexp-in-string
+                   "^_" "" (replace-regexp-in-string "_$" "" (car parts)))
+                  (cdr parts)))
+      (unless (equal 0 (length (caddr parts)))
+        (setq filename (caddr parts)))
+      (setq filename (org-pm-make-filename filename date))
+      (unless (string-match ".org$" filename)
+        (setq filename (concat filename ".org")))
+      (setq parts (-replace-at 2 filename parts))
+      (cons (assoc (car parts) org-publish-project-alist) parts)))
+
+  (defun org-pm-make-filename (title &optional date)
+    "Convert title of entry into filename.
+  Remove non alphanumeric characters.
+  Replace spaces by dashes (-).
+  Lowercase everything.
+  If date is provided, convert date into jekyll- (hexo-, etc.) compatible
+  blog entry format, and prepend it.
+  Entry title 'Thoughts on [pre-]processing', with date <2014-01-05 Sun 10:56>
+  becomes: '2014-01-05-thoughts-on-pre-processing' "
+    (let ((filename
+           (downcase
+            (replace-regexp-in-string
+             "-+" "-"
+             (replace-regexp-in-string "[^[:alnum:]]" "-" title)))))
+      (when (and date (string-match
+                       "^<\\([[:digit:]]\\{4\\}-[[:digit:]]\\{2\\}-[[:digit:]]\\{2\\}\\)"
+                       date))
+        (setq filename (concat (substring date 1 11) "-" filename)))
+      filename))
+
+  (defun org-pm-copy-file-project-components (components)
+    "Copy this file to target locations specified by components list.
+  Components is provided by org-pm-get-file-project-components.
+  Structure of each entry (element) in the components list:
+  project-alist (or nil), project-name, folder, filename."
+    (when components
+      (let ((origin-buffer (current-buffer))
+            (target-buffer (get-buffer-create "*org-pm-copy-buf*")))
+        (set-buffer target-buffer)
+        (insert-buffer origin-buffer)
+        (dolist (component components)
+          (cond
+           ((car component)
+            (add-to-list '*org-pm-updated-projects* (cadr component))
+            (let* ((base-dir (plist-get (car component) :base-directory))
+                   (folder (nth 2 component))
+                   (slash (if (string-match "/$" folder) "" "/"))
+                   (target-dir (concat base-dir folder)))
+              (make-directory target-dir)
+              (write-region nil nil (concat target-dir slash (nth 3 component)))))
+           (t (add-to-list '*org-pm-missing-projects* (cadr component)))))
+        (kill-buffer target-buffer)))
+    components) ;; pass components for posting (reporting) by calling function
+
+  (defun org-pm-get-section-project-components ()
+    "Build list of projects-folders-files to export sections of this buffer to.
+  The list is created from those sections whose tags specify projects,
+  i.e . tags enclosed in underscores: _projectname_
+  The list is passed to org-pm-copy-section-project-components for copying.
+  Each element in the list has the form:
+  <start-point of section> (project projectname folder filename)
+                           (project projectname folder filename)
+                           ... "
+    (interactive)
+    (let (components)
+     (org-map-entries
+      '(let* ((node (cadr (org-element-at-point)))
+              (pspecs (-filter (lambda (tag) (string-match "^_.*_$" tag))
+                               (plist-get node :tags)))
+              name date)
+         (message "pspecs: \n%s" pspecs)
+         (if pspecs
+           (let (section-entries)
+            (setq name (plist-get node :raw-value))
+            (setq date (plist-get node :DATE))
+            (dolist (spec pspecs)
+              (setq section-entries
+                    (cons (org-pm-parse-component spec name date) section-entries)))
+            (setq components (cons (cons (point) section-entries) components))))))
+     (message "COMPONENTS: \n%s" components)
+     components))
+
+  (defun org-pm-copy-section-project-components ()
+    ""
+
+    )
 
   (defun org-pm-copy-components-to-projects (&optional do-not-save-now)
-    "Find which parts of the file go to which to projects, and copy them
+
+    )
+
+  ()
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-copy-components-to-projects-old (&optional do-not-save-now)
+    "Old version - being debugged.
+
+  Find which parts of the file go to which to projects, and copy them
   to the base-directories of these projects.  Also save the projects found in
   list org-pm-files for this project, using the full path of this file as key.
   This list is saved and can be used later to update the contents of any project
@@ -948,49 +1081,57 @@ The accumulated delay of copying project components from all files when publishi
           (cond ((equal "FILE" pos)
                  (set-buffer target-buffer)
                  (insert-buffer origin-buffer)
-                 (dolist (proj (cdr comp)) (org-pm-save-buffer proj target-buffer)))
-               (t
-                (set-buffer origin-buffer)
-                (goto-char pos)
-                (org-copy-subtree)
-                (set-buffer target-buffer)
-                (org-paste-subtree 1)
-                (dolist (proj (cdr comp)) (org-pm-save-buffer proj target-buffer))))
-         (kill-buffer target-buffer)))
-      (if org-pm-report-after-copying-p
-          (if *org-pm-missing-projects*
-           (grizzl-completing-read "These projects could not be found"
-                                   (grizzl-make-index *org-pm-missing-projects*))
-         (grizzl-completing-read "Copied components to these projects"
-                                 (grizzl-make-index *org-pm-updated-projects*))))
-      (message "Result: %s" components)))
+                 (dolist (proj (cdr comp)) (org-pm-save-buffer proj target-buffer))
+                 )
 
-  (defun org-pm-parse-component (component filename &optional date)
-    "Parse strings component and filename, and provide project, folder, filename strings."
-    (let ((parts
-           (-take 3 (split-string
-                     (concat (replace-regexp-in-string "#" "." component) "@@") "@"))))
-      (setq parts
-            (cons (replace-regexp-in-string
-                   "^_" "" (replace-regexp-in-string "_$" "" (car parts)))
-                  (cdr parts)))
-      (unless (equal 0 (length (caddr parts)))
-          (setq filename (caddr parts)))
-      (setq filename (org-pm-make-filename filename date))
-      (unless (string-match ".org$" filename)
-        (setq filename (concat filename ".org")))
-      (setq parts (-replace-at 2 filename parts))
-      parts))
+                (t
+                 (set-buffer origin-buffer)
+                 (goto-char pos)
+                 (org-copy-subtree)
+                 (set-buffer target-buffer)
+                 (org-paste-subtree 1)
+               ;;  (dolist (proj (cdr comp)) (org-pm-save-buffer proj target-buffer))
+                 ))
+          (kill-buffer target-buffer)))))
 
-  (defun org-pm-make-filename (title &optional date)
-    "Convert title of entry into filename.
-  Remove non alphanumeric characters.
-  Replace spaces by dashes (-).
-  Lowercase everything.
-  If date is provided, convert date into jekyll- (hexo-, etc.) compatible
+  (defun org-pm-save-buffer (specs buffer)
+
+    (let ((target-path (org-pm-make-target specs)))
+      (make-directory (file-name-directory target-path) t)
+      (write-region nil nil target-path)
+      ))
+
+  (defun org-pm-make-target (specs)
+    (let* ((project-name (car specs))
+           (folder (cadr specs))
+           (slash (if (string-match "/$" folder) "" "/"))
+           (project (assoc project-name org-publish-project-alist)))
+      (cond (project
+             (add-to-list '*org-pm-updated-projects* project-name)
+             (concat (plist-get (cdr project) :base-directory)
+                     folder slash (caddr specs)))
+            (t
+             (add-to-list '*org-pm-missing-projects* project-name)
+             nil))))
+
+  (if org-pm-report-after-copying-p
+      (if *org-pm-missing-projects*
+          (grizzl-completing-read "these projects could not be found"
+                                  (grizzl-make-index *org-pm-missing-projects*))
+        (grizzl-completing-read "copied components to these projects"
+                                (grizzl-make-index *org-pm-updated-projects*))))
+  (message "result: %s" components)
+
+  (defun org-pm-make-filename-simple (title &optional date)
+    "Simple version - to be deleted. See org-pm-make-filenme
+  Convert title of entry into filename.
+  remove non alphanumeric characters.
+  replace spaces by dashes (-).
+  lowercase everything.
+  if date is provided, convert date into jekyll- (hexo-, etc.) compatible
   blog entry format, and prepend it.
-  Entry title 'Thoughts on [pre-]processing',
-  with date <2014-01-05 Sun 10:56>
+  entry title 'thoughts on [pre-]processing',
+  with date <2014-01-05 sun 10:56>
   becomes: '2014-01-05-thoughts-on-pre-processing' "
     (let ((filename
            (downcase
@@ -999,7 +1140,7 @@ The accumulated delay of copying project components from all files when publishi
              (replace-regexp-in-string "[^[:alnum:]]" "-" title)))))
       filename))
 
-  (defun org-pm-make-filename-buggy (title &optional date)
+  (defun org-pm-make-filename (title &optional date)
     "Convert title of entry into filename.
   Remove non alphanumeric characters.
   Replace spaces by dashes (-).
@@ -1019,24 +1160,6 @@ The accumulated delay of copying project components from all files when publishi
                        date))
         (setq filename (concat (substring date 1 11) "-" filename)))
       filename))
-  (defun org-pm-save-buffer (specs buffer)
-    (let ((target-path (org-pm-make-target specs)))
-      (make-directory (file-name-directory target-path) t)
-      (write-region nil nil target-path)
-      ))
-
-  (defun org-pm-make-target (specs)
-    (let* ((project-name (car specs))
-           (folder (cadr specs))
-           (slash (if (string-match "/$" folder) "" "/"))
-           (project (assoc project-name org-publish-project-alist)))
-      (cond (project
-             (add-to-list '*org-pm-updated-projects* project-name)
-             (concat (plist-get (cdr project) :base-directory)
-                     folder slash (caddr specs)))
-            (t
-             (add-to-list '*org-pm-missing-projects* project-name)
-             nil))))
 
   ;; Fix grizzl-completing-read to display custom prompt
   (require 'grizzl)
