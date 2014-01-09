@@ -875,7 +875,7 @@ Remove current section (node) from a project interactively selected by user.
 Assessment:
 
 Version 1 lengthens the file saving time.
-Version 1 lengthens the publishing time.
+Version 2 lengthens the publishing time.
 
 The accumulated delay of copying project components from all files when publishing may be more distracting than the delay of copying components of a single project.  Additionally, it is better to be able to check the condition of a project at any stage, and to have it updated as soon as a file is saved.  So I start by setting the default to copy components when the file is saved.
 
@@ -895,6 +895,18 @@ The accumulated delay of copying project components from all files when publishi
 #+END_SRC
 
 #+BEGIN_SRC emacs-lisp
+  (defun org-pm-copy-all-parts-to-projects ()
+    "Copy file and sections specified by properties, tags
+  to the designated projects and folders.
+  Before copying, re-scan buffer to build list of targets for copying."
+    (interactive)
+    (save-excursion
+      (save-restriction
+        (widen)
+
+        ))
+  )
+
   (defun org-pm-get-and-copy-file-project-components (scan-entire-file)
     "Calls org-pm-get-file-project-components and org-pm-copy-project-components.
   See there."
@@ -904,6 +916,47 @@ The accumulated delay of copying project components from all files when publishi
       (message "file copied to:\n %s"
                (org-pm-copy-file-project-components
                 (org-pm-get-file-project-components)))))
+
+  (defun org-pm-show-target-file-list (&optional file-components section-components)
+    "Create a list of paths of all files which the current file and its sections
+  outputs to.  Present this as a grizzl list for auto-complete search.
+  Open selected file."
+    (interactive)
+    (unless file-components
+      (setq file-components (org-pm-get-file-project-targets)))
+    (unless section-components
+      (setq section-components (org-pm-get-section-project-targets)))
+    (let* ((target-list
+           (mapcar (lambda (t) (cdr t))
+                   (append file-components section-components)))
+           (index (grizzl-make-index target-list))
+           answer)
+      ;; (message "%s" target-list)
+      (setq answer (grizzl-completing-read "Choose file to open: " index))
+      (if (string-match "(undefined project)$" answer)
+          (message "No file: %s" answer)
+         (find-file answer))))
+
+  (defun org-pm-make-displayable-target-path (components)
+    "Make path string from components using org-pm-make-target-path,
+  but if project defition is missing, then give name of project instead."
+    (let ((path (org-pm-make-target-path components)))
+      (if path
+          path
+        (format "\"%s\" (undefined project)" (car c)))))
+
+  (defun org-pm-get-section-project-targets ()
+    "Return list of paths of files to which sections of current file are copied."
+    (interactive)
+    (let (path
+          (components
+           (-map (lambda (clist)
+                   (-map (lambda (c) (org-pm-make-displayable-target-path c))
+                         clist))
+                 (-map (lambda (aclist) (cdr aclist))
+                       (org-pm-get-section-project-components)))))
+      (message "%s" (-flatten components))
+      (-flatten components)))
 
   (defun org-pm-get-file-project-components ()
     "Build list of projects-folders-files to export this buffer to.
@@ -917,45 +970,76 @@ The accumulated delay of copying project components from all files when publishi
            (components (-map (lambda (component)
                                (org-pm-parse-component component filename date))
                              (org-get-header-property "PROJECT" t))))
-      (message "components: %s" components)
+    ;;  (message "file components for %s are:\n%s" filename components)
       components))
 
-  (defun org-pm-parse-component (component filename &optional date)
+  (defun org-pm-parse-component (component filename date)
     "Process component and filename, and provide project, folder, filename strings.
   Splits component to project, folder, filename if separated by @.
-  Constructs blog entry path if date is provided."
-    (let ((parts
-           (-take 3 (split-string
-                     (concat (replace-regexp-in-string "#" "." component) "@@") "@"))))
-      (setq parts
-            (cons (replace-regexp-in-string
-                   "^_" "" (replace-regexp-in-string "_$" "" (car parts)))
-                  (cdr parts)))
-      (unless (equal 0 (length (caddr parts)))
-        (setq filename (caddr parts)))
-      (setq filename (org-pm-make-filename filename date))
-      (unless (string-match ".org$" filename)
-        (setq filename (concat filename ".org")))
-      (setq parts (-replace-at 2 filename parts))
-      (cons (assoc (car parts) org-publish-project-alist) parts)))
+  Constructs blog entry path if date is provided.
 
-  (defun org-pm-make-filename (title &optional date)
-    "Convert title of entry into filename.
-  Remove non alphanumeric characters.
-  Replace spaces by dashes (-).
-  Lowercase everything.
   If date is provided, convert date into jekyll- (hexo-, etc.) compatible
   blog entry format, and prepend it.
-  Entry title 'Thoughts on [pre-]processing', with date <2014-01-05 Sun 10:56>
-  becomes: '2014-01-05-thoughts-on-pre-processing' "
-    (let ((filename
-           (downcase
+  Entry title 'thoughts-on-pre-processing', with date <2014-01-05 Sun 10:56>
+  becomes: '2014-01-05-thoughts-on-pre-processing'
+
+  Do not convert filename from title format.  That is done in
+  org-pm-get-section-project-components (see function org-pm-make-filename."
+
+    ;; strip enclosing underscores _
+    (setq component (replace-regexp-in-string
+                     "^_" "" (replace-regexp-in-string "_$" "" component)))
+    ;; replace # by .
+    (setq component (replace-regexp-in-string "#" "." component))
+    ;; split into project, folder, filename
+    ;; and provide "" as folder, filename where @ separators are missing
+    (setq component (-take 3 (split-string (concat component "@@") "@")))
+    ;; if component had filename, use that instead of filename argument
+    (if (> (length (caddr component)) 0) (setq filename (caddr component)))
+    ;; provide extension
+    (unless filename (setq filename "index"))
+    (unless (file-name-extension filename)
+      (setq filename (concat filename ".org")))
+    ;; if date present, prepend date in jekyll blog-entry format
+    (when (and date
+               (string-match
+                "^<\\([[:digit:]]\\{4\\}-[[:digit:]]\\{2\\}-[[:digit:]]\\{2\\}\\)"
+                date))
+      (setq filename (concat (substring date 1 11) "-" filename)))
+    ;; return project, folder, new filename as list
+    (setcdr (cdr component) (list filename))
+    component)
+
+  (defun org-pm-make-filename (title &optional date)
+    "Convert title of org-mode section entry into filename.
+  Remove non alphanumeric characters.
+  Replace spaces by dashes (-).
+  Strip initial or ending dashes.
+  Lowercase everything.
+  Strip : mm/dd/yy ... part from the end.
+  Entry title:
+  'Watching: Sacha_Chua Emacs_chat_with_magnar_sven (emacs_rocks): 12/08/13_14:54:11'
+  Becomes:
+  'watching-sacha-chua-emacs-chat-with-magnar-sven-emacs-rocks'"
+    (let (filename
+          (title-date-pos
+           (string-match
+            ": [[:digit:]]\\{2\\}/[[:digit:]]\\{2\\}/[[:digit:]]\\{2\\}"
+            title)))
+      (if title-date-pos
+          (setq filename (substring title 0 title-date-pos))
+        (setq filename title))
+      (setq filename (downcase
+                      (replace-regexp-in-string
+                       "-+" "-"
+                       (replace-regexp-in-string "[^[:alnum:]]" "-" filename))))
+      (setq filename
             (replace-regexp-in-string
-             "-+" "-"
-             (replace-regexp-in-string "[^[:alnum:]]" "-" title)))))
-      (when (and date (string-match
-                       "^<\\([[:digit:]]\\{4\\}-[[:digit:]]\\{2\\}-[[:digit:]]\\{2\\}\\)"
-                       date))
+             "^-" "" (replace-regexp-in-string "-$" "" filename)))
+      (when (and date
+                 (string-match
+                  "^<\\([[:digit:]]\\{4\\}-[[:digit:]]\\{2\\}-[[:digit:]]\\{2\\}\\)"
+                  date))
         (setq filename (concat (substring date 1 11) "-" filename)))
       filename))
 
@@ -965,23 +1049,39 @@ The accumulated delay of copying project components from all files when publishi
   Structure of each entry (element) in the components list:
   project-alist (or nil), project-name, folder, filename."
     (when components
-      (let ((origin-buffer (current-buffer))
+      (let (project
+            (origin-buffer (current-buffer))
             (target-buffer (get-buffer-create "*org-pm-copy-buf*")))
         (set-buffer target-buffer)
         (insert-buffer origin-buffer)
         (dolist (component components)
-          (cond
-           ((car component)
-            (add-to-list '*org-pm-updated-projects* (cadr component))
-            (let* ((base-dir (plist-get (car component) :base-directory))
-                   (folder (nth 2 component))
-                   (slash (if (string-match "/$" folder) "" "/"))
-                   (target-dir (concat base-dir folder)))
-              (make-directory target-dir)
-              (write-region nil nil (concat target-dir slash (nth 3 component)))))
-           (t (add-to-list '*org-pm-missing-projects* (cadr component)))))
+          (let ((target-path (org-pm-make-target-path component)))
+            (when target-path
+              (make-directory (file-name-directory target-path) t)
+              (write-region nil nil target-path))))
         (kill-buffer target-buffer)))
     components) ;; pass components for posting (reporting) by calling function
+
+  (defun org-pm-make-target-path (proj-folder-file)
+    "Create path of file for copying contents of current buffer to a project.
+  Combine base directory + folder + file from list proj-folder-file
+  to make target-path.
+  If project found, return: (target-path . target-path)
+  If project not found, return: (nil . missing-project-string).
+  The car of the result is used to copy the component to the path.
+  The cdr of the result is used for display and debugging."
+    (let* ((pname (car proj-folder-file))
+           (project (cdr (assoc pname org-publish-project-alist)))
+           (folder (cadr proj-folder-file))
+           (slash (if (string-match "/$" folder) "" "/"))
+           (target-path
+            (if project
+                (concat (plist-get project :base-directory)
+                        folder slash (caddr proj-folder-file)))))
+      (cons target-path
+            (if target-path
+                target-path
+              (format "\"%s\" (undefined project)" pname)))))
 
   (defun org-pm-get-section-project-components ()
     "Build list of projects-folders-files to export sections of this buffer to.
@@ -1006,7 +1106,10 @@ The accumulated delay of copying project components from all files when publishi
             (setq date (plist-get node :DATE))
             (dolist (spec pspecs)
               (setq section-entries
-                    (cons (org-pm-parse-component spec name date) section-entries)))
+                    (cons (org-pm-parse-component
+                           spec
+                           (org-pm-make-filename name)
+                           date) section-entries)))
             (setq components (cons (cons (point) section-entries) components))))))
      (message "COMPONENTS: \n%s" components)
      components))
@@ -1095,11 +1198,10 @@ The accumulated delay of copying project components from all files when publishi
           (kill-buffer target-buffer)))))
 
   (defun org-pm-save-buffer (specs buffer)
-
+  "Save current buffer "
     (let ((target-path (org-pm-make-target specs)))
       (make-directory (file-name-directory target-path) t)
-      (write-region nil nil target-path)
-      ))
+      (write-region nil nil target-path)))
 
   (defun org-pm-make-target (specs)
     (let* ((project-name (car specs))
@@ -1113,14 +1215,6 @@ The accumulated delay of copying project components from all files when publishi
             (t
              (add-to-list '*org-pm-missing-projects* project-name)
              nil))))
-
-  (if org-pm-report-after-copying-p
-      (if *org-pm-missing-projects*
-          (grizzl-completing-read "these projects could not be found"
-                                  (grizzl-make-index *org-pm-missing-projects*))
-        (grizzl-completing-read "copied components to these projects"
-                                (grizzl-make-index *org-pm-updated-projects*))))
-  (message "result: %s" components)
 
   (defun org-pm-make-filename-simple (title &optional date)
     "Simple version - to be deleted. See org-pm-make-filenme
@@ -1140,26 +1234,6 @@ The accumulated delay of copying project components from all files when publishi
              (replace-regexp-in-string "[^[:alnum:]]" "-" title)))))
       filename))
 
-  (defun org-pm-make-filename (title &optional date)
-    "Convert title of entry into filename.
-  Remove non alphanumeric characters.
-  Replace spaces by dashes (-).
-  Lowercase everything.
-  If date is provided, convert date into jekyll- (hexo-, etc.) compatible
-  blog entry format, and prepend it.
-  Entry title 'Thoughts on [pre-]processing',
-  with date <2014-01-05 Sun 10:56>
-  becomes: '2014-01-05-thoughts-on-pre-processing' "
-    (let ((filename
-           (downcase
-            (replace-regexp-in-string
-             "-+" "-"
-             (replace-regexp-in-string "[^[:alnum:]]" "-" title)))))
-      (when (and date (string-match
-                       "^<\\([[:digit:]]\\{4\\}-[[:digit:]]\\{2\\}-[[:digit:]]\\{2\\}\\)"
-                       date))
-        (setq filename (concat (substring date 1 11) "-" filename)))
-      filename))
 
   ;; Fix grizzl-completing-read to display custom prompt
   (require 'grizzl)
@@ -1345,20 +1419,56 @@ Note: Naming this function org-pm-edit-duplicate-project-def disabled the auto-d
 #+RESULTS:
 : pm/edit-duplicate-project-def
 
+
+* Menu: select org-pm command interactively
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-menu ()
+    "Select and run an org-pm command from a grizzl-minibuffer menu list."
+    (interactive)
+    (let* ((commands '(
+                       org-pm-load-all-project-data
+                       org-pm-list-project-defs
+                       org-pm-show-target-file-list
+                       ))
+           (menu (grizzl-make-index
+                 (-map (lambda (c)
+                         (replace-regexp-in-string
+                          "-"
+                          " "
+                          (replace-regexp-in-string
+                           "^org-pm-" "" (symbol-name c))))
+                       commands)))
+          selection)
+      (setq selection (grizzl-completing-read  "Select command: " menu))
+      (eval
+       (read (concat
+              "(org-pm-"
+              (replace-regexp-in-string " " "-" selection)
+              ")")))))
+#+END_SRC
 * Keyboard shortcuts
 
 Note: I use the Hyper-m  (= Mac fn key m) as prefix, because it is not likely to be occupied by other packages.  Users can easily remap.
 
 #+BEGIN_SRC emacs-lisp
-  (add-hook 'org-mode-hook
-    (lambda ()
-      (define-key org-mode-map (kbd "H-m a") 'org-pm-toggle-auto)
-      (define-key org-mode-map (kbd "H-m s") 'org-pm-save-and-update)
-      (define-key org-mode-map (kbd "H-m v") 'org-pm-toggle-verbose)
-      (define-key org-mode-map (kbd "H-m l") 'org-pm-list-project-defs)
-      (define-key org-mode-map (kbd "H-m m") 'org-pm-make-projects)
-      (define-key org-mode-map (kbd "H-m c") 'org-pm-copy-components-to-projects)
-      (define-key org-mode-map (kbd "H-m t") 'org-pm-make-project-template)))
+  ;; Add org-mode hook for org-pm-key bindings.
+  ;; To initialize if present file is compiled after start time, run hook qnow.
+  (let ((org-pm-key-bindings
+         (lambda ()
+           (define-key org-mode-map (kbd "H-m H-m") 'org-pm-menu)
+           (define-key org-mode-map (kbd "H-m a") 'org-pm-toggle-auto)
+           (define-key org-mode-map (kbd "H-m s") 'org-pm-save-and-update)
+           (define-key org-mode-map (kbd "H-m v") 'org-pm-toggle-verbose)
+           (define-key org-mode-map (kbd "H-m l") 'org-pm-list-project-defs)
+           (define-key org-mode-map (kbd "H-m m") 'org-pm-make-projects)
+           (define-key org-mode-map (kbd "H-m c") 'org-pm-copy-components-to-projects)
+           (define-key org-mode-map (kbd "H-m t") 'org-pm-make-project-template))))
+    (funcall org-pm-key-bindings)
+    (add-hook 'org-mode-hook
+              org-pm-key-bindings))
+
+
 #+END_SRC
 
 
