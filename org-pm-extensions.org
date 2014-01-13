@@ -1,0 +1,243 @@
+#+TODO: TODO UNDERWAY | DONE CANCELLED
+#+TITLE: Optional, Experimental Extensions to org-publish-meta
+
+Some extra ideas that were removed from the core of org-publish-meta during development.
+Kept here for later revision.
+
+- org-pm-auto-parse
+- org-pm-auto-copy
+
+...
+
+* UNDERWAY Variables
+:PROPERTIES:
+:DATE:     <2013-12-18 Wed 11:52>
+:END:
+
+** DONE org-pm-auto-parse
+CLOSED: [2013-12-18 Wed 15:23]
+:PROPERTIES:
+:ID:       03CF07FC-5FD7-46C6-BE11-74C3D339A315
+:END:
+
+#+BEGIN_SRC emacs-lisp
+  (defvar org-pm-auto-parse nil
+    "If not nil, automatically parse a org-mode buffer
+   for org-pm data before saving it.")
+#+END_SRC
+
+** DONE org-pm-auto-copy
+CLOSED: [2013-12-18 Wed 15:23]
+:PROPERTIES:
+:ID:       3AF37A0C-F14A-41A3-B477-5B12696315BE
+:END:
+
+#+BEGIN_SRC emacs-lisp
+  (defvar org-pm-auto-copy nil ;; 'on-save
+  "If not nil, automatically copy file components to a project to the
+  project's source folder before publishing.")
+#+END_SRC
+
+* Auxiliary functions
+:PROPERTIES:
+:DATE:     <2013-12-18 Wed 17:24>
+:END:
+
+** Get drawer contents
+#+RESULTS:
+#+BEGIN_SRC emacs-lisp
+  (defun org-get-drawer (drawer-name)
+    "Get the contents of the drawer named 'drawer-name', at current section."
+    (save-excursion
+      (org-back-to-heading)
+      (let* ((plist (cadr (org-element-at-point)))
+             (node-end (plist-get plist :end))
+             drawer-begin)
+        (re-search-forward (format "^:%s:" drawer-name) node-end)
+        (forward-char)
+        (setq drawer-begin (point))
+        (re-search-forward "^:END:" node-end)
+        (beginning-of-line)
+        (backward-char)
+        (buffer-substring drawer-begin (point)))))
+#+END_SRC
+
+** Comment out the rest of a section following a comment line
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-create-excerpt ()
+      "If an org-mode-style comment with contents: READMORE is found,
+  then insert a heading after the comment, and add COMMENT status to that heading.
+  This excludes the rest of the section from being exported.
+  If no READMORE is found, then COMMENT the entire section.
+  This is an easy way of creating excerpts when copying a flle to a project,
+  and parts of this file are also copied to the project, so we don't want to
+  export them with the main file."
+      (interactive)
+      (save-excursion
+        (org-back-to-heading)
+        (let* ((plist (cadr (org-element-at-point)))
+               (node-begin (plist-get plist :begin))
+               (node-end (plist-get plist :end)))
+          (re-search-forward "^ # READMORE" node-end t)
+          (unless (equal (point) node-begin)
+            (org-insert-heading)
+            (org-set-comment))
+          (message "%d %d %d" (point) node-begin node-end)
+          )))
+#+END_SRC
+
+** Providing relative paths to root of published project
+
+This makes sure that when a file is copied to a subfolder of the publishing directory, the paths pointing to includes such as css, images, etc. will be converted to show to the root of the project, so that links work.  Such links must be marked using the string ={{.}}= to denote the relative root to the published project, that is, the =publishing-directory=.
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-html-provide-relative-path (string backend info)
+    "Provide relative path for link."
+    (when (org-export-derived-backend-p backend 'html)
+      (let ((base-dir (plist-get info :base-directory))
+            (input-file (plist-get info :input-file)))
+        (when (and base-dir input-file)
+          (replace-regexp-in-string
+           "{{.}}"
+           (org-make-relpath-string
+            (plist-get info :base-directory)
+            ;; distance of input file from base-directory = relative path!
+            (plist-get info ':input-file))
+           string)))))
+
+    ;;; Add relative path filter to export final output functions
+  (add-to-list 'org-export-filter-final-output-functions
+               'org-html-provide-relative-path)
+
+  (defun org-make-relpath-string (base-path file-path)
+    "create a relative path for reaching base-path from file-path ('./../..' etc)"
+    (let (
+          (path ".")
+          (depth (-
+                  (length (split-string (file-name-directory file-path) "/"))
+                  (length (split-string base-path "/")))))
+      (dotimes (number
+                (- depth 1)
+                path)
+        (setq path (concat path "/..")))))
+
+#+END_SRC
+
+#+RESULTS:
+: org-make-relpath-string
+
+** Customizing the heading of table of contents
+
+Overwriing org-html-toc to use property :toc-heading as string for the Table of Contents heading.  Default is "Table of Contents".
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-html-toc (depth info)
+    "Build a table of contents.
+  DEPTH is an integer specifying the depth of the table.  INFO is a
+  plist used as a communication channel.  Return the table of
+  contents as a string, or nil if it is empty."
+    (let ((toc-heading (plist-get info :toc-heading))
+          (toc-entries
+           (mapcar (lambda (headline)
+                     (cons (org-html--format-toc-headline headline info)
+                           (org-export-get-relative-level headline info)))
+                   (org-export-collect-headlines info depth)))
+          (outer-tag (if (and (org-html-html5-p info)
+                              (plist-get info :html-html5-fancy))
+                         "nav"
+                       "div")))
+      (when toc-entries
+        (unless toc-heading (setq toc-heading "Table of Contents"))
+        (concat (format "<%s id=\"table-of-contents\">\n" outer-tag)
+                (format "<h%d>%s</h%d>\n"
+                        org-html-toplevel-hlevel
+                        (org-html--translate toc-heading info)
+                        org-html-toplevel-hlevel)
+                "<div id=\"text-table-of-contents\">"
+                (org-html--toc-text toc-entries)
+                "</div>\n"
+                (format "</%s>\n" outer-tag)))))
+#+END_SRC
+* Setup auto-parse and auto-copy
+
+#+BEGIN_SRC emacs-lisp
+
+  (add-hook 'after-save-hook 'org-pm-maybe-parse-and-copy)
+
+  (defun org-pm-maybe-parse-and-copy ()
+    "This function is run whenever a file is saved.
+  If org-pm-auto-parse is true, make projects whose definitions are in this buffer.
+  If org-pm-auto-copy is set to 'on-save, then copy the file and sections
+  specified to their project base directory folders."
+    (when (equal major-mode 'org-mode)
+      (if org-pm-auto-parse
+          ;; if org-pm-auto-copy is not nil, then don't save here:
+          (org-pm-make-projects org-pm-auto-copy))
+      (if (equal org-pm-auto-copy 'on-save)
+          ;; Always save if running this.
+          (org-pm-export-components-to-projects))))
+#+END_SRC
+
+* Main functions and commands
+:PROPERTIES:
+:DATE:     <2013-12-18 Wed 11:16>
+:END:
+
+** Auto-saving and parsing of documents on save
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-toggle-auto ()
+    (interactive)
+    (setq org-pm-auto-parse (not org-pm-auto-parse))
+    (if org-pm-auto-parse ;; stay in sync with auto parse!
+        (setq org-pm-auto-copy 'on-save)
+      (setq org-pm-auto-copy nil))
+    (if org-pm-auto-parse
+        (message "Org-pm auto-save and copy activated.")
+      (message "Org-pm auto-save and copy deactivated.")))
+
+  (defun org-pm-save-and-update ()
+    (interactive)
+    (org-edit-src-save)
+    (org-pm-make-projects)
+    (org-pm-copy-components-to-projects))
+
+  (defun org-pm-toggle-verbose ()
+    (interactive)
+    (setq org-pm-report-after-copying-p (not org-pm-report-after-copying-p))
+    (if org-pm-report-after-copying-p
+        (message "Reporting after copying activated")
+      (message "Reporting after copying deactivated")))
+#+END_SRC
+*** org-pm-do-auto / org-pm-dont-auto
+
+Utility functions
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-do-auto ()
+    (interactive)
+    (setq org-pm-auto-parse t)
+    (setq org-pm-auto-copy 'on-save))
+
+  (defun org-pm-dont-auto ()
+    (interactive)
+    (setq org-pm-auto-parse nil)
+    (setq org-pm-auto-copy nil))
+#+END_SRC
+
+** Creating and managing project definitions
+
+* Cleaning up duplicate links and dead projects+files
+
+1. Some sections may have duplicate IDs, created by copy-pasting sections.
+2. When a project definition is copied or renamed, this may result in having duplicate definitions, i.e. multiple project definitions with the same name in different places.  Which is the one to work with.
+3. When a project definition is renamed or removed, the one stored under its previous name becomes orphaned. What to do?
+4. When a project component is deleted or moved to another project, or when the project or folder or name of the file where it should be copied changes, then the old file becomes orphaned.   What to do?
+
+Dealing with the above:
+
+1. One can use org-id-update-id-locations to both find all ids and all duplicates.
+2. is possible to check as soon as it happens, because the moment a new project gets defined one can check if the already existing definition is in the same file.  Registering duplicate projects defintions in org-pm-projectd-def-duplicates.  Function org-pm-list-project-defs creates buffer listing all project defs, including duplicates, and provides links for going to any one of thse in order to edit/remove.
+3. could be delegated to commands that a user can call independently of the main specification and publishing process.
+4. could be handled like No. 3.

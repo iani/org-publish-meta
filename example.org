@@ -1,0 +1,61 @@
+#+PROJECT: test@home@index
+
+* A Section 3                                        :_test_:_test2@@x1_:_4_:
+
+#+BEGIN_SRC elisp
+(org-pm-get-section-project-paths)
+#+END_SRC
+
+#+RESULTS:
+| 488 | (~/Documents/Dev/Web/octopress-pm-test-org/static/section-for-test-project.org . static_octopress_pm_test) |                                                                                                            |              |
+| 314 | (~/Documents/Dev/Web/octopress-pm-test-org/another-entry-or-section.org . octopress_pm_test)               | (~/Documents/Dev/Web/octopress-pm-test-org/static/another-entry-or-section.org . static_octopress_pm_test) |              |
+|  29 | (nil . 4)                                                                                                  | (nil . test2)                                                                                              | (nil . test) |
+
+#+BEGIN_SRC elisp
+(org-back-to-heading)
+(plist-get (cadr (org-element-at-point)) :tags)
+#+END_SRC
+
+* Another entry (or section) :_static_octopress_pm_test_:_octopress_pm_test_:blog:
+
+#+BEGIN_SRC elisp
+(org-pm-get-file-project-paths)
+#+END_SRC
+
+#+RESULTS:
+| (nil . test) |
+
+* Section for test project     :_static_octopress_pm_test_:octopress_pm_test:
+:PROPERTIES:
+:TEST:     1
+:LIST:     '(a b c d e)
+:END:
+
+#+BEGIN_SRC elisp
+  (save-excursion
+    (org-back-to-heading)
+    (+ 1 (eval (read (plist-get (cadr (org-element-at-point)) :TEST)))))
+#+END_SRC
+
+#+RESULTS:
+: 2
+
+#+BEGIN_SRC elisp
+  (save-excursion
+    (org-back-to-heading)
+     (eval (read (plist-get (cadr (org-element-at-point)) :LIST))))
+#+END_SRC
+
+#+RESULTS:
+| a | b | c | d | e |
+
+#+BEGIN_SRC elisp
+  (save-excursion
+    (org-back-to-heading)
+    (-map (lambda (p) (car (org-pm-parse-prop-or-tag p)))
+          (-filter (lambda (tag) (string-match "^_.*_$" tag))
+                      (plist-get (cadr (org-element-at-point)) :tags))))
+#+END_SRC
+
+#+RESULTS:
+| c |
