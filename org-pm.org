@@ -854,15 +854,90 @@ If project name input by user does not correspond to an existing project, offer 
 
 Remove file from project interactively selected by user.
 
-** TODO org-pm-add-component-to-project
+
+** org-pm-select-project-from-menu
+
+Present menu for selecting one project from the list of known projects.
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-select-project-from-menu ()
+    "Present menu for selecting one project from the list of known projects."
+    (interactive)
+    (let* ((projects
+            (-filter
+             (lambda (pn) (not (string-match "^combined_" pn)))
+             (-map 'car org-publish-project-alist)))
+           index selected-project-name)
+      (unless projects (setq projects '("new_project")))
+      (setq index (grizzl-make-index projects))
+      (setq selected-project-name
+            (grizzl-completing-read "Choose a project:" index))
+      (unless (assoc selected-project-name org-publish-project-alist)
+        (org-pm-make-project-template selected-project-name t))
+      selected-project-name))
+#+END_SRC
+
+** DONE org-pm-add-section-to-project
+:PROPERTIES:
+:DATE:     <2014-01-13 Mon 07:30>
+:END:
 
 Add current section (node) to a project interactively selected or input by user.
 
 If project name input by user does not correspond to an existing project, offer to create that project.
 
-** TODO org-pm-remove-component-from-project
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-add-section-to-project ()
+    "Present menu of existing project definitions.
+  Add selected project as tag to current section."
+    (interactive)
+    (save-excursion
+      (org-back-to-heading)
+      (let* ((project-name (org-pm-select-project-from-menu))
+             (tags (plist-get (cadr (org-element-at-point)) :tags))
+             (existing-projects
+              (-map (lambda (p) (car (org-pm-parse-prop-or-tag p)))
+                    (-filter (lambda (tag) (string-match "^_.*_$" tag)) tags))))
+        (unless (member project-name existing-projects)
+          (org-set-tags-to (cons (concat "_" project-name "_") tags))))))
+#+END_SRC
+
+** DONE org-pm-remove-section-from-project
+:PROPERTIES:
+:DATE:     <2014-01-13 Mon 08:43>
+:END:
 
 Remove current section (node) from a project interactively selected by user.
+#+BEGIN_SRC elisp
+  (defun org-pm-remove-section-from-project ()
+    "Show menu for selecting a project definition from tags of current section.
+    Then remove selected project from tags of current section."
+    (interactive)
+    (save-excursion
+      (org-back-to-heading)
+      (let* ((tags (plist-get (cadr (org-element-at-point)) :tags))
+             (existing-projects
+              (-map (lambda (p) (car (org-pm-parse-prop-or-tag p)))
+                    (-filter (lambda (tag) (string-match "^_.*_$" tag)) tags)))
+             (index (grizzl-make-index existing-projects))
+             (project (grizzl-completing-read "Select project to remove:" index)))
+       (org-set-tags-to
+        (-reject
+         (lambda (p) (equal (car (org-pm-parse-prop-or-tag p)) project)) tags)))))
+#+END_SRC
+
+** org-pm-get-section-projects
+
+#+BEGIN_SRC emacs-lisp
+
+  (defun org-pm-get-section-projects ()
+    "Return list of projects found in the tags of the current section"
+   (save-excursion
+     (org-back-to-heading)
+     (-map (lambda (p) (car (org-pm-parse-prop-or-tag p)))
+           (-filter (lambda (tag) (string-match "^_.*_$" tag))
+                    (plist-get (cadr (org-element-at-point)) :tags)))))
+#+END_SRC
 
 ** org-pm-copy-components-to-projects
 
@@ -879,123 +954,70 @@ Version 2 lengthens the publishing time.
 
 The accumulated delay of copying project components from all files when publishing may be more distracting than the delay of copying components of a single project.  Additionally, it is better to be able to check the condition of a project at any stage, and to have it updated as soon as a file is saved.  So I start by setting the default to copy components when the file is saved.
 
+*** Variable: flag for reporting (may be removed)
 #+BEGIN_SRC emacs-lisp
   ;; Will replace org-pm-register-project-components.
-  (defvar *org-pm-missing-projects* nil
-  "Names of projects referenced in a file, whose definition is not found.
-  For reporting.")
 
-  (defvar *org-pm-updated-projects* nil
-    "Names of projects to which components in a file were copied.
-  For reporting")
-
+  ;; Review?  Remove? :
   (defvar org-pm-report-after-copying-p t
   "If not-nil, org-pm-copy-components-to-projects will post a report
   of projects not found or of projects targeted when finishing.")
 #+END_SRC
 
+*** DONE Construct path of a target file to copy file or section to
+
+Three functions are defined here:
+
+1. =org-pm-parse-component= extracts project, folder and file name strings from a property or tag in an org file, plus the name of the current file and the value of the DATE property, if present.
+2. =org-pm-make-target-path= constructs the final path, based on the list containing the project, folder and file, which is produced by =org-pm-parse-component=.
+3.
+
+**** org-pm-parse-component
+Called by:
+- org-pm-get-file-components
+- org-pm-get-section-components
+
+Process data obtained from property or tag, and create list of form: (project folder filename). This is then processed by org-pm-make-target-path to make the path used to copy the file.
+
+**** org-pm-make-target-path
+
+Called by
+- org-pm-copy-file-components
+- org-pm-copy-section-components
+
+Construct path for copying a file or section to, from list (project folder file) received from org-pm-parse-component. This funcion returns a cons pair: (path . path-or-project).  =path= is used for copying.  =path-or-project= for display/menus. If project def not found, path is nil and path-or-project is '<project-name> (not found)'
+
+**** org-pm-make-filename
+
+Called by org-get-section-components.  Converts the title of a section to a filename by replacing non-alphanumeric characters with dashes (=-=).  Also removes trailing timestamp from title.
+
+**** Code
+
 #+BEGIN_SRC emacs-lisp
-  (defun org-pm-copy-all-parts-to-projects ()
-    "Copy file and sections specified by properties, tags
-  to the designated projects and folders.
-  Before copying, re-scan buffer to build list of targets for copying."
-    (interactive)
-    (save-excursion
-      (save-restriction
-        (widen)
-
-        ))
-  )
-
-  (defun org-pm-get-and-copy-file-project-components (scan-entire-file)
-    "Calls org-pm-get-file-project-components and org-pm-copy-project-components.
-  See there."
-    (interactive "P")
-    (save-excursion
-      (if scan-entire-file (widen))
-      (message "file copied to:\n %s"
-               (org-pm-copy-file-project-components
-                (org-pm-get-file-project-components)))))
-
-  (defun org-pm-show-target-file-list (&optional file-components section-components)
-    "Create a list of paths of all files which the current file and its sections
-  outputs to.  Present this as a grizzl list for auto-complete search.
-  Open selected file."
-    (interactive)
-    (unless file-components
-      (setq file-components (org-pm-get-file-project-targets)))
-    (unless section-components
-      (setq section-components (org-pm-get-section-project-targets)))
-    (let* ((target-list
-           (mapcar (lambda (t) (cdr t))
-                   (append file-components section-components)))
-           (index (grizzl-make-index target-list))
-           answer)
-      ;; (message "%s" target-list)
-      (setq answer (grizzl-completing-read "Choose file to open: " index))
-      (if (string-match "(undefined project)$" answer)
-          (message "No file: %s" answer)
-         (find-file answer))))
-
-  (defun org-pm-make-displayable-target-path (components)
-    "Make path string from components using org-pm-make-target-path,
-  but if project defition is missing, then give name of project instead."
-    (let ((path (org-pm-make-target-path components)))
-      (if path
-          path
-        (format "\"%s\" (undefined project)" (car c)))))
-
-  (defun org-pm-get-section-project-targets ()
-    "Return list of paths of files to which sections of current file are copied."
-    (interactive)
-    (let (path
-          (components
-           (-map (lambda (clist)
-                   (-map (lambda (c) (org-pm-make-displayable-target-path c))
-                         clist))
-                 (-map (lambda (aclist) (cdr aclist))
-                       (org-pm-get-section-project-components)))))
-      (message "%s" (-flatten components))
-      (-flatten components)))
-
-  (defun org-pm-get-file-project-components ()
-    "Build list of projects-folders-files to export this buffer to.
-  The list is created from the list of values of property PROJECT
-  that are defined in this buffer.
-  The list is passed to org-pm-copy-file-project-components for copying. "
-    (interactive)
-    (let* ((fullpath (buffer-file-name (current-buffer)))
-           (filename (file-name-nondirectory fullpath))
-           (date (org-get-header-property "DATE" nil))
-           (components (-map (lambda (component)
-                               (org-pm-parse-component component filename date))
-                             (org-get-header-property "PROJECT" t))))
-    ;;  (message "file components for %s are:\n%s" filename components)
-      components))
-
-  (defun org-pm-parse-component (component filename date)
-    "Process component and filename, and provide project, folder, filename strings.
-  Splits component to project, folder, filename if separated by @.
-  Constructs blog entry path if date is provided.
+  (defun org-pm-parse-prop-or-tag (prop-or-tag &optional filename date)
+    "Process property or tag, name of file containing component,
+  and date property of file or section to provide project, folder, filename strings.
+  Split prop-or-tag to project, folder, filename if separated by @.
+  Construct blog entry style filename if date is provided.
 
   If date is provided, convert date into jekyll- (hexo-, etc.) compatible
   blog entry format, and prepend it.
   Entry title 'thoughts-on-pre-processing', with date <2014-01-05 Sun 10:56>
   becomes: '2014-01-05-thoughts-on-pre-processing'
 
-  Do not convert filename from title format.  That is done in
-  org-pm-get-section-project-components (see function org-pm-make-filename."
+  Do not convert filename from title format.  That is done by function
+  org-pm-make-filename, which is called by org-pm-get-section-project-components."
 
     ;; strip enclosing underscores _
-    (setq component (replace-regexp-in-string
-                     "^_" "" (replace-regexp-in-string "_$" "" component)))
+    (setq prop-or-tag (replace-regexp-in-string
+                     "^_" "" (replace-regexp-in-string "_$" "" prop-or-tag)))
     ;; replace # by .
-    (setq component (replace-regexp-in-string "#" "." component))
+    (setq prop-or-tag (replace-regexp-in-string "#" "." prop-or-tag))
     ;; split into project, folder, filename
     ;; and provide "" as folder, filename where @ separators are missing
-    (setq component (-take 3 (split-string (concat component "@@") "@")))
-    ;; if component had filename, use that instead of filename argument
-    (if (> (length (caddr component)) 0) (setq filename (caddr component)))
+    (setq prop-or-tag (-take 3 (split-string (concat prop-or-tag "@@") "@")))
+    ;; if prop-or-tag had filename, use that instead of filename argument
+    (if (> (length (caddr prop-or-tag)) 0) (setq filename (caddr prop-or-tag)))
     ;; provide extension
     (unless filename (setq filename "index"))
     (unless (file-name-extension filename)
@@ -1007,9 +1029,34 @@ The accumulated delay of copying project components from all files when publishi
                 date))
       (setq filename (concat (substring date 1 11) "-" filename)))
     ;; return project, folder, new filename as list
-    (setcdr (cdr component) (list filename))
-    component)
+    (setcdr (cdr prop-or-tag) (list filename))
+    prop-or-tag)
 
+  ;; Create final path to copy file, from list (project folder file)
+  ;; received from org-pm-parse-prop-or-tag.
+  ;; Return (path . path-or-project)
+  ;; path is used for copying.  path-or-project for display/menus.
+  ;; If project def not found, path is nil.
+
+  (defun org-pm-make-target-path (proj-folder-file)
+    "Create path of file for copying contents of current buffer to a project.
+  Combine base directory + folder + file from list proj-folder-file
+  to make target-path.
+  Return (path . project-name)
+  The car of the result is used to copy the component to the path.
+  The cdr of the result (project-name) is used for display and debugging."
+    (let* ((pname (car proj-folder-file))
+           (project (cdr (assoc pname org-publish-project-alist)))
+           (folder (cadr proj-folder-file))
+           (slash (if (string-match "/$" folder) "" "/"))
+           (target-path
+            (if project
+                (concat (plist-get project :base-directory)
+                        folder slash (caddr proj-folder-file)))))
+      (cons target-path pname)))
+
+  ;; Convert title of org-mode section entry into filename
+  ;; Used by org-pm-get-section-project-components
   (defun org-pm-make-filename (title &optional date)
     "Convert title of org-mode section entry into filename.
   Remove non alphanumeric characters.
@@ -1042,48 +1089,47 @@ The accumulated delay of copying project components from all files when publishi
                   date))
         (setq filename (concat (substring date 1 11) "-" filename)))
       filename))
+#+END_SRC
 
-  (defun org-pm-copy-file-project-components (components)
-    "Copy this file to target locations specified by components list.
-  Components is provided by org-pm-get-file-project-components.
-  Structure of each entry (element) in the components list:
-  project-alist (or nil), project-name, folder, filename."
-    (when components
-      (let (project
-            (origin-buffer (current-buffer))
-            (target-buffer (get-buffer-create "*org-pm-copy-buf*")))
-        (set-buffer target-buffer)
-        (insert-buffer origin-buffer)
-        (dolist (component components)
-          (let ((target-path (org-pm-make-target-path component)))
-            (when target-path
-              (make-directory (file-name-directory target-path) t)
-              (write-region nil nil target-path))))
-        (kill-buffer target-buffer)))
-    components) ;; pass components for posting (reporting) by calling function
+*** Get list of file components to be copied to projects
 
-  (defun org-pm-make-target-path (proj-folder-file)
-    "Create path of file for copying contents of current buffer to a project.
-  Combine base directory + folder + file from list proj-folder-file
-  to make target-path.
-  If project found, return: (target-path . target-path)
-  If project not found, return: (nil . missing-project-string).
-  The car of the result is used to copy the component to the path.
-  The cdr of the result is used for display and debugging."
-    (let* ((pname (car proj-folder-file))
-           (project (cdr (assoc pname org-publish-project-alist)))
-           (folder (cadr proj-folder-file))
-           (slash (if (string-match "/$" folder) "" "/"))
-           (target-path
-            (if project
-                (concat (plist-get project :base-directory)
-                        folder slash (caddr proj-folder-file)))))
-      (cons target-path
-            (if target-path
-                target-path
-              (format "\"%s\" (undefined project)" pname)))))
+**** org-pm-get-file-project-paths
 
-  (defun org-pm-get-section-project-components ()
+Get all values of file property "PROJECT".  Parse each value, and return a list of paths.
+Returns list of the form:
+
+: ((path . projectname) (path . projectname) ... )
+
+Where =path= is the place to copy the file to and =projectname= is the name of the project followed by "undefined project" if the targed project is not defined.
+
+**** org-pm-get-section-project-paths
+
+Get all sections marked with tags that are enclosed in underscore (=_=).  Parse each value and return a list of lists:
+((section-position (project folder file) (project folder file) ...)
+ (section-position (project folder file) (project folder file) ...)
+...)
+
+**** Code
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-get-file-project-paths ()
+    "Build list of projects-folders-files to export this buffer to.
+  The list is created from the list of values of property PROJECT
+  that are defined in this buffer.
+  The list is passed to org-pm-copy-file-project-paths for copying. "
+    (interactive)
+    (let* ((fullpath (buffer-file-name (current-buffer)))
+           (filename (file-name-nondirectory fullpath))
+           (date (org-get-header-property "DATE" nil))
+           (components
+            (-map (lambda (component)
+                    (org-pm-make-target-path
+                     (org-pm-parse-prop-or-tag component filename date)))
+                  (org-get-header-property "PROJECT" t))))
+      ;;  (message "file components for %s are:\n%s" filename components)
+      ;; FIXME: TODO: save paths to disc in org-pm save file
+      components))
+
+  (defun org-pm-get-section-project-paths ()
     "Build list of projects-folders-files to export sections of this buffer to.
   The list is created from those sections whose tags specify projects,
   i.e . tags enclosed in underscores: _projectname_
@@ -1106,96 +1152,97 @@ The accumulated delay of copying project components from all files when publishi
             (setq date (plist-get node :DATE))
             (dolist (spec pspecs)
               (setq section-entries
-                    (cons (org-pm-parse-component
-                           spec
-                           (org-pm-make-filename name)
-                           date) section-entries)))
+                    (cons (org-pm-make-target-path
+                           (org-pm-parse-prop-or-tag
+                            spec
+                            (org-pm-make-filename name)
+                            date)) section-entries)))
             (setq components (cons (cons (point) section-entries) components))))))
-     (message "COMPONENTS: \n%s" components)
+    ;;  (message "COMPONENTS: \n%s" components)
+     ;; FIXME: TODO: save paths to disc in org-pm save file
      components))
 
-  (defun org-pm-copy-section-project-components ()
-    ""
+  ;;; The next function should be reviewed.  May be scrapped.
+  (defun org-pm-get-section-project-targets ()
+    "Return list of paths of files to which sections of current file are copied."
+    (interactive)
+    (let (sections
+          (components
+           (-map (lambda (clist)
+                   (-map (lambda (c) (org-pm-make-displayable-target-path c))
+                         clist))
+                 (-map (lambda (aclist) (cdr aclist))
+                       (org-pm-get-section-project-components)))))
+      (message "%s" (-flatten components))
+      (-flatten components)))
 
-    )
+  ;; pass components for posting (reporting) by calling function
 
-  (defun org-pm-copy-components-to-projects (&optional do-not-save-now)
 
-    )
-
-  ()
 #+END_SRC
 
+*** Copy files / sections to project targets
 #+BEGIN_SRC emacs-lisp
-  (defun org-pm-copy-components-to-projects-old (&optional do-not-save-now)
-    "Old version - being debugged.
-
-  Find which parts of the file go to which to projects, and copy them
-  to the base-directories of these projects.  Also save the projects found in
-  list org-pm-files for this project, using the full path of this file as key.
-  This list is saved and can be used later to update the contents of any project
-  by finding all the files that contribute to this project.
-
-  Parse current buffer, looking for projects added for the whole file (with property
-  =#+PROJECT:= or for sections (with tags enclosed in =_=). Collect names of all projects
-  found in a list. Put the list in the assoc list stored in =org-pm-files=, using the full
-  path of the file as key. Function =org-pm-copy-to-project= scans this list to find if
-  the file contains any components that should be copied to the project, and copies them.
-
-  components: List of file and/or ids of any sections that are copied to projects.
-                Each element is of the form:
-                (component (project folder file) (project folder file)...)
-  Components is added to org-pm-files and auto-saved."
-
+  (defun org-pm-export ()
+    "Top level function for exporting file and sections to projects.
+  Copy both file and any sections specified by properties, tags
+  to the designated projects and folders.
+  Before copying, re-scan buffer to build list of targets for copying."
     (interactive)
-    (let* ((fullpath (buffer-file-name (current-buffer)))
-          (filename (file-name-nondirectory fullpath))
-          components file-components (origin-buffer (current-buffer)))
-      (setq file-components
-            (-map (lambda (component) (org-pm-parse-component component filename))
-                  (org-get-header-property "PROJECT" t)))
-      (org-map-entries
-       '(let* (name
-               (node (cadr (org-element-at-point)))
-               (pspecs (-filter (lambda (tag) (string-match "^_.*_$" tag))
-                                (plist-get node :tags))))
-          (when pspecs
-            (setq name (plist-get node :raw-value))
-            (setq date (plist-get node :START_TIME))
-            (setq components
-                  (cons
-                   (cons
-                    (plist-get node :begin)
-                    (-map
-                     (lambda (component) (org-pm-parse-component component name date))
-                     pspecs))
-                   components)))))
-      (if file-components
-          (setq components (cons (cons "FILE" file-components) components)))
-      (setq org-pm-files (assoc-replace org-pm-files fullpath components))
-      ;; first save, then do the copying:
-      (unless do-not-save-now (org-pm-save-all-project-data))
-      (setq *org-pm-missing-projects* nil)
-      (setq *org-pm-updated-projects* nil)
-      (dolist (comp components)
-        (let ((pos (car comp))
-              (target-buffer (get-buffer-create "*org-pm-copy-buf*")))
+    (save-excursion
+      (save-restriction
+        (widen)
+        (org-pm-export-file-to-projects)
+        (org-pm-export-sections-to-projects))))
 
-          (cond ((equal "FILE" pos)
-                 (set-buffer target-buffer)
-                 (insert-buffer origin-buffer)
-                 (dolist (proj (cdr comp)) (org-pm-save-buffer proj target-buffer))
-                 )
+  (defun org-pm-export-buffer-to-file (path-project)
+    "
+  path-project has the form (path . project-name).
+  If path is not nil, save current buffer to path."
+    (let ((path (car path-project)))
+      (when path
+        (make-directory (file-name-directory path) t)
+        (write-region nil nil path))))
 
-                (t
-                 (set-buffer origin-buffer)
-                 (goto-char pos)
-                 (org-copy-subtree)
-                 (set-buffer target-buffer)
-                 (org-paste-subtree 1)
-               ;;  (dolist (proj (cdr comp)) (org-pm-save-buffer proj target-buffer))
-                 ))
-          (kill-buffer target-buffer)))))
+  (defun org-pm-export-file-to-projects (&optional paths)
+    "Copy entire file to any projects specified by property PROJECT
+  Copies the file to targets given in paths.  If paths is nil,
+  then get the paths by scanning the current buffer.
+  Components is provided by org-pm-get-file-project-paths."
+    (interactive)
+    (unless paths (setq paths (org-pm-get-file-project-paths)))
+    (when paths
+      (let ((origin-buffer (current-buffer))
+             (target-buffer (get-buffer-create "*org-pm-copy-buf*")))
+        (set-buffer target-buffer)
+        (insert-buffer origin-buffer)
+        (dolist (path paths) (org-pm-export-buffer-to-file path))
+        (kill-buffer target-buffer)))
+    ;; (message "%s exported to paths:\n %s" (buffer-file-name) paths)
+    paths)
+
+  (defun org-pm-export-sections-to-projects (&optional sections-with-paths)
+    "Copy sections of this file to paths specified by tags."
+    (interactive)
+    (unless sections-with-paths
+      (setq sections-with-paths (org-pm-get-section-project-paths)))
+    (let ((buffer (current-buffer)))
+     (dolist (section sections-with-paths)
+       (org-pm-export-1-section-to-projects section buffer))))
+
+  (defun org-pm-export-1-section-to-projects (section-with-paths origin-buffer)
+    "Copy section to temporary buffer, then save it to all
+  paths in the rest of section-with-paths."
+    (let ((target-buffer (get-buffer-create "*org-pm-copy-buf*")))
+      (set-buffer origin-buffer)
+      (goto-char (car section-with-paths))
+      (org-copy-subtree)
+      (set-buffer target-buffer)
+      (org-paste-subtree 1)
+      (dolist (path-project (cdr section-with-paths))
+        (org-pm-export-buffer-to-file path-project))
+      (kill-buffer target-buffer)
+      (message "exported section: %s" section-with-paths)))
 
   (defun org-pm-save-buffer (specs buffer)
   "Save current buffer "
@@ -1203,6 +1250,10 @@ The accumulated delay of copying project components from all files when publishi
       (make-directory (file-name-directory target-path) t)
       (write-region nil nil target-path)))
 
+
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
   (defun org-pm-make-target (specs)
     (let* ((project-name (car specs))
            (folder (cadr specs))
@@ -1260,6 +1311,30 @@ The accumulated delay of copying project components from all files when publishi
       (read-from-minibuffer (if prompt prompt ">>> "))
       (grizzl-selected-result index)))
 
+#+END_SRC
+
+*** User interaction: Display info, menus etc.
+
+#+BEGIN_SRC emacs-lisp
+(defun org-pm-show-target-file-list (&optional file-components section-components)
+  "Create a list of paths of all files which the current file and its sections
+outputs to.  Present this as a grizzl list for auto-complete search.
+Open selected file."
+  (interactive)
+  (unless file-components
+    (setq file-components (org-pm-get-file-project-targets)))
+  (unless section-components
+    (setq section-components (org-pm-get-section-project-targets)))
+  (let* ((target-list
+         (mapcar (lambda (t) (cdr t))
+                 (append file-components section-components)))
+         (index (grizzl-make-index target-list))
+         answer)
+    ;; (message "%s" target-list)
+    (setq answer (grizzl-completing-read "Choose file to open: " index))
+    (if (string-match "(undefined project)$" answer)
+        (message "No file: %s" answer)
+       (find-file answer))))
 #+END_SRC
 
 ** TODO org-pm-publish: Select a project to publish from the projects targeted by current buffer.
@@ -1430,6 +1505,9 @@ Note: Naming this function org-pm-edit-duplicate-project-def disabled the auto-d
                        org-pm-load-all-project-data
                        org-pm-list-project-defs
                        org-pm-show-target-file-list
+                       org-pm-make-projects
+                       org-pm-make-project-template
+                       org-pm-copy-all-parts-to-projects
                        ))
            (menu (grizzl-make-index
                  (-map (lambda (c)
@@ -1487,7 +1565,7 @@ Dealing with the above:
 4. could be handled like No. 3.
 
 
-* COMMENT Project Definitions              :PROJECT_DEFS:
+* COMMENT Project Definitions                                  :PROJECT_DEFS:
 ** org_pm
 :PROPERTIES:
 :ID:       5F6A7EFA-7491-49CB-9985-26D53BB17F34
