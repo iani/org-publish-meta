@@ -1,6 +1,6 @@
 #+TODO: TODO UNDERWAY | DONE CANCELLED
 #+TITLE: Org-publish-meta: Easy projects for Org-mode
-* UNDERWAY Variables
+* Variables
 :PROPERTIES:
 :DATE:     <2013-12-18 Wed 11:52>
 :END:
@@ -23,8 +23,8 @@ CLOSED: [2013-12-18 Wed 15:23]
     "Path of file for storing org-publish-project-alist and
   org-pm-files.  If nil, the path is deduced from the existence
   of .emacs.d folder in user's home directory.
-  If .emacs.d exists, use ~/.emacs.d/savefile/org-publish-project-alist
-  else use ~/.org-publish-project-alist.
+  If .emacs.d exists, use ~/.emacs.d/savefile/org-pm-project-data.el
+  else use ~/.org-pm-project-data.el.
   Create savefile folder if it does not exist.")
 #+END_SRC
 
@@ -1324,35 +1324,26 @@ Note: Naming this function org-pm-edit-duplicate-project-def disabled the auto-d
 #+RESULTS:
 : pm/edit-duplicate-project-def
 
-* Create Octopress Headers
+* Create Jekyll/Octopress Headers ("YAML front matter")
 
-** Notes/Outline
+If the value of property =body-only= in the project-plist is =t=, then org-pm adds YAML front matter at the beginning of the file when exporting.  This makes the file to be processed by Jekyll or Octopress.  The following items are provided, if their values are set:
 
-A Jekyll/Octopress header is by default added to the exported file if the project has property =body-only= set to =t=.
-(Reference: see http://orgmode.org/worg/org-tutorials/org-jekyll.html#sec-4)
+- author :: value of eamcs/orgmode variable author
+- categories :: value of property CATEGORIES
+- commments :: value of property COMMENTS
+- date :: value of property DATE
+- external-url :: value of property EXTERNAL-URL
+- layout :: =default= if no DATE property is set. =blog= if DATE property is set.  Value can be customized by setting property LAYOUT.
+- permalink :: value of property PERMALINK
+- published :: value of property PUBLISHED
+- tags :: tags of section or values of property TAGS
+- title :: from title property of file or header of section
 
-- layout is default if no date present
-- layout is blog if date present
-- layout can be (overriden/) specified by property LAYOUT
-- title is:
-  - TITLE property in case of file
-  - header of section in case of section
-- comments is true unless overridden by property COMMENTS
-- categories is taken from tags, minus project tags
-- Other entries in header?  Which properties to look for?
+** About Yaml front matter
 
-** Header examples from octopress
+YAML front matter for jekyll or octopress is a header to be added at the beginning of the file, consisting of keyword-value pairs.  The header is demarcated by writing it between 3 dashes.  Example:
 
----
-layout: default
----
-
----
-layout: page
-title: Blog Archive
-footer: false
----
-
+#+BEGIN_SRC
 ---
 layout: post
 title: "Categories"
@@ -1363,12 +1354,113 @@ categories:
 - Sass
 - Media Queries
 ---
+#+END_SRC
 
-** Code: org-pm-make-octopress-header
+** Doc of YAML front matter items
 
-(Or should it be: org-pm-make-jekyll-header?)
+In http://jekyllrb.com/docs/frontmatter/ the following items are given for yaml front matter:
+
+- layout :: If set, this specifies the layout file to use. Use the layout file name without the file extension. Layout files must be placed in the  _layouts directory.
+- permalink :: If you need your processed blog post URLs to be something other than the default /year/month/day/title.html then you can set this variable and it will be used as the final URL.
+- published :: Set to false if you don’t want a specific post to show up when the site is generated.
+- categories :: Instead of placing posts inside of folders, you can specify one or more categories that the post belongs to. When the site is generated the post will act as though it had been set with these categories normally. Categories (plural key) can be specified as a YAML list or a space-separated string.
+- tags :: Similar to categories, one or multiple tags can be added to a post. Also like categories, tags can be specified as a YAML list or a space- separated string.
+
+Examples in http://octopress.org/docs/blogging/ include additional items:
+
+- title
+- date
+- commments
+- external-url
+- author
+- published
+
+** List of YAML front matter items
+
+Following is list of front matter items collected from  http://jekyllrb.com/docs/frontmatter/ and  http://octopress.org/docs/blogging/ (More to be added if found later).
+
+- author
+- categories
+- commments
+- date
+- external-url
+- layout
+- permalink
+- published
+- tags
+- title
+
+** Header examples from octopress
+
+#+BEGIN_SRC
+---
+layout: default
+---
+#+END_SRC
+
+#+BEGIN_SRC
+---
+layout: page
+title: Blog Archive
+footer: false
+---
+#+END_SRC
+
+#+BEGIN_SRC
+---
+layout: post
+title: "Categories"
+date: 2014-01-04 19:05:17 +0200
+comments: true
+categories:
+- CSS3
+- Sass
+- Media Queries
+---
+#+END_SRC
 
 
+** Code: org-pm-make-yaml-front-matter
+
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-make-yaml-front-matter (project-plist &optional section-plist)
+    "Make YAML front matter for Jekyll or Octopress.
+
+  If the value of property body-only in the project-plist is t, then add YAML
+  front matter at the beginning of the file when exporting.  This causes the file
+  to be processed by Jekyll or Octopress.
+
+  The following items are provided, if their values are set:
+
+  - author :: value of eamcs/orgmode variable author
+  - categories :: value of property CATEGORIES
+  - commments :: value of property COMMENTS
+  - date :: value of property DATE
+  - external-url :: value of property EXTERNAL-URL
+  - layout :: 'default' if no DATE property is set. 'blog' if DATE property is set.
+              Value can be customized by setting property LAYOUT.
+  - permalink :: value of property PERMALINK
+  - published :: value of property PUBLISHED
+  - tags :: tags of section or values of property TAGS
+  - title :: from title property of file or header of section.
+
+  If section-plist is nil, then the properties are obtained from the buffer's
+  global properties.  Otherwise, they are obtained from section-plist."
+
+    (when (plist-get project-plist :body-only)
+      (insert "---\n")
+      (let ((property-getter
+             (if section-plist
+                 (lambda (prop) (plist-get section-plist prop))
+               (lambda (prop) (org-get-header-property prop t))))
+            (property)
+
+            ))
+      (insert "---\n")
+      )
+  )
+#+END_SRC
 
 
 
