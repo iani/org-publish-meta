@@ -47,7 +47,7 @@ CLOSED: [2013-12-18 Wed 15:23]
   The value is saved on disc in file specified by org-pm-project-data-file-path")
 #+END_SRC
 
-** org-pm-section-exports
+** DONE org-pm-section-exports
 
 #+BEGIN_SRC emacs-lisp
   (defvar org-pm-section-exports nil
@@ -93,11 +93,16 @@ CLOSED: [2013-12-21 Sat 22:07]
 #+BEGIN_SRC emacs-lisp
   (defvar org-pm-project-template-file-name
     (concat (file-name-directory (or load-file-name (buffer-file-name)))
-            "org-pm-project-template.org")
+            "org-pm-project-template-jekyll.org")
   "Full path of file containing template of project definition for
   projects generated automatically with org-pm-make-project-template.
-  The path is initialized at code loading time by function org-pm-init-project-template-name.
-  org-pm-make-project-template uses it to make project templates.")
+  The path is initialized at code loading time by function
+  org-pm-init-project-template-name.
+  org-pm-make-project-template uses it to make project templates.
+  The default template is for exporting to jekyll:
+  org-pm-project-template-jekyll.org
+  An alternative template for full html export with header is provided:
+  org-pm-project-template-plain.org" )
 #+END_SRC
 
 #+RESULTS:
@@ -214,56 +219,8 @@ CLOSED: [2013-12-19 Thu 09:01]
 #+RESULTS:
 : assoc-replace
 
-** DONE org-pm-add-project-file
-CLOSED: [2013-12-19 Thu 09:14]
-:PROPERTIES:
-:DATE:     <2013-12-18 Wed 21:17>
-:ID:       1FE8167C-A514-4C21-9FC2-4A466A692E56
-:END:
 
-When a file or a section of a file should be copied to a project base directory, add the project name to the list of projects of this file.  The list of projects of files is stored in org-pm-files.
-
-#+BEGIN_SRC emacs-lisp
-  (defun org-pm-add-project-file (project-name file)
-    "In list org-pm-files, add the project-name to the list
-  of projects that file bel ongs. "
-    (setq org-pm-files
-          (assoc-add org-pm-files file project-name)))
-#+END_SRC
-
-** TODO org-pm-remove-project-file
-:PROPERTIES:
-:DATE:     <2013-12-18 Wed 21:17>
-:ID:       1FE8167C-A514-4C21-9FC2-4A466A692E56
-:END:
-
-When a file or a section of a file should be removed from a project, remove the project name from the list of projects of this file in org-pm-files.  (The list of projects of files is stored in org-pm-files.)
-
-NOTE: Removing components from projects is more complex than adding, because we should also remove the files of the components from the base directory of the project.  Therefore: org-pm-parse-buffer must remove any files of components that no longer exist.  How to do this?
-
-#+BEGIN_SRC emacs-lisp
-  (defun org-pm-remove-project-file (project-name file)
-    "In list org-pm-files, add the project-name to the list
-  of projects that file belongs. "
-    (setq org-pm-files
-          (assoc-add org-pm-files file project-name)))
-#+END_SRC
-
-** DONE org-pm-add-project-to-file-header
-:PROPERTIES:
-:DATE:     <2013-12-18 Wed 21:17>
-:ID:       3E557B48-9700-4BEE-9D72-D4AC276DCF9C
-:END:
-
-#+BEGIN_SRC emacs-lisp
-  (defun org-pm-add-project-to-file-header (project-name)
-    "Add property PROJECT with value project-name at beginning of file."
-    (save-excursion
-      (save-restriction
-        (widen)
-        (beginning-of-buffer)
-        (insert (format "#+PROJECT: %s\n" project-name)))))
-#+END_SRC
+* Create Project Definitions
 
 ** org-pm-edit-project-template
 
@@ -276,17 +233,6 @@ Note that edits may cause conflicts when updating org-pm from git.
   Note that edits may cause conflicts when updating org-pm from git."
     (interactive)
     (find-file org-pm-project-template-file-name))
-#+END_SRC
-
-** org-pm-edit-saved-project-data
-
-Edit the file containing the auto-saved data for org-pom.
-
-#+BEGIN_SRC emacs-lisp
-  (defun org-pm-edit-saved-project-data ()
-    "Edit the file containing the global project data."
-    (interactive)
-    (find-file org-pm-project-data-file-path))
 #+END_SRC
 
 ** org-pm-show-project-definition-section
@@ -363,60 +309,10 @@ Edit the file containing the auto-saved data for org-pom.
       (org-pm-save-all-project-data)))
 #+END_SRC
 
-* Main functions and commands
-:PROPERTIES:
-:DATE:     <2013-12-18 Wed 11:16>
-:END:
 
-** Persistence: Saving and loading project data
-*** org-pm-load-all-project-data
 
-#+BEGIN_SRC emacs-lisp
-  (defun org-pm-load-all-project-data ()
-    "Load project alist, project file lists, duplicate project def lists
-  from previously saved date on disk."
-    (interactive)
-    (if (file-exists-p org-pm-project-data-file-path)
-        (load-file org-pm-project-data-file-path)))
-#+END_SRC
 
-#+RESULTS:
-: org-pm-load-all-project-data
-
-*** org-pm-save-all-project-data
-
-#+BEGIN_SRC emacs-lisp
-  (defun org-pm-save-all-project-data ()
-    "Load project alist, project file lists, duplicate project def lists
-  from previously saved date on disk."
-    (interactive)
-    (dump-vars-to-file
-     '(org-publish-project-alist
-       org-pm-file-exports
-       org-pm-section-exports
-       org-pm-project-def-duplicates)
-     org-pm-project-data-file-path))
-
-  (defun dump-vars-to-file (varlist filename)
-    "simplistic dumping of variables in VARLIST to a file FILENAME"
-    (save-excursion
-      (let ((buf (find-file-noselect filename)))
-        (set-buffer buf)
-        (erase-buffer)
-        (dump varlist buf)
-        (save-buffer)
-        (kill-buffer))))
-
-  (defun dump (varlist buffer)
-    "insert into buffer the setq statement to recreate the variables in VARLIST"
-    (loop for var in varlist do
-          (print (list 'setq var (list 'quote (symbol-value var)))
-                 buffer)))
-#+END_SRC
-
-** Creating and managing project definitions
-
-*** org-pm-reset-project-list / org-pm-clear-project-defs
+** org-pm-reset-project-list / org-pm-clear-project-defs
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-reset-project-list ()
@@ -427,7 +323,7 @@ Edit the file containing the auto-saved data for org-pom.
            (org-pm-save-all-project-data))))
 #+END_SRC
 
-*** DONE org-pm-make-projects
+** DONE org-pm-make-projects
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-make-projects (&optional do-not-save-now)
     "Construct the projects for all project definitions found in current file.
@@ -468,7 +364,7 @@ Edit the file containing the auto-saved data for org-pom.
       (message "Org-pm defined %d projects" (length projects))))
 #+END_SRC
 
-*** org-pm-parse-project-def
+** org-pm-parse-project-def
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-parse-project-def (proj-node &optional template)
@@ -526,7 +422,7 @@ Edit the file containing the auto-saved data for org-pom.
       (cons pname pdef)))
 #+END_SRC
 
-*** org-pm-check-add-project
+** org-pm-check-add-project
 #+BEGIN_SRC emacs-lisp
   (require 'dash)
   (defun org-pm-check-add-project (project)
@@ -579,7 +475,33 @@ Edit the file containing the auto-saved data for org-pom.
     project)
 #+END_SRC
 
-*** org-pm-post-project-def
+
+** query-make-folder
+#+BEGIN_SRC emacs-lisp
+  (defun query-make-folder (path &optional prompt-string)
+    "If folder at path does not exist, then show dialog offering to user
+      the option to create the indicated folder or to choose another path.
+      If the path selected does not exist, create folder."
+    (setq path (file-truename path))
+    (unless prompt-string (setq prompt-string "Folder select or create:"))
+    (let ((answer
+           (read-file-name
+            (format
+             "%s\nSelect or input folder (folder will be created if needed):\n"
+             prompt-string)
+            path)))
+      (unless (equal (file-truename answer) (buffer-file-name (current-buffer)))
+        (setq path answer))
+      (unless (file-exists-p path) (make-directory path))
+      path))
+
+#+END_SRC
+
+
+
+
+* Manage project definitions
+** org-pm-post-project-def
 :PROPERTIES:
 :DATE:     <2014-01-05 Sun 19:11>
 :END:
@@ -598,6 +520,57 @@ Select a project interactively and post its definition.
                project-name
                (assoc project-name org-publish-project-alist))))
 #+END_SRC
+
+** org-pm-edit-saved-project-data
+
+Edit the file containing the auto-saved data for org-pom.
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-edit-saved-project-data ()
+    "Edit the file containing the global project data."
+    (interactive)
+    (find-file org-pm-project-data-file-path))
+#+END_SRC
+
+
+* Add/remove projects to files/sections
+** DONE org-pm-add-project-file
+CLOSED: [2013-12-19 Thu 09:14]
+:PROPERTIES:
+:DATE:     <2013-12-18 Wed 21:17>
+:ID:       1FE8167C-A514-4C21-9FC2-4A466A692E56
+:END:
+
+When a file or a section of a file should be copied to a project base directory, add the project name to the list of projects of this file.  The list of projects of files is stored in org-pm-files.
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-add-project-file (project-name file)
+    "In list org-pm-files, add the project-name to the list
+  of projects that file bel ongs. "
+    (setq org-pm-files
+          (assoc-add org-pm-files file project-name)))
+#+END_SRC
+
+** TODO org-pm-remove-project-file
+:PROPERTIES:
+:DATE:     <2013-12-18 Wed 21:17>
+:ID:       1FE8167C-A514-4C21-9FC2-4A466A692E56
+:END:
+
+When a file or a section of a file should be removed from a project, remove the project name from the list of projects of this file in org-pm-files.  (The list of projects of files is stored in org-pm-files.)
+
+NOTE: Removing components from projects is more complex than adding, because we should also remove the files of the components from the base directory of the project.  Therefore: org-pm-parse-buffer must remove any files of components that no longer exist.  How to do this?
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-remove-project-file (project-name file)
+    "In list org-pm-files, add the project-name to the list
+  of projects that file belongs. "
+    (setq org-pm-files
+          (assoc-add org-pm-files file project-name)))
+#+END_SRC
+
+
+
 
 ** UNDERWAY org-pm-add-file-to-project:
 :PROPERTIES:
@@ -642,27 +615,6 @@ If project name input by user does not correspond to an existing project, offer 
        (plist-get (cdr project) :base-directory)
        (plist-get (cdr project) :publishing-directory))))
   #+END_SRC
-** query-make-folder
-#+BEGIN_SRC emacs-lisp
-  (defun query-make-folder (path &optional prompt-string)
-    "If folder at path does not exist, then show dialog offering to user
-      the option to create the indicated folder or to choose another path.
-      If the path selected does not exist, create folder."
-    (setq path (file-truename path))
-    (unless prompt-string (setq prompt-string "Folder select or create:"))
-    (let ((answer
-           (read-file-name
-            (format
-             "%s\nSelect or input folder (folder will be created if needed):\n"
-             prompt-string)
-            path)))
-      (unless (equal (file-truename answer) (buffer-file-name (current-buffer)))
-        (setq path answer))
-      (unless (file-exists-p path) (make-directory path))
-      path))
-
-#+END_SRC
-
 ** TODO org-pm-remove-file-from-project:
 
 Remove file from project interactively selected by user.
@@ -739,6 +691,71 @@ Remove current section (node) from a project interactively selected by user.
          (lambda (p) (equal (car (org-pm-parse-prop-or-tag p)) project)) tags)))))
 #+END_SRC
 
+
+** DONE org-pm-add-project-to-file-header
+:PROPERTIES:
+:DATE:     <2013-12-18 Wed 21:17>
+:ID:       3E557B48-9700-4BEE-9D72-D4AC276DCF9C
+:END:
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-add-project-to-file-header (project-name)
+    "Add property PROJECT with value project-name at beginning of file."
+    (save-excursion
+      (save-restriction
+        (widen)
+        (beginning-of-buffer)
+        (insert (format "#+PROJECT: %s\n" project-name)))))
+#+END_SRC
+
+* Save/Load/Edit project data
+** org-pm-load-all-project-data
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-load-all-project-data ()
+    "Load project alist, project file lists, duplicate project def lists
+  from previously saved date on disk."
+    (interactive)
+    (if (file-exists-p org-pm-project-data-file-path)
+        (load-file org-pm-project-data-file-path)))
+#+END_SRC
+
+#+RESULTS:
+: org-pm-load-all-project-data
+
+** org-pm-save-all-project-data
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-save-all-project-data ()
+    "Load project alist, project file lists, duplicate project def lists
+  from previously saved date on disk."
+    (interactive)
+    (dump-vars-to-file
+     '(org-publish-project-alist
+       org-pm-file-exports
+       org-pm-section-exports
+       org-pm-project-def-duplicates)
+     org-pm-project-data-file-path))
+
+  (defun dump-vars-to-file (varlist filename)
+    "simplistic dumping of variables in VARLIST to a file FILENAME"
+    (save-excursion
+      (let ((buf (find-file-noselect filename)))
+        (set-buffer buf)
+        (erase-buffer)
+        (dump varlist buf)
+        (save-buffer)
+        (kill-buffer))))
+
+  (defun dump (varlist buffer)
+    "insert into buffer the setq statement to recreate the variables in VARLIST"
+    (loop for var in varlist do
+          (print (list 'setq var (list 'quote (symbol-value var)))
+                 buffer)))
+#+END_SRC
+
+
+* Export files/sections to projects
 ** org-pm-get-section-projects
 
 #+BEGIN_SRC emacs-lisp
@@ -1307,8 +1324,58 @@ Note: Naming this function org-pm-edit-duplicate-project-def disabled the auto-d
 #+RESULTS:
 : pm/edit-duplicate-project-def
 
+* Create Octopress Headers
 
-* Menu: select org-pm command interactively
+** Notes/Outline
+
+A Jekyll/Octopress header is by default added to the exported file if the project has property =body-only= set to =t=.
+(Reference: see http://orgmode.org/worg/org-tutorials/org-jekyll.html#sec-4)
+
+- layout is default if no date present
+- layout is blog if date present
+- layout can be (overriden/) specified by property LAYOUT
+- title is:
+  - TITLE property in case of file
+  - header of section in case of section
+- comments is true unless overridden by property COMMENTS
+- categories is taken from tags, minus project tags
+- Other entries in header?  Which properties to look for?
+
+** Header examples from octopress
+
+---
+layout: default
+---
+
+---
+layout: page
+title: Blog Archive
+footer: false
+---
+
+---
+layout: post
+title: "Categories"
+date: 2014-01-04 19:05:17 +0200
+comments: true
+categories:
+- CSS3
+- Sass
+- Media Queries
+---
+
+** Code: org-pm-make-octopress-header
+
+(Or should it be: org-pm-make-jekyll-header?)
+
+
+
+
+
+
+
+* Menu and Keyboard Shortcuts
+** Menu: select org-pm command interactively
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-menu ()
@@ -1338,7 +1405,7 @@ Note: Naming this function org-pm-edit-duplicate-project-def disabled the auto-d
               (replace-regexp-in-string " " "-" selection)
               ")")))))
 #+END_SRC
-* Keyboard shortcuts
+** Keyboard shortcuts
 
 Note: I use the Hyper-m  (= Mac fn key m) as prefix, because it is not likely to be occupied by other packages.  Users can easily remap.
 
