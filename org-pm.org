@@ -366,10 +366,7 @@ Note that edits may cause conflicts when updating org-pm from git.
   and the new id is stored in the project."
     (interactive)
     (unless org-publish-project-alist (org-pm-load-all-project-data))
-    (let (
-          ;; abandoning template IZ Jan 5, 2014 (6:28 PM)
-          ;; (template (org-pm-make-default-project-plist))
-          levels id ids projects)
+    (let (levels id ids projects)
       (org-map-entries
        '(let
             ((entry (cadr (org-element-at-point))))
@@ -382,9 +379,7 @@ Note that edits may cause conflicts when updating org-pm from git.
               (setq id (org-id-get-create))
               (setq entry (plist-put entry :ID id)))
             (setq ids (cons id ids))
-            ;; (setq projects (cons (org-pm-parse-project-def entry template) projects))
-            (setq projects (cons (org-pm-parse-project-def entry) projects))
-            ))
+            (setq projects (cons (org-pm-parse-project-def entry) projects))))
        "PROJECT_DEFS")
       (mapcar 'org-pm-check-add-project projects)
       (unless do-not-save-now (org-pm-save-all-project-data))
@@ -453,7 +448,7 @@ Note that edits may cause conflicts when updating org-pm from git.
 #+BEGIN_SRC emacs-lisp
   (require 'dash)
   (defun org-pm-check-add-project (project)
-    "Add the project definition contained in plist 'project' to org-publish-project-alist,
+    "Add project definition contained in plist 'project' to org-publish-project-alist,
   replacing any previously existing definition there.  Before replacing, save any
   previously existing project whose definition is in a different file component in
   the variable org-pm-project-def-duplicates:
@@ -508,7 +503,7 @@ Note that edits may cause conflicts when updating org-pm from git.
   (defun query-make-folder (path &optional prompt-string)
     "If folder at path does not exist, then show dialog offering to user
       the option to create the indicated folder or to choose another path.
-      If the path selected does not exist, create folder."
+      If selected path does not exist, create folder."
     (setq path (file-truename path))
     (unless prompt-string (setq prompt-string "Folder select or create:"))
     (let ((answer
@@ -521,42 +516,6 @@ Note that edits may cause conflicts when updating org-pm from git.
         (setq path answer))
       (unless (file-exists-p path) (make-directory path))
       path))
-
-#+END_SRC
-
-
-
-
-* Manage project definitions
-** org-pm-post-project-def
-:PROPERTIES:
-:DATE:     <2014-01-05 Sun 19:11>
-:END:
-
-Select a project interactively and post its definition.
-
-#+BEGIN_SRC emacs-lisp
-  (defun org-pm-post-project-def ()
-    "Select a project interactively and post its definition."
-    (interactive)
-    (let ((project-name
-           (grizzl-completing-read
-            "Which project? "
-            (grizzl-make-index (mapcar 'car org-publish-project-alist)))))
-      (message "THIS IS THE DEFINITION OF PROJECT %s:\n%s"
-               project-name
-               (assoc project-name org-publish-project-alist))))
-#+END_SRC
-
-** org-pm-edit-saved-project-data
-
-Edit the file containing the auto-saved data for org-pom.
-
-#+BEGIN_SRC emacs-lisp
-  (defun org-pm-edit-saved-project-data ()
-    "Edit the file containing the global project data."
-    (interactive)
-    (find-file org-pm-project-data-file-path))
 #+END_SRC
 
 
@@ -632,6 +591,28 @@ Remove current section (node) from a project interactively selected by user.
          (lambda (p) (equal (car (org-pm-parse-prop-or-tag p)) project)) tags)))))
 #+END_SRC
 
+** org-pm-get-non-project-tags                                :test:_test2_:
+
+Get those tags which are not enclosed in dash (=-=).
+Function org-pm-make-yaml-matter inserts these tags as part of the YAML matter in the file header for use by Jekyll/Octopress.
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-get-non-project-tags (section-plist)
+    "Get those tags which are not enclosed in dash (=-=).
+  Function org-pm-make-yaml-matter inserts these tags as part of the YAML matter
+  in the file header for use by Jekyll/Octopress."
+    (-reject (lambda (tag) (string-match "^_.*_$" tag)) (plist-get section-plist :tags)))
+#+END_SRC
+
+#+BEGIN_SRC elisp
+  (save-excursion
+    (org-back-to-heading)
+    (org-pm-get-non-project-tags (cadr (org-element-at-point))))
+#+END_SRC
+
+#+RESULTS:
+| test |
+
 
 * Save/Load/Edit project data
 ** org-pm-load-all-project-data
@@ -657,7 +638,7 @@ Remove current section (node) from a project interactively selected by user.
     (interactive)
     (dump-vars-to-file
      '(org-publish-project-alist
-       org-pm-file-exports
+       ;; org-pm-file-exports
        org-pm-section-exports
        org-pm-project-def-duplicates)
      org-pm-project-data-file-path))
@@ -1005,8 +986,164 @@ Get all sections marked with tags that are enclosed in underscore (=_=).  Parse 
 
 #+END_SRC
 
-*** User interaction: Display info, menus etc.
+* Create Jekyll/Octopress Headers ("YAML Front Matter")
 
+If the value of property =body-only= in the project-plist is =t=, then org-pm adds YAML front matter at the beginning of the file when exporting.  This makes the file to be processed by Jekyll or Octopress.  The following items are provided, if their values are set:
+
+- author :: value of eamcs/orgmode variable author
+- categories :: value of property CATEGORIES
+- commments :: value of property COMMENTS
+- date :: value of property DATE
+- external-url :: value of property EXTERNAL-URL
+- layout :: =default= if no DATE property is set. =blog= if DATE property is set.  Value can be customized by setting property LAYOUT.
+- permalink :: value of property PERMALINK
+- published :: value of property PUBLISHED
+- tags :: tags of section or values of property TAGS
+- title :: from title property of file or header of section
+
+** About Yaml front matter
+
+YAML front matter for jekyll or octopress is a header to be added at the beginning of the file, consisting of keyword-value pairs.  The header is demarcated by writing it between 3 dashes.  Example:
+
+#+BEGIN_SRC
+---
+layout: post
+title: "Categories"
+date: 2014-01-04 19:05:17 +0200
+comments: true
+categories:
+- CSS3
+- Sass
+- Media Queries
+---
+#+END_SRC
+
+** Doc of YAML front matter items
+
+In http://jekyllrb.com/docs/frontmatter/ the following items are given for yaml front matter:
+
+- layout :: If set, this specifies the layout file to use. Use the layout file name without the file extension. Layout files must be placed in the  _layouts directory.
+- permalink :: If you need your processed blog post URLs to be something other than the default /year/month/day/title.html then you can set this variable and it will be used as the final URL.
+- published :: Set to false if you don’t want a specific post to show up when the site is generated.
+- categories :: Instead of placing posts inside of folders, you can specify one or more categories that the post belongs to. When the site is generated the post will act as though it had been set with these categories normally. Categories (plural key) can be specified as a YAML list or a space-separated string.
+- tags :: Similar to categories, one or multiple tags can be added to a post. Also like categories, tags can be specified as a YAML list or a space- separated string.
+
+Examples in http://octopress.org/docs/blogging/ include additional items:
+
+- title
+- date
+- commments
+- external-url
+- author
+- published
+
+** List of YAML front matter items
+
+Following is list of front matter items collected from  http://jekyllrb.com/docs/frontmatter/ and  http://octopress.org/docs/blogging/ (More to be added if found later).
+
+- author
+- categories
+- commments
+- date
+- external-url
+- layout
+- permalink
+- published
+- tags
+- title
+
+** Header examples from octopress
+
+#+BEGIN_SRC
+---
+layout: default
+---
+#+END_SRC
+
+#+BEGIN_SRC
+---
+layout: page
+title: Blog Archive
+footer: false
+---
+#+END_SRC
+
+#+BEGIN_SRC
+---
+layout: post
+title: "Categories"
+date: 2014-01-04 19:05:17 +0200
+comments: true
+categories:
+- CSS3
+- Sass
+- Media Queries
+---
+#+END_SRC
+
+
+** Code: org-pm-make-yaml-front-matter
+
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-make-yaml-front-matter (project-plist section-plist)
+    "Make YAML front matter for Jekyll or Octopress.
+
+  If the value of property body-only in the project-plist is t, then add YAML
+  front matter at the beginning of the file when exporting.  This causes the file
+  to be processed by Jekyll or Octopress.
+
+  The following items are provided, depending on the values of corresponding properties
+  from global emacs variables, the project's p-list or the section's properties,
+  or the section's tags:
+
+  - author :: value of eamcs/orgmode variable author
+  - categories :: value of property CATEGORIES
+  - commments :: value of property COMMENTS
+  - date :: value of property DATE
+  - external-url :: value of property EXTERNAL-URL
+  - layout :: 'default' if no DATE property is set. 'blog' if DATE property is set.
+              Value can be customized by setting property LAYOUT.
+  - permalink :: value of property PERMALINK
+  - published :: value of property PUBLISHED
+  - tags :: tags of section or values of property TAGS
+  - title :: from title property of file or header of section.
+  "
+    (when (plist-get project-plist :body-only)
+      (insert "---\n")
+      (let*
+          ((title (plist-get section-plist :raw-value))
+           (tags (org-pm-get-non-project-tags section-plist))
+           (author (plist-get section-plist :AUTHOR))
+           (categories (plist-get section-plist :CATEGORIES))
+           (comments (plist-get section-plist :COMMENTS))
+           (date (plist-get section-plist :DATE))
+           (external-url (plist-get section-plist :EXTERNAL-URL))
+           (layout (plist-get section-plist :LAYOUT))
+           (permalink (plist-get section-plist :PERMALINK))
+           (published (plist-get section-plist :PUBLISHED)))
+
+        (insert
+         (format "layout: %s\n" (if layout layout (if date "blog" "default"))))
+        (insert (format "date: %s\n" date))
+        (insert (format "title: %s\n" title)))
+      (insert "---\n")
+      )
+  )
+
+#+END_SRC
+
+
+#+BEGIN_SRC elisp
+(org-get-header-property "TITLE")
+#+END_SRC
+
+#+RESULTS:
+: Org-publish-meta: Easy projects for Org-mode
+
+* Info, Menus, Project and File Management, Keyboard Shortcuts
+
+** File menu of exported sections
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-show-target-file-list (&optional section-components)
     "Create a list of paths of all files which the current file and its sections
@@ -1183,175 +1320,41 @@ Note: Naming this function org-pm-edit-duplicate-project-def disabled the auto-d
 #+RESULTS:
 : pm/edit-duplicate-project-def
 
-* Create Jekyll/Octopress Headers ("YAML Front Matter")
+** Post and edit project definition list
+*** org-pm-post-project-def
+:PROPERTIES:
+:DATE:     <2014-01-05 Sun 19:11>
+:END:
 
-If the value of property =body-only= in the project-plist is =t=, then org-pm adds YAML front matter at the beginning of the file when exporting.  This makes the file to be processed by Jekyll or Octopress.  The following items are provided, if their values are set:
-
-- author :: value of eamcs/orgmode variable author
-- categories :: value of property CATEGORIES
-- commments :: value of property COMMENTS
-- date :: value of property DATE
-- external-url :: value of property EXTERNAL-URL
-- layout :: =default= if no DATE property is set. =blog= if DATE property is set.  Value can be customized by setting property LAYOUT.
-- permalink :: value of property PERMALINK
-- published :: value of property PUBLISHED
-- tags :: tags of section or values of property TAGS
-- title :: from title property of file or header of section
-
-** About Yaml front matter
-
-YAML front matter for jekyll or octopress is a header to be added at the beginning of the file, consisting of keyword-value pairs.  The header is demarcated by writing it between 3 dashes.  Example:
-
-#+BEGIN_SRC
----
-layout: post
-title: "Categories"
-date: 2014-01-04 19:05:17 +0200
-comments: true
-categories:
-- CSS3
-- Sass
-- Media Queries
----
-#+END_SRC
-
-** Doc of YAML front matter items
-
-In http://jekyllrb.com/docs/frontmatter/ the following items are given for yaml front matter:
-
-- layout :: If set, this specifies the layout file to use. Use the layout file name without the file extension. Layout files must be placed in the  _layouts directory.
-- permalink :: If you need your processed blog post URLs to be something other than the default /year/month/day/title.html then you can set this variable and it will be used as the final URL.
-- published :: Set to false if you don’t want a specific post to show up when the site is generated.
-- categories :: Instead of placing posts inside of folders, you can specify one or more categories that the post belongs to. When the site is generated the post will act as though it had been set with these categories normally. Categories (plural key) can be specified as a YAML list or a space-separated string.
-- tags :: Similar to categories, one or multiple tags can be added to a post. Also like categories, tags can be specified as a YAML list or a space- separated string.
-
-Examples in http://octopress.org/docs/blogging/ include additional items:
-
-- title
-- date
-- commments
-- external-url
-- author
-- published
-
-** List of YAML front matter items
-
-Following is list of front matter items collected from  http://jekyllrb.com/docs/frontmatter/ and  http://octopress.org/docs/blogging/ (More to be added if found later).
-
-- author
-- categories
-- commments
-- date
-- external-url
-- layout
-- permalink
-- published
-- tags
-- title
-
-** Header examples from octopress
-
-#+BEGIN_SRC
----
-layout: default
----
-#+END_SRC
-
-#+BEGIN_SRC
----
-layout: page
-title: Blog Archive
-footer: false
----
-#+END_SRC
-
-#+BEGIN_SRC
----
-layout: post
-title: "Categories"
-date: 2014-01-04 19:05:17 +0200
-comments: true
-categories:
-- CSS3
-- Sass
-- Media Queries
----
-#+END_SRC
-
-
-** Code: org-pm-make-yaml-front-matter
-
+Select a project interactively and post its definition.
 
 #+BEGIN_SRC emacs-lisp
-  (defun org-pm-make-yaml-front-matter (project-plist section-plist)
-    "Make YAML front matter for Jekyll or Octopress.
+  (defun org-pm-post-project-def ()
+    "Select a project interactively and post its definition."
+    (interactive)
+    (let ((project-name
+           (grizzl-completing-read
+            "Which project? "
+            (grizzl-make-index (mapcar 'car org-publish-project-alist)))))
+      (message "THIS IS THE DEFINITION OF PROJECT %s:\n%s"
+               project-name
+               (assoc project-name org-publish-project-alist))))
+#+END_SRC
 
-  If the value of property body-only in the project-plist is t, then add YAML
-  front matter at the beginning of the file when exporting.  This causes the file
-  to be processed by Jekyll or Octopress.
+*** org-pm-edit-saved-project-data
 
-  The following items are provided, depending on the values of corresponding properties
-  from global emacs variables, the project's p-list or the section's properties,
-  or the section's tags:
+Edit the file containing the auto-saved data for org-pom.
 
-  - author :: value of eamcs/orgmode variable author
-  - categories :: value of property CATEGORIES
-  - commments :: value of property COMMENTS
-  - date :: value of property DATE
-  - external-url :: value of property EXTERNAL-URL
-  - layout :: 'default' if no DATE property is set. 'blog' if DATE property is set.
-              Value can be customized by setting property LAYOUT.
-  - permalink :: value of property PERMALINK
-  - published :: value of property PUBLISHED
-  - tags :: tags of section or values of property TAGS
-  - title :: from title property of file or header of section.
-  "
-    (when (plist-get project-plist :body-only)
-      (insert "---\n")
-      (let
-  ;;        (author categories comments date external-url layout permalink published tags title)
-
-        () ;; get author
-        () ;; get categories
-        () ;; get comments
-        () ;; get date
-        () ;; get external-url
-        () ;; get layout
-        () ;; get permalink
-        () ;; get published
-        () ;; get tags
-        () ;; get title
-
-
-          ((date (apply property-getter '(":DATE")))
-              (layout (apply property-getter '(":LAYOUT")))
-              (title (if section-plist
-                         (plist-get section-plist :raw-value)
-                       (let ((ttl (org-get-header-property "TITLE")))
-                         (if ttl ttl
-                           (file-name-sans-extension
-                            (file-name-nondirectory (buffer-file-name))))))))
-        (insert
-         (format "layout: %s\n" (if layout layout (if date "blog" "default"))))
-        (insert (format "date: %s\n" date))
-        (insert (format "title: %s\n" title)))
-      (insert "---\n")
-      )
-  )
-
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-edit-saved-project-data ()
+    "Edit the file containing the global project data."
+    (interactive)
+    (find-file org-pm-project-data-file-path))
 #+END_SRC
 
 
-#+BEGIN_SRC elisp
-(org-get-header-property "TITLE")
-#+END_SRC
-
-#+RESULTS:
-: Org-publish-meta: Easy projects for Org-mode
-
-
-* Menu and Keyboard Shortcuts
-** Menu: select org-pm command interactively
+** Menu and Keyboard Shortcuts
+*** Menu: select org-pm command interactively
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-menu ()
@@ -1381,7 +1384,7 @@ categories:
               (replace-regexp-in-string " " "-" selection)
               ")")))))
 #+END_SRC
-** Keyboard shortcuts
+*** Keyboard shortcuts
 
 Note: I use the Hyper-m  (= Mac fn key m) as prefix, because it is not likely to be occupied by other packages.  Users can easily remap.
 
