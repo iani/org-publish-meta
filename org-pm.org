@@ -31,22 +31,6 @@ CLOSED: [2013-12-18 Wed 15:23]
 #+RESULTS:
 : org-pm-project-data-file-path
 
-** DONE org-pm-file-exports
-:PROPERTIES:
-:ID:       A8ABC239-E74B-4654-9850-53C8521E50BA
-:END:
-
-#+BEGIN_SRC emacs-lisp
-  (defvar org-pm-file-exports nil
-  "List of files copied to projects.
-  For each file, store a list starting with the full path of the file, and
-  followed by the list of path-project pairs specified in the file.
-    (full-path-of-file (path . project1) (path . project2) ...)
-  Function org-pm-get-file-project-paths updates this list
-  whenever it scans a buffer.
-  The value is saved on disc in file specified by org-pm-project-data-file-path")
-#+END_SRC
-
 ** DONE org-pm-section-exports
 
 #+BEGIN_SRC emacs-lisp
@@ -576,93 +560,7 @@ Edit the file containing the auto-saved data for org-pom.
 #+END_SRC
 
 
-* Add/remove projects to files/sections
-** DONE org-pm-add-project-file
-CLOSED: [2013-12-19 Thu 09:14]
-:PROPERTIES:
-:DATE:     <2013-12-18 Wed 21:17>
-:ID:       1FE8167C-A514-4C21-9FC2-4A466A692E56
-:END:
-
-When a file or a section of a file should be copied to a project base directory, add the project name to the list of projects of this file.  The list of projects of files is stored in org-pm-files.
-
-#+BEGIN_SRC emacs-lisp
-  (defun org-pm-add-project-file (project-name file)
-    "In list org-pm-files, add the project-name to the list
-  of projects that file bel ongs. "
-    (setq org-pm-files
-          (assoc-add org-pm-files file project-name)))
-#+END_SRC
-
-** TODO org-pm-remove-project-file
-:PROPERTIES:
-:DATE:     <2013-12-18 Wed 21:17>
-:ID:       1FE8167C-A514-4C21-9FC2-4A466A692E56
-:END:
-
-When a file or a section of a file should be removed from a project, remove the project name from the list of projects of this file in org-pm-files.  (The list of projects of files is stored in org-pm-files.)
-
-NOTE: Removing components from projects is more complex than adding, because we should also remove the files of the components from the base directory of the project.  Therefore: org-pm-parse-buffer must remove any files of components that no longer exist.  How to do this?
-
-#+BEGIN_SRC emacs-lisp
-  (defun org-pm-remove-project-file (project-name file)
-    "In list org-pm-files, add the project-name to the list
-  of projects that file belongs. "
-    (setq org-pm-files
-          (assoc-add org-pm-files file project-name)))
-#+END_SRC
-
-
-
-
-** UNDERWAY org-pm-add-file-to-project:
-:PROPERTIES:
-:ID:       24187886-5ADA-4263-806B-8655A9813C8B
-:END:
-
-Add file to current buffer to project interactively selected or input by user.
-
-If project name input by user does not correspond to an existing project, offer to create that project.
-
-#+BEGIN_SRC emacs-lisp
-  (defun org-pm-add-file-to-project ()
-    "Add the file of the current buffer to a project selected or input by the user.
-      If the project selected/input by the user is not already in the file's project list:
-      - If no project of that name exists, request that the project be defined using
-      org-pm or other methods.
-      - If no project at all exists, then offer to create default project.
-      - Add the selected project to the file's list in org-pm-files.
-      - Save org-pm-files.
-      - Add the project name to property PROJECT in file's header."
-    (interactive)
-    (unless (buffer-file-name (current-buffer))
-      (error "This buffer is not associated with a file.  Please save first."))
-    (let* ((org-completion-use-ido t)
-           (projects
-            (if org-publish-project-alist
-                (mapcar org-publish-project-alist 'car)
-              (list org-pm-default-project-name)))
-           (project-name
-            (org-icompleting-read "Choose or input a project name: " projects)))
-      (if (member project-name (org-pm-get-file-projects))
-          (error "This file is already part of project '%s'" project-name))
-      (setq project (org-pm-query-make-default-project project-name))
-      (org-pm-add-project-to-file-header project-name)
-      (org-pm-add-project-file project-name (buffer-file-name (current-buffer)))
-      (org-pm-save-all-project-data)
-      (org-pm-make-project-template project)
-      (message
-       "Added project named: %s to file: %s\nBase directory is: %s\nPublishing directory is: %s"
-       project-name
-       (file-name-nondirectory (buffer-file-name (current-buffer)))
-       (plist-get (cdr project) :base-directory)
-       (plist-get (cdr project) :publishing-directory))))
-  #+END_SRC
-** TODO org-pm-remove-file-from-project:
-
-Remove file from project interactively selected by user.
-
-
+* Add/remove projects to sections
 ** org-pm-select-project-from-menu
 
 Present menu for selecting one project from the list of known projects.
@@ -735,22 +633,6 @@ Remove current section (node) from a project interactively selected by user.
 #+END_SRC
 
 
-** DONE org-pm-add-project-to-file-header
-:PROPERTIES:
-:DATE:     <2013-12-18 Wed 21:17>
-:ID:       3E557B48-9700-4BEE-9D72-D4AC276DCF9C
-:END:
-
-#+BEGIN_SRC emacs-lisp
-  (defun org-pm-add-project-to-file-header (project-name)
-    "Add property PROJECT with value project-name at beginning of file."
-    (save-excursion
-      (save-restriction
-        (widen)
-        (beginning-of-buffer)
-        (insert (format "#+PROJECT: %s\n" project-name)))))
-#+END_SRC
-
 * Save/Load/Edit project data
 ** org-pm-load-all-project-data
 
@@ -798,7 +680,7 @@ Remove current section (node) from a project interactively selected by user.
 #+END_SRC
 
 
-* Export files/sections to projects
+* Export sections to projects
 ** org-pm-get-section-projects
 
 #+BEGIN_SRC emacs-lisp
@@ -966,15 +848,6 @@ Called by org-get-section-components.  Converts the title of a section to a file
 
 *** Get list of file components to be copied to projects
 
-**** org-pm-get-file-project-paths
-
-Get all values of file property "PROJECT".  Parse each value, and return a list of paths.
-Returns list of the form:
-
-: ((path . projectname) (path . projectname) ... )
-
-Where =path= is the place to copy the file to and =projectname= is the name of the project followed by "undefined project" if the targed project is not defined.
-
 **** org-pm-get-section-project-paths
 
 Get all sections marked with tags that are enclosed in underscore (=_=).  Parse each value and return a list of lists:
@@ -984,23 +857,6 @@ Get all sections marked with tags that are enclosed in underscore (=_=).  Parse 
 
 **** Code
 #+BEGIN_SRC emacs-lisp
-  (defun org-pm-get-file-project-paths ()
-    "Build list of projects-folders-files to export this buffer to.
-  The list is created from the list of values of property PROJECT
-  that are defined in this buffer.
-  The list is passed to org-pm-copy-file-project-paths for copying. "
-    (interactive)
-    (let* ((fullpath (buffer-file-name (current-buffer)))
-           (filename (file-name-nondirectory fullpath))
-           (date (org-get-header-property "DATE" nil))
-           (components
-            (-map (lambda (component)
-                    (org-pm-make-target-path
-                     (org-pm-parse-prop-or-tag component filename date)))
-                  (org-get-header-property "PROJECT" t))))
-      ;;  (message "file components for %s are:\n%s" filename components)
-      ;; FIXME: TODO: save paths to disc in org-pm save file
-      components))
 
   (defun org-pm-get-section-project-paths ()
     "Build list of projects-folders-files to export sections of this buffer to.
@@ -1065,7 +921,7 @@ Get all sections marked with tags that are enclosed in underscore (=_=).  Parse 
     (save-excursion
       (save-restriction
         (widen)
-        (org-pm-export-file-to-projects)
+      ;;  (org-pm-export-file-to-projects)
         (org-pm-export-sections-to-projects))))
 
   (defun org-pm-export-buffer-to-file (path-project)
@@ -1077,22 +933,6 @@ Get all sections marked with tags that are enclosed in underscore (=_=).  Parse 
         (make-directory (file-name-directory path) t)
         (write-region nil nil path))))
 
-  (defun org-pm-export-file-to-projects (&optional paths)
-    "Copy entire file to any projects specified by property PROJECT
-  Copies the file to targets given in paths.  If paths is nil,
-  then get the paths by scanning the current buffer.
-  Components is provided by org-pm-get-file-project-paths."
-    (interactive)
-    (unless paths (setq paths (org-pm-get-file-project-paths)))
-    (when paths
-      (let ((origin-buffer (current-buffer))
-             (target-buffer (get-buffer-create "*org-pm-copy-buf*")))
-        (set-buffer target-buffer)
-        (insert-buffer origin-buffer)
-        (dolist (path paths) (org-pm-export-buffer-to-file path))
-        (kill-buffer target-buffer)))
-    ;; (message "%s exported to paths:\n %s" (buffer-file-name) paths)
-    paths)
 
   (defun org-pm-export-sections-to-projects (&optional sections-with-paths)
     "Copy sections of this file to paths specified by tags."
@@ -1122,8 +962,6 @@ Get all sections marked with tags that are enclosed in underscore (=_=).  Parse 
     (let ((target-path (org-pm-make-target specs)))
       (make-directory (file-name-directory target-path) t)
       (write-region nil nil target-path)))
-
-
 #+END_SRC
 
 #+BEGIN_SRC emacs-lisp
@@ -1139,25 +977,6 @@ Get all sections marked with tags that are enclosed in underscore (=_=).  Parse 
             (t
              (add-to-list '*org-pm-missing-projects* project-name)
              nil))))
-
-  (defun org-pm-make-filename-simple (title &optional date)
-    "Simple version - to be deleted. See org-pm-make-filenme
-  Convert title of entry into filename.
-  remove non alphanumeric characters.
-  replace spaces by dashes (-).
-  lowercase everything.
-  if date is provided, convert date into jekyll- (hexo-, etc.) compatible
-  blog entry format, and prepend it.
-  entry title 'thoughts on [pre-]processing',
-  with date <2014-01-05 sun 10:56>
-  becomes: '2014-01-05-thoughts-on-pre-processing' "
-    (let ((filename
-           (downcase
-            (replace-regexp-in-string
-             "-+" "-"
-             (replace-regexp-in-string "[^[:alnum:]]" "-" title)))))
-      filename))
-
 
   ;; Fix grizzl-completing-read to display custom prompt
   (require 'grizzl)
@@ -1189,25 +1008,22 @@ Get all sections marked with tags that are enclosed in underscore (=_=).  Parse 
 *** User interaction: Display info, menus etc.
 
 #+BEGIN_SRC emacs-lisp
-(defun org-pm-show-target-file-list (&optional file-components section-components)
-  "Create a list of paths of all files which the current file and its sections
-outputs to.  Present this as a grizzl list for auto-complete search.
-Open selected file."
-  (interactive)
-  (unless file-components
-    (setq file-components (org-pm-get-file-project-targets)))
-  (unless section-components
-    (setq section-components (org-pm-get-section-project-targets)))
-  (let* ((target-list
-         (mapcar (lambda (t) (cdr t))
-                 (append file-components section-components)))
-         (index (grizzl-make-index target-list))
-         answer)
-    ;; (message "%s" target-list)
-    (setq answer (grizzl-completing-read "Choose file to open: " index))
-    (if (string-match "(undefined project)$" answer)
-        (message "No file: %s" answer)
-       (find-file answer))))
+  (defun org-pm-show-target-file-list (&optional section-components)
+    "Create a list of paths of all files which the current file and its sections
+  outputs to.  Present this as a grizzl list for auto-complete search.
+  Open selected file."
+    (interactive)
+    (unless section-components
+      (setq section-components (org-pm-get-section-project-targets)))
+    (let* ((target-list
+           (mapcar (lambda (t) (cdr t)) section-components))
+           (index (grizzl-make-index target-list))
+           answer)
+      ;; (message "%s" target-list)
+      (setq answer (grizzl-completing-read "Choose file to open: " index))
+      (if (string-match "(undefined project)$" answer)
+          (message "No file: %s" answer)
+         (find-file answer))))
 #+END_SRC
 
 ** TODO org-pm-publish: Select a project to publish from the projects targeted by current buffer.
@@ -1467,14 +1283,16 @@ categories:
 
 
 #+BEGIN_SRC emacs-lisp
-  (defun org-pm-make-yaml-front-matter (project-plist &optional section-plist)
+  (defun org-pm-make-yaml-front-matter (project-plist section-plist)
     "Make YAML front matter for Jekyll or Octopress.
 
   If the value of property body-only in the project-plist is t, then add YAML
   front matter at the beginning of the file when exporting.  This causes the file
   to be processed by Jekyll or Octopress.
 
-  The following items are provided, depending on the values of corresponding properties:
+  The following items are provided, depending on the values of corresponding properties
+  from global emacs variables, the project's p-list or the section's properties,
+  or the section's tags:
 
   - author :: value of eamcs/orgmode variable author
   - categories :: value of property CATEGORIES
@@ -1487,35 +1305,25 @@ categories:
   - published :: value of property PUBLISHED
   - tags :: tags of section or values of property TAGS
   - title :: from title property of file or header of section.
-
-  If section-plist is nil, then the properties are obtained from the buffer's
-  global properties.  Otherwise, they are obtained from section-plist."
-
+  "
     (when (plist-get project-plist :body-only)
       (insert "---\n")
-      (multiple-value-bind
-          (author categories comments date external-url
-                  layout permalink published tags title)
-          (if section-plist
-              (values-list
-               (list
-                () ;; get author
-                () ;; get categories
-                () ;; get comments
-                () ;; get date
-                () ;; get external-url
-                () ;; get layout
-                () ;; get permalink
-                () ;; get published
-                () ;; get tags
-                () ;; get title
-                ))
-            (values-list (list ...)))
-          ((property-getter
-               (if section-plist
-                   (lambda (prop) (plist-get section-plist prop))
-                 (lambda (prop) (org-get-header-property prop t))))
-              (date (apply property-getter '(":DATE")))
+      (let
+  ;;        (author categories comments date external-url layout permalink published tags title)
+
+        () ;; get author
+        () ;; get categories
+        () ;; get comments
+        () ;; get date
+        () ;; get external-url
+        () ;; get layout
+        () ;; get permalink
+        () ;; get published
+        () ;; get tags
+        () ;; get title
+
+
+          ((date (apply property-getter '(":DATE")))
               (layout (apply property-getter '(":LAYOUT")))
               (title (if section-plist
                          (plist-get section-plist :raw-value)

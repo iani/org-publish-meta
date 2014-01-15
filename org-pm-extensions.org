@@ -159,6 +159,231 @@ Overwriing org-html-toc to use property :toc-heading as string for the Table of 
                 "</div>\n"
                 (format "</%s>\n" outer-tag)))))
 #+END_SRC
+
+* Enabling whole file export
+
+Export the entire file rather than just a section.
+These variables and functions have been removed from the main part of org-pm, for the sake of simplicity.
+
+** DONE org-pm-file-exports
+:PROPERTIES:
+:ID:       A8ABC239-E74B-4654-9850-53C8521E50BA
+:END:
+
+#+BEGIN_SRC emacs-lisp
+  (defvar org-pm-file-exports nil
+  "List of files copied to projects.
+  For each file, store a list starting with the full path of the file, and
+  followed by the list of path-project pairs specified in the file.
+    (full-path-of-file (path . project1) (path . project2) ...)
+  Function org-pm-get-file-project-paths updates this list
+  whenever it scans a buffer.
+  The value is saved on disc in file specified by org-pm-project-data-file-path")
+#+END_SRC
+
+** DONE org-pm-add-project-file
+CLOSED: [2013-12-19 Thu 09:14]
+:PROPERTIES:
+:DATE:     <2013-12-18 Wed 21:17>
+:ID:       1FE8167C-A514-4C21-9FC2-4A466A692E56
+:END:
+
+When a file or a section of a file should be copied to a project base directory, add the project name to the list of projects of this file.  The list of projects of files is stored in org-pm-files.
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-add-project-file (project-name file)
+    "In list org-pm-files, add the project-name to the list
+  of projects that file bel ongs. "
+    (setq org-pm-files
+          (assoc-add org-pm-files file project-name)))
+#+END_SRC
+
+** TODO org-pm-remove-project-file
+:PROPERTIES:
+:DATE:     <2013-12-18 Wed 21:17>
+:ID:       1FE8167C-A514-4C21-9FC2-4A466A692E56
+:END:
+
+When a file or a section of a file should be removed from a project, remove the project name from the list of projects of this file in org-pm-files.  (The list of projects of files is stored in org-pm-files.)
+
+NOTE: Removing components from projects is more complex than adding, because we should also remove the files of the components from the base directory of the project.  Therefore: org-pm-parse-buffer must remove any files of components that no longer exist.  How to do this?
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-remove-project-file (project-name file)
+    "In list org-pm-files, add the project-name to the list
+  of projects that file belongs. "
+    (setq org-pm-files
+          (assoc-add org-pm-files file project-name)))
+#+END_SRC
+
+** UNDERWAY org-pm-add-file-to-project:
+:PROPERTIES:
+:ID:       24187886-5ADA-4263-806B-8655A9813C8B
+:END:
+
+Add file to current buffer to project interactively selected or input by user.
+
+If project name input by user does not correspond to an existing project, offer to create that project.
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-add-file-to-project ()
+    "Add the file of the current buffer to a project selected or input by the user.
+      If the project selected/input by the user is not already in the file's project list:
+      - If no project of that name exists, request that the project be defined using
+      org-pm or other methods.
+      - If no project at all exists, then offer to create default project.
+      - Add the selected project to the file's list in org-pm-files.
+      - Save org-pm-files.
+      - Add the project name to property PROJECT in file's header."
+    (interactive)
+    (unless (buffer-file-name (current-buffer))
+      (error "This buffer is not associated with a file.  Please save first."))
+    (let* ((org-completion-use-ido t)
+           (projects
+            (if org-publish-project-alist
+                (mapcar org-publish-project-alist 'car)
+              (list org-pm-default-project-name)))
+           (project-name
+            (org-icompleting-read "Choose or input a project name: " projects)))
+      (if (member project-name (org-pm-get-file-projects))
+          (error "This file is already part of project '%s'" project-name))
+      (setq project (org-pm-query-make-default-project project-name))
+      (org-pm-add-project-to-file-header project-name)
+      (org-pm-add-project-file project-name (buffer-file-name (current-buffer)))
+      (org-pm-save-all-project-data)
+      (org-pm-make-project-template project)
+      (message
+       "Added project named: %s to file: %s\nBase directory is: %s\nPublishing directory is: %s"
+       project-name
+       (file-name-nondirectory (buffer-file-name (current-buffer)))
+       (plist-get (cdr project) :base-directory)
+       (plist-get (cdr project) :publishing-directory))))
+  #+END_SRC
+
+** TODO org-pm-remove-file-from-project:
+
+Remove file from project interactively selected by user.
+
+** DONE org-pm-add-project-to-file-header
+:PROPERTIES:
+:DATE:     <2013-12-18 Wed 21:17>
+:ID:       3E557B48-9700-4BEE-9D72-D4AC276DCF9C
+:END:
+
+** org-pm-get-file-project-paths
+
+Get all values of file property "PROJECT".  Parse each value, and return a list of paths.
+Returns list of the form:
+
+: ((path . projectname) (path . projectname) ... )
+
+Where =path= is the place to copy the file to and =projectname= is the name of the project followed by "undefined project" if the targed project is not defined.
+
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-add-project-to-file-header (project-name)
+    "Add property PROJECT with value project-name at beginning of file."
+    (save-excursion
+      (save-restriction
+        (widen)
+        (beginning-of-buffer)
+        (insert (format "#+PROJECT: %s\n" project-name)))))
+#+END_SRC
+
+** org-pm-get-file-project-paths
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-get-file-project-paths ()
+    "Build list of projects-folders-files to export this buffer to.
+  The list is created from the list of values of property PROJECT
+  that are defined in this buffer.
+  The list is passed to org-pm-copy-file-project-paths for copying. "
+    (interactive)
+    (let* ((fullpath (buffer-file-name (current-buffer)))
+           (filename (file-name-nondirectory fullpath))
+           (date (org-get-header-property "DATE" nil))
+           (components
+            (-map (lambda (component)
+                    (org-pm-make-target-path
+                     (org-pm-parse-prop-or-tag component filename date)))
+                  (org-get-header-property "PROJECT" t))))
+      ;;  (message "file components for %s are:\n%s" filename components)
+      ;; FIXME: TODO: save paths to disc in org-pm save file
+      components))
+
+#+END_SRC
+
+
+** org-pm-export-file-to-projects
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-export-file-to-projects (&optional paths)
+    "Copy entire file to any projects specified by property PROJECT
+  Copies the file to targets given in paths.  If paths is nil,
+  then get the paths by scanning the current buffer.
+  Components is provided by org-pm-get-file-project-paths."
+    (interactive)
+    (unless paths (setq paths (org-pm-get-file-project-paths)))
+    (when paths
+      (let ((origin-buffer (current-buffer))
+             (target-buffer (get-buffer-create "*org-pm-copy-buf*")))
+        (set-buffer target-buffer)
+        (insert-buffer origin-buffer)
+        (dolist (path paths) (org-pm-export-buffer-to-file path))
+        (kill-buffer target-buffer)))
+    ;; (message "%s exported to paths:\n %s" (buffer-file-name) paths)
+    paths)
+#+END_SRC
+
+* Various drafts
+
+** org-pm-make-filename-simple
+
+#+BEGIN_SRC emacs-lisp
+
+  (defun org-pm-make-filename-simple (title &optional date)
+    "Simple version - to be deleted. See org-pm-make-filenme
+  Convert title of entry into filename.
+  remove non alphanumeric characters.
+  replace spaces by dashes (-).
+  lowercase everything.
+  if date is provided, convert date into jekyll- (hexo-, etc.) compatible
+  blog entry format, and prepend it.
+  entry title 'thoughts on [pre-]processing',
+  with date <2014-01-05 sun 10:56>
+  becomes: '2014-01-05-thoughts-on-pre-processing' "
+    (let ((filename
+           (downcase
+            (replace-regexp-in-string
+             "-+" "-"
+             (replace-regexp-in-string "[^[:alnum:]]" "-" title)))))
+      filename))
+
+#+END_SRC
+
+** org-pm-show-target-file-list-old
+
+#+BEGIN_SRC emacs-lisp
+(defun org-pm-show-target-file-list-old (&optional file-components section-components)
+  "Create a list of paths of all files which the current file and its sections
+outputs to.  Present this as a grizzl list for auto-complete search.
+Open selected file."
+  (interactive)
+  (unless file-components
+    (setq file-components (org-pm-get-file-project-targets)))
+  (unless section-components
+    (setq section-components (org-pm-get-section-project-targets)))
+  (let* ((target-list
+         (mapcar (lambda (t) (cdr t))
+                 (append file-components section-components)))
+         (index (grizzl-make-index target-list))
+         answer)
+    ;; (message "%s" target-list)
+    (setq answer (grizzl-completing-read "Choose file to open: " index))
+    (if (string-match "(undefined project)$" answer)
+        (message "No file: %s" answer)
+       (find-file answer))))
+#+END_SRC
 * Setup auto-parse and auto-copy
 
 #+BEGIN_SRC emacs-lisp
