@@ -113,7 +113,7 @@ CLOSED: [2013-12-21 Sat 22:07]
 :DATE:     <2013-12-18 Wed 17:24>
 :END:
 
-** DONE Get header properties
+** DONE Get header properties: org-get-header-property
 :PROPERTIES:
 :DATE:     <2013-12-16 Mon 02:50>
 :END:
@@ -140,9 +140,52 @@ CLOSED: [2013-12-21 Sat 22:07]
 #+RESULTS:
 : org-get-header-property
 
+#+TEST: test
+
 #+BEGIN_SRC elisp
 (org-get-header-property "TEST")
 #+END_SRC
+
+#+RESULTS:
+: test
+
+** Get section properties: org-get-section-properties
+:PROPERTIES:
+:DATE:     <2014-01-15 Wed 02:32>
+:TEST: 123
+:END:
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-get-section-properties (properties)
+    "Return values of each of the properties in list properties,
+  as separate values.  Can be used with multiple-value-bind to set
+  each one of several variables to the value of each property in properties list."
+    (save-excursion
+      (org-back-to-heading)
+      (let ((plist (cadr (org-element-at-point))))
+        (values-list
+         (-map (lambda (p) (plist-get plist (intern (concat ":" p)))) properties)))))
+#+END_SRC
+
+#+RESULTS:
+: org-get-section-properties
+
+#+BEGIN_SRC elisp
+(org-get-section-properties '("DATE" "TEST"))
+#+END_SRC
+
+#+RESULTS:
+| <2014-01-15 Wed 02:32> | 123 |
+
+#+BEGIN_SRC elisp
+  (multiple-value-bind (date test)
+      (org-get-section-properties '("DATE" "TEST"))
+    test)
+#+END_SRC
+
+#+RESULTS:
+: 123
+
 
 ** Set state of current heading to COMMENT
 
@@ -1324,7 +1367,7 @@ Note: Naming this function org-pm-edit-duplicate-project-def disabled the auto-d
 #+RESULTS:
 : pm/edit-duplicate-project-def
 
-* Create Jekyll/Octopress Headers ("YAML front matter")
+* Create Jekyll/Octopress Headers ("YAML Front Matter")
 
 If the value of property =body-only= in the project-plist is =t=, then org-pm adds YAML front matter at the beginning of the file when exporting.  This makes the file to be processed by Jekyll or Octopress.  The following items are provided, if their values are set:
 
@@ -1431,7 +1474,7 @@ categories:
   front matter at the beginning of the file when exporting.  This causes the file
   to be processed by Jekyll or Octopress.
 
-  The following items are provided, if their values are set:
+  The following items are provided, depending on the values of corresponding properties:
 
   - author :: value of eamcs/orgmode variable author
   - categories :: value of property CATEGORIES
@@ -1450,20 +1493,53 @@ categories:
 
     (when (plist-get project-plist :body-only)
       (insert "---\n")
-      (let ((property-getter
-             (if section-plist
-                 (lambda (prop) (plist-get section-plist prop))
-               (lambda (prop) (org-get-header-property prop t))))
-            (property)
-
-            ))
+      (multiple-value-bind
+          (author categories comments date external-url
+                  layout permalink published tags title)
+          (if section-plist
+              (values-list
+               (list
+                () ;; get author
+                () ;; get categories
+                () ;; get comments
+                () ;; get date
+                () ;; get external-url
+                () ;; get layout
+                () ;; get permalink
+                () ;; get published
+                () ;; get tags
+                () ;; get title
+                ))
+            (values-list (list ...)))
+          ((property-getter
+               (if section-plist
+                   (lambda (prop) (plist-get section-plist prop))
+                 (lambda (prop) (org-get-header-property prop t))))
+              (date (apply property-getter '(":DATE")))
+              (layout (apply property-getter '(":LAYOUT")))
+              (title (if section-plist
+                         (plist-get section-plist :raw-value)
+                       (let ((ttl (org-get-header-property "TITLE")))
+                         (if ttl ttl
+                           (file-name-sans-extension
+                            (file-name-nondirectory (buffer-file-name))))))))
+        (insert
+         (format "layout: %s\n" (if layout layout (if date "blog" "default"))))
+        (insert (format "date: %s\n" date))
+        (insert (format "title: %s\n" title)))
       (insert "---\n")
       )
   )
+
 #+END_SRC
 
 
+#+BEGIN_SRC elisp
+(org-get-header-property "TITLE")
+#+END_SRC
 
+#+RESULTS:
+: Org-publish-meta: Easy projects for Org-mode
 
 
 * Menu and Keyboard Shortcuts
