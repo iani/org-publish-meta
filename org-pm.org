@@ -17,7 +17,7 @@ The commands are organized into 6 topics/sections:
 6. Save, load, clear, edit data lists
 
 
-** Short list of commands and keyboard shortcuts
+** Commands and Keyboard Shortcuts Table
 
 |--------------------------+---------------------------------------------|
 | Shortcut                 | Command                                     |

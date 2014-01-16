@@ -4,10 +4,48 @@
 
 Org-pm is a kind or pre-processor for org-publish.  It does following things:
 
-1. It creates project definitions from specifications written as sections of an org mode file.  An org mode file can define any number of projects.
-2. It copies parts of files (org-mode sections) to any number of org-mode publish projects, which can then be published in the usual way with org-publish.
+1. It translates plain-text org-mode sections into project definitions.  It can insert templates for doing this into any org-mode document.  The user edits those templates to customize project parameters, and then creates the project with =org-pm-make-projects=.  An org mode file can define any number of projects.
+2. It copies parts of files (org-mode sections) to any number of org-mode publish projects, which can then be published in the usual way with org-publish.  Any section or subsection can be copied to any number of projects.  Projects, folders, and names of files for are indicated by setting tags of the section concerned.
 3. It saves the =org-publish-projects-alist= between sessions, along with the list of files containing parts that should be copied to projects, and with a list of the location of duplicate project definitions (definitions with the same name in more than one files or sections).  This makes it unnecessary to edit project definition lists in emacs-lisp.
 4. It provides menus and lists of defined projects as well as of files that belong to them.  This gives an overview of the state of projects at any given moment and makes access to their files easier.
+
+Here is an overview of the commands available in org-pm:
+
+
+|--------------------------+---------------------------------------------|
+| Shortcut                 | Command                                     |
+|--------------------------+---------------------------------------------|
+| *MAIN COMMANDS*          |                                             |
+|--------------------------+---------------------------------------------|
+| H-m H-m                  | org-pm-menu (lists all commands)            |
+| H-m n                    | org-pm-insert-new-project                   |
+| H-m m or H-m p m         | org-pm-make-projects (current buffer)       |
+| C-u H-m m or C-u H-m p m | org-pm-make-projects (all files)            |
+| H-m a                    | org-pm-add-section-to-project               |
+| H-m r                    | org-pm-remove-section-from-project          |
+| H-m e                    | org-pm-export                               |
+|--------------------------+---------------------------------------------|
+| *PROJECT DEFINITIONS*    |                                             |
+|--------------------------+---------------------------------------------|
+| H-m p e or H-m p s       | org-pm-show-project-definition-section      |
+| H-m p t                  | org-pm-edit-project-template                |
+| H-m p l                  | org-pm-list-project-defs                    |
+| H-m p d                  | org-pm-list-duplicate-project-defs          |
+| C-u H-m p d              | pm/edit-duplicate-project-def               |
+|--------------------------+---------------------------------------------|
+| *TARGET FILE LISTS*      |                                             |
+|--------------------------+---------------------------------------------|
+| H-m f                    | org-pm-list-exported-files (current buffer) |
+| C-u H-m f                | org-pm-list-exported-files (all)            |
+| H-m ?????                | org-pm-show-target-file-list ???            |
+|--------------------------+---------------------------------------------|
+| *SAVED DATA*             |                                             |
+|--------------------------+---------------------------------------------|
+| H-m d l                  | org-pm-load-project-data                    |
+| H-m d s                  | org-pm-save-project-data                    |
+| H-m d r or H-m d c       | org-pm-reset-project-list                   |
+| H-m d e                  | org-pm-edit-saved-project-data              |
+|--------------------------+---------------------------------------------|
 
 * Defining projects
 
