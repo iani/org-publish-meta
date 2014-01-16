@@ -53,108 +53,60 @@ org-pm-project-template-jekyll.org
 An alternative template for full html export with header is provided:
 org-pm-project-template-plain.org" )
 
-(defun org-get-header-property (property &optional all)
-  "Get property from buffer variable.  Returns only fist match except if ALL is defined.
-NOTE: Also works if editing subtree narrowed or in separate narrowed buffer. "
-  (with-current-buffer
-      (current-buffer)
-    (save-excursion
-      (save-restriction
-        (save-match-data
-          (widen)
-          (goto-char (point-min))
-          (let (values)
-            (while (re-search-forward (format "^#\\+%s:?[ \t]*\\(.*\\)" property) nil t)
-              (add-to-list 'values (substring-no-properties (match-string 1))))
-            (if all
-                values
-              (car values))))))))
-
-(defun org-get-section-properties (properties)
-  "Return values of each of the properties in list properties,
-as separate values.  Can be used with multiple-value-bind to set
-each one of several variables to the value of each property in properties list."
-  (save-excursion
-    (org-back-to-heading)
-    (let ((plist (cadr (org-element-at-point))))
-      (values-list
-       (-map (lambda (p) (plist-get plist (intern (concat ":" p)))) properties)))))
-
-(defun org-set-comment ()
-  "Change the COMMENT state of an entry to COMMENT.
-Do *not* remove COMMENT state if already present.
-This function is derived from org-toggle-coment."
+(defun org-pm-menu ()
+  "Select and run an org-pm command from a grizzl-minibuffer menu list."
   (interactive)
-  (save-excursion
-    (org-back-to-heading)
-    (let (case-fold-search)
-      (cond
-       ((looking-at (format org-heading-keyword-regexp-format
-                            org-comment-string))
-        ;; if comment was found, then do nothing:
-        )
-       ((looking-at org-outline-regexp)
-        (goto-char (match-end 0))
-        (insert org-comment-string " "))))))
+  (setq  *grizzl-read-max-results* 32)
+  (let* ((commands '(
+                     org-pm-insert-new-project
+                     org-pm-make-projects
+                     org-pm-add-section-to-project
+                     org-pm-export
+                     org-pm-remove-section-from-project
+                     org-pm-edit-project-template
+                     org-pm-list-project-defs
+                     org-pm-list-exported-files
+                     org-pm-list-duplicate-project-defs
+                     pm/edit-duplicate-project-def
+                     org-pm-load-all-project-data
+                     org-pm-reset-project-list
+                     org-pm-edit-saved-project-data
+                     org-pm-load-project-data
+                     org-pm-save-project-data
+                     org-pm-list-project-defs
+                     org-pm-show-target-file-list
+                     ))
+         (menu (grizzl-make-index
+               (-map (lambda (c)
+                       (replace-regexp-in-string
+                        "-"
+                        " "
+                        (replace-regexp-in-string
+                         "^org-pm-" "" (symbol-name c))))
+                     commands)))
+        selection)
+    (setq selection (grizzl-completing-read  "Select command: " menu))
+    (eval
+     (read (concat
+            "(org-pm-"
+            (replace-regexp-in-string " " "-" selection)
+            ")")))))
 
-(eval-after-load 'org
-  '(define-key org-mode-map (kbd "C-c C-;") 'org-set-comment))
+;; Add org-mode hook for org-pm-key bindings.
 
-(defun assoc-add (alist key element)
-  "Add element to the sublist of alist which starts with key."
-  (let ((sublist (assoc key alist)))
-    (if sublist
-        (setcdr sublist (cons element (cdr sublist)))
-      (if alist
-          (setcdr alist (cons (list key element) (cdr alist)))
-        (setq alist (list (list key element))))))
-  alist)
+(let ((org-pm-key-bindings
+       (lambda ()
+         (define-key org-mode-map (kbd "H-m H-m") 'org-pm-menu)
+         (define-key org-mode-map (kbd "H-m p n") 'org-pm-insert-new-project)
+         (define-key org-mode-map (kbd "H-m p m") 'org-pm-make-projects)
+         (define-key org-mode-map (kbd "H-m e") 'org-pm-export)
+         (define-key org-mode-map (kbd "H-m p l") 'org-pm-list-project-defs)
+)))
 
-(defun assoc-remove (alist key element)
-  "Remove element from the sublist of alist whose car is equal to key."
-  (when alist
-    (let ((sublist (assoc key alist)))
-      (when sublist
-        (setcdr sublist(remove element (cdr sublist)))
-        (if (equal 1 (length sublist)) (setq alist (remove sublist alist))))
-      alist)))
+(add-hook 'org-mode-hook org-pm-key-bindings))
 
-(defun assoc-remove-key (alist key)
-  "Remove all sublists of alist whose car is equal to key."
-  (setq alist (remove* key alist :test 'equal :key 'car)))
-
-  ;;; older version
-(defun assoc-remove-key-simple-style (alist key)
-  "Remove all sublists of alist whose car is equal to key."
-  (let (found)
-    (while (setq found (assoc key alist))
-      (setq alist (delq found alist)))
-    alist))
-
-(defun assoc-replace (alist key newlist)
-  "Remove all sublists of alist whose car is equal to key, and then
-     add (cons key newlist) to alist."
-  (setq alist (assoc-remove-key alist key))
-  (setq alist (cons (cons key newlist) alist)))
-
-(defun org-pm-edit-project-template ()
-  "Edit the file containing the global project template.
-Note that edits may cause conflicts when updating org-pm from git."
-  (interactive)
-  (find-file org-pm-project-template-file-name))
-
-(defun org-pm-show-project-definition-section ()
-  "Mark all sections tagged PROJECT_DEFS.
-  Additionally go to the first section tagged PROJECT_DEFS, if it exists."
-  (interactive)
-  (let ((defs (org-map-entries '(cadr (org-element-at-point)) "PROJECT_DEFS")))
-    (cond
-     (defs
-       (org-match-sparse-tree nil "PROJECT_DEFS")
-       (goto-char (plist-get (car defs) :begin))
-       (recenter-top-bottom '(4))
-       (message "Showing location of first project definition section."))
-     (t (message "No project definitions were found in this file.")))))
+;; To initialize if present file is compiled after start time, run hook now.
+;; (funcall org-pm-key-bindings)
 
 (defun org-pm-insert-new-project (&optional project-name no-name-query no-query)
   "Create a project definition template and insert it into current file.
@@ -205,13 +157,6 @@ Save updated project, file and duplicate lists to disk."
     (org-id-get-create)
     (org-pm-check-add-project (org-pm-parse-project-def (cadr (org-element-at-point))))
     (org-pm-save-all-project-data)))
-
-(defun org-pm-reset-project-list ()
-  "Set org-publish-project-alist to nil.  Save"
-  (interactive)
-  (cond ((y-or-n-p "Really erase all projects and save?")
-         (setq org-publish-project-alist)
-         (org-pm-save-all-project-data))))
 
 (defun org-pm-make-projects (&optional do-not-save-now)
   "Construct the projects for all project definitions found in current file.
@@ -369,6 +314,20 @@ to the id of the main project."
     (unless (file-exists-p path) (make-directory path))
     path))
 
+(defun org-pm-add-section-to-project ()
+  "Present menu of existing project definitions.
+Add selected project as tag to current section."
+  (interactive)
+  (save-excursion
+    (org-back-to-heading)
+    (let* ((project-name (org-pm-select-project-from-menu))
+           (tags (plist-get (cadr (org-element-at-point)) :tags))
+           (existing-projects
+            (-map (lambda (p) (car (org-pm-parse-tag p)))
+                  (-filter (lambda (tag) (string-match "^_.*_$" tag)) tags))))
+      (unless (member project-name existing-projects)
+        (org-set-tags-to (cons (concat "_" project-name "_") tags))))))
+
 (defun org-pm-select-project-from-menu ()
   "Present menu for selecting one project from the list of known projects."
   (interactive)
@@ -385,59 +344,121 @@ to the id of the main project."
       (org-pm-insert-new-project selected-project-name t))
     selected-project-name))
 
-(defun org-pm-add-section-to-project ()
-  "Present menu of existing project definitions.
-Add selected project as tag to current section."
+(defun org-pm-export ()
+  "Top-level function for exporting file and sections to projects.
+ Copy both file and any sections specified by properties, tags
+ to the designated projects and folders.
+ Before copying, re-scan buffer to build list of targets for copying.
+ Add list of sections and target file paths to ... and save to disk."
   (interactive)
   (save-excursion
-    (org-back-to-heading)
-    (let* ((project-name (org-pm-select-project-from-menu))
-           (tags (plist-get (cadr (org-element-at-point)) :tags))
-           (existing-projects
-            (-map (lambda (p) (car (org-pm-parse-tag p)))
-                  (-filter (lambda (tag) (string-match "^_.*_$" tag)) tags))))
-      (unless (member project-name existing-projects)
-        (org-set-tags-to (cons (concat "_" project-name "_") tags))))))
+    (save-restriction
+      (widen)
+      (let ((sections-with-paths (org-pm-get-section-project-paths)))
+        (org-pm-export-sections-to-projects sections-with-paths)
+        (setq org-pm-section-exports
+              (assoc-replace org-pm-section-exports
+                             (buffer-file-name (current-buffer))
+                             sections-with-paths))
+        (org-pm-save-all-project-data)))))
 
-(defun org-pm-get-non-project-tags (section-plist)
-  "Get those tags which are not enclosed in dash (=-=).
-Function org-pm-make-yaml-matter inserts these tags as part of the YAML matter
-in the file header for use by Jekyll/Octopress."
-  (-reject (lambda (tag) (string-match "^_.*_$" tag)) (plist-get section-plist :tags)))
+(defun org-pm-export-buffer-to-file (path-project)
+  "path-project has the form (path . project-name).
+ If path is not nil, save current buffer to path."
+  (let ((path (car path-project)))
+    (when path
+      (make-directory (file-name-directory path) t)
+      (write-region nil nil path))))
 
-(defun org-pm-load-all-project-data ()
-  "Load project alist, project file lists, duplicate project def lists
-from previously saved date on disk."
+(defun org-pm-export-sections-to-projects (&optional sections-with-paths)
+  "Copy sections of this file to paths specified by tags.
+ List sections-with-paths is constructed by org-pm-get-section-project-paths."
   (interactive)
-  (if (file-exists-p org-pm-project-data-file-path)
-      (load-file org-pm-project-data-file-path)))
+  (unless sections-with-paths
+    (setq sections-with-paths (org-pm-get-section-project-paths)))
+  (let ((buffer (current-buffer)))
+    (dolist (section sections-with-paths)
+      (org-pm-export-1-section-to-projects section buffer))))
 
-(defun org-pm-save-all-project-data ()
-  "Load project alist, project file lists, duplicate project def lists
-from previously saved date on disk."
+(defun org-pm-export-1-section-to-projects (section-with-paths origin-buffer)
+  "Copy section to temporary buffer, then save it to all
+ paths in the rest of section-with-paths."
+  (let ((target-buffer (get-buffer-create "*org-pm-copy-buf*")))
+    (set-buffer origin-buffer)
+    (goto-char (car section-with-paths))
+    (org-copy-subtree)
+    (set-buffer target-buffer)
+    (org-paste-subtree 1)
+    (dolist (path-project (cdr section-with-paths))
+      (org-pm-export-buffer-to-file path-project))
+    (kill-buffer target-buffer)
+    (message "exported section: %s" section-with-paths)))
+
+(defun org-pm-save-buffer (specs buffer)
+  "Save current buffer "
+  (let ((target-path (org-pm-make-target specs)))
+    (make-directory (file-name-directory target-path) t)
+    (write-region nil nil target-path)))
+
+(defun org-pm-make-target (specs)
+  (let* ((project-name (car specs))
+         (folder (cadr specs))
+         (slash (if (string-match "/$" folder) "" "/"))
+         (project (assoc project-name org-publish-project-alist)))
+    (cond (project
+           (add-to-list '*org-pm-updated-projects* project-name)
+           (concat (plist-get (cdr project) :base-directory)
+                   folder slash (caddr specs)))
+          (t
+           (add-to-list '*org-pm-missing-projects* project-name)
+           nil))))
+
+(defun org-pm-get-section-project-paths ()
+  "Build list of projects-folders-files to export sections of this buffer to.
+The list is created from those sections whose tags specify projects,
+i.e . tags enclosed in underscores: _projectname_
+The list is passed to org-pm-copy-section-project-components for copying.
+Each element in the list has the form:
+<start-point of section> (project projectname folder filename)
+                         (project projectname folder filename)
+                         ... "
   (interactive)
-  (dump-vars-to-file
-   '(org-publish-project-alist
-     ;; org-pm-file-exports
-     org-pm-section-exports
-     org-pm-project-def-duplicates)
-   org-pm-project-data-file-path))
+  (let (components)
+   (org-map-entries
+    '(let* ((node (cadr (org-element-at-point)))
+            (pspecs (-filter (lambda (tag) (string-match "^_.*_$" tag))
+                             (plist-get node :tags)))
+            name date)
+       (message "pspecs: \n%s" pspecs)
+       (if pspecs
+         (let (section-entries)
+          (setq name (plist-get node :raw-value))
+          (setq date (plist-get node :DATE))
+          (dolist (spec pspecs)
+            (setq section-entries
+                  (cons (org-pm-make-target-path
+                         (org-pm-parse-tag
+                          spec
+                          (org-pm-make-filename name)
+                          date)) section-entries)))
+          (setq components (cons (cons (point) section-entries) components))))))
+  ;;  (message "COMPONENTS: \n%s" components)
+   ;; FIXME: TODO: save paths to disc in org-pm save file
+   components))
 
-(defun dump-vars-to-file (varlist filename)
-  "simplistic dumping of variables in VARLIST to a file FILENAME"
-  (save-excursion
-    (let ((buf (find-file-noselect filename)))
-      (set-buffer buf)
-      (erase-buffer)
-      (dump varlist buf)
-      (save-buffer)
-      (kill-buffer))))
-
-(defun dump (varlist buffer)
-  "insert into buffer the setq statement to recreate the variables in VARLIST"
-  (loop for var in varlist do
-        (print (list 'setq var (list 'quote (symbol-value var)))
-               buffer)))
+;;; The next function should be reviewed.  May be scrapped.
+(defun org-pm-get-section-project-targets ()
+  "Return list of paths of files to which sections of current file are copied."
+  (interactive)
+  (let (sections
+        (components
+         (-map (lambda (clist)
+                 (-map (lambda (c) (org-pm-make-displayable-target-path c))
+                       clist))
+               (-map (lambda (aclist) (cdr aclist))
+                     (org-pm-get-section-project-components)))))
+    (message "%s" (-flatten components))
+    (-flatten components)))
 
 (defun org-pm-get-section-projects ()
   "Return list of projects found in the tags of the current section"
@@ -543,154 +564,6 @@ Becomes:
       (setq filename (concat (substring date 1 11) "-" filename)))
     filename))
 
-(defun org-pm-get-section-project-paths ()
-  "Build list of projects-folders-files to export sections of this buffer to.
-The list is created from those sections whose tags specify projects,
-i.e . tags enclosed in underscores: _projectname_
-The list is passed to org-pm-copy-section-project-components for copying.
-Each element in the list has the form:
-<start-point of section> (project projectname folder filename)
-                         (project projectname folder filename)
-                         ... "
-  (interactive)
-  (let (components)
-   (org-map-entries
-    '(let* ((node (cadr (org-element-at-point)))
-            (pspecs (-filter (lambda (tag) (string-match "^_.*_$" tag))
-                             (plist-get node :tags)))
-            name date)
-       (message "pspecs: \n%s" pspecs)
-       (if pspecs
-         (let (section-entries)
-          (setq name (plist-get node :raw-value))
-          (setq date (plist-get node :DATE))
-          (dolist (spec pspecs)
-            (setq section-entries
-                  (cons (org-pm-make-target-path
-                         (org-pm-parse-tag
-                          spec
-                          (org-pm-make-filename name)
-                          date)) section-entries)))
-          (setq components (cons (cons (point) section-entries) components))))))
-  ;;  (message "COMPONENTS: \n%s" components)
-   ;; FIXME: TODO: save paths to disc in org-pm save file
-   components))
-
-;;; The next function should be reviewed.  May be scrapped.
-(defun org-pm-get-section-project-targets ()
-  "Return list of paths of files to which sections of current file are copied."
-  (interactive)
-  (let (sections
-        (components
-         (-map (lambda (clist)
-                 (-map (lambda (c) (org-pm-make-displayable-target-path c))
-                       clist))
-               (-map (lambda (aclist) (cdr aclist))
-                     (org-pm-get-section-project-components)))))
-    (message "%s" (-flatten components))
-    (-flatten components)))
-
-;; pass components for posting (reporting) by calling function
-
-(defun org-pm-export ()
-  "Top level function for exporting file and sections to projects.
-Copy both file and any sections specified by properties, tags
-to the designated projects and folders.
-Before copying, re-scan buffer to build list of targets for copying.
-Add list of sections and target file paths to ... and save to disk."
-  (interactive)
-  (save-excursion
-    (save-restriction
-      (widen)
-      (let ((sections-with-paths (org-pm-get-section-project-paths)))
-       (org-pm-export-sections-to-projects sections-with-paths)
-       (setq org-pm-section-exports
-             (assoc-replace org-pm-section-exports
-                            (buffer-file-name (current-buffer))
-                            sections-with-paths))
-       (org-pm-save-all-project-data)))))
-
-(defun org-pm-export-buffer-to-file (path-project)
-  "path-project has the form (path . project-name).
-If path is not nil, save current buffer to path."
-  (let ((path (car path-project)))
-    (when path
-      (make-directory (file-name-directory path) t)
-      (write-region nil nil path))))
-
-(defun org-pm-export-sections-to-projects (&optional sections-with-paths)
-  "Copy sections of this file to paths specified by tags.
-List sections-with-paths is constructed by org-pm-get-section-project-paths."
-  (interactive)
-  (unless sections-with-paths
-    (setq sections-with-paths (org-pm-get-section-project-paths)))
-  (let ((buffer (current-buffer)))
-    (dolist (section sections-with-paths)
-      (org-pm-export-1-section-to-projects section buffer))))
-
-(defun org-pm-export-1-section-to-projects (section-with-paths origin-buffer)
-  "Copy section to temporary buffer, then save it to all
-paths in the rest of section-with-paths."
-  (let ((target-buffer (get-buffer-create "*org-pm-copy-buf*")))
-    (set-buffer origin-buffer)
-    (goto-char (car section-with-paths))
-    (org-copy-subtree)
-    (set-buffer target-buffer)
-    (org-paste-subtree 1)
-    (dolist (path-project (cdr section-with-paths))
-      (org-pm-export-buffer-to-file path-project))
-    (kill-buffer target-buffer)
-    (message "exported section: %s" section-with-paths)))
-
-(defun org-pm-save-buffer (specs buffer)
-  "Save current buffer "
-  (let ((target-path (org-pm-make-target specs)))
-    (make-directory (file-name-directory target-path) t)
-    (write-region nil nil target-path)))
-
-(defun org-pm-make-target (specs)
-  (let* ((project-name (car specs))
-         (folder (cadr specs))
-         (slash (if (string-match "/$" folder) "" "/"))
-         (project (assoc project-name org-publish-project-alist)))
-    (cond (project
-           (add-to-list '*org-pm-updated-projects* project-name)
-           (concat (plist-get (cdr project) :base-directory)
-                   folder slash (caddr specs)))
-          (t
-           (add-to-list '*org-pm-missing-projects* project-name)
-           nil))))
-
-;; Fix grizzl-completing-read to display custom prompt
-(require 'grizzl)
-(defun grizzl-completing-read (prompt index)
-  "Performs a completing-read in the minibuffer using INDEX to fuzzy search.
-Each key pressed in the minibuffer filters down the list of matches."
-  (minibuffer-with-setup-hook
-      (lambda ()
-        (setq *grizzl-current-result* nil)
-        (setq *grizzl-current-selection* 0)
-        (grizzl-mode 1)
-        (lexical-let*
-            ((hookfun (lambda ()
-                        (setq *grizzl-current-result*
-                              (grizzl-search (minibuffer-contents)
-                                             index
-                                             *grizzl-current-result*))
-                        (grizzl-display-result index prompt)))
-             (exitfun (lambda ()
-                        (grizzl-mode -1)
-                        (remove-hook 'post-command-hook    hookfun t))))
-          (add-hook 'minibuffer-exit-hook exitfun nil t)
-          (add-hook 'post-command-hook    hookfun nil t)))
-    (read-from-minibuffer (if prompt prompt ">>> "))
-    (grizzl-selected-result index)))
-
-(defun org-pm-list-exported-files ()
- "List files exported to projects."
-
-)
-
 (defun org-pm-make-yaml-front-matter (project-plist section-plist)
   "Make YAML front matter for Jekyll or Octopress.
 
@@ -754,46 +627,30 @@ or the section's tags:
           (insert (format "- %s\n" tag)))))
     (insert "---\n")))
 
-(defun org-pm-show-target-file-list (&optional section-components)
-  "Create a list of paths of all files which the current file and its sections
-outputs to.  Present this as a grizzl list for auto-complete search.
-Open selected file."
+(defun org-pm-get-non-project-tags (section-plist)
+  "Get those tags which are not enclosed in dash (=-=).
+Function org-pm-make-yaml-matter inserts these tags as part of the YAML matter
+in the file header for use by Jekyll/Octopress."
+  (-reject (lambda (tag) (string-match "^_.*_$" tag)) (plist-get section-plist :tags)))
+
+(defun org-pm-show-project-definition-section ()
+  "Mark all sections tagged PROJECT_DEFS.
+  Additionally go to the first section tagged PROJECT_DEFS, if it exists."
   (interactive)
-  (unless section-components
-    (setq section-components (org-pm-get-section-project-targets)))
-  (let* ((target-list
-         (mapcar (lambda (t) (cdr t)) section-components))
-         (index (grizzl-make-index target-list))
-         answer)
-    ;; (message "%s" target-list)
-    (setq answer (grizzl-completing-read "Choose file to open: " index))
-    (if (string-match "(undefined project)$" answer)
-        (message "No file: %s" answer)
-       (find-file answer))))
+  (let ((defs (org-map-entries '(cadr (org-element-at-point)) "PROJECT_DEFS")))
+    (cond
+     (defs
+       (org-match-sparse-tree nil "PROJECT_DEFS")
+       (goto-char (plist-get (car defs) :begin))
+       (recenter-top-bottom '(4))
+       (message "Showing location of first project definition section."))
+     (t (message "No project definitions were found in this file.")))))
 
-(defun org-pm-list-duplicate-project-defs ()
-  "List project definitions of same name that are found in more than one file or section.
-Do this in a separate org-mode buffer, and provide links to both file and section."
-
+(defun org-pm-edit-project-template ()
+  "Edit the file containing the global project template.
+Note that edits may cause conflicts when updating org-pm from git."
   (interactive)
-
-  (if (equal 0 (length org-pm-project-def-duplicates))
-      (error "There are no duplicate project definitions at all.\n!!! ... YAyyy ... !!!"))
-
-  (let ((buffer (get-buffer-create "*org-pm-project-def-duplicates*")))
-    (switch-to-buffer buffer)
-    (org-mode)
-    (delete-region (point-min) (point-max))
-    (org-insert-heading)
-    (insert "DUPLICATE PROJECT DEFINITIONS")
-    (dolist (project org-pm-project-def-duplicates)
-      (let ((project-name (car project)))
-        (insert "\n** " project-name "\n")
-        (dolist (def (cdr project))
-          (let ((path-and-id (split-string def "::#")))
-            (insert "file: file:" (car path-and-id) "\n")
-            (insert "node: " "id:" (cadr path-and-id) "\n")))))
-    ))
+  (find-file org-pm-project-template-file-name))
 
 (defun org-pm-list-project-defs ()
   "Build list of projects with links to file and node containing the project definition,
@@ -861,6 +718,30 @@ So we filter them out."
 ---> Marked the entire section containing project definition.
 Type C-space C-space to de-select region and deactivate mark.")))
 
+(defun org-pm-list-duplicate-project-defs ()
+  "List project definitions of same name that are found in more than one file or section.
+Do this in a separate org-mode buffer, and provide links to both file and section."
+
+  (interactive)
+
+  (if (equal 0 (length org-pm-project-def-duplicates))
+      (error "There are no duplicate project definitions at all.\n!!! ... YAyyy ... !!!"))
+
+  (let ((buffer (get-buffer-create "*org-pm-project-def-duplicates*")))
+    (switch-to-buffer buffer)
+    (org-mode)
+    (delete-region (point-min) (point-max))
+    (org-insert-heading)
+    (insert "DUPLICATE PROJECT DEFINITIONS")
+    (dolist (project org-pm-project-def-duplicates)
+      (let ((project-name (car project)))
+        (insert "\n** " project-name "\n")
+        (dolist (def (cdr project))
+          (let ((path-and-id (split-string def "::#")))
+            (insert "file: file:" (car path-and-id) "\n")
+            (insert "node: " "id:" (cadr path-and-id) "\n")))))
+    ))
+
 (defun pm/edit-duplicate-project-def ()
   "Select a project definition from the list of found duplicates, and
 go to the containing file at the selected location, so as to edit the
@@ -900,61 +781,178 @@ Type C-space C-space to de-select region and deactivate mark")
              project-name
              (assoc project-name org-publish-project-alist))))
 
+;;; INCOMPLETE
+
+(defun org-pm-list-exported-files (all-p)
+  "Create a list of paths of all files which the current file and its sections
+outputs to.  Present this as a grizzl list for auto-complete search.
+Open selected file.
+If called with argument, list exported sections from all files contained
+in assoc-list org-pm-section-exports."
+  (interactive "P")
+  (let* (section-components
+         (if all-p
+             org-pm-section-exports
+           (setq section-components (org-pm-get-section-project-targets)))
+         (target-list (mapcar (lambda (t) (cdr t)) section-components))
+         (index (grizzl-make-index target-list))
+         answer)
+    (setq answer (grizzl-completing-read "Choose file to open: " index))
+    (if (string-match "(undefined project)$" answer)
+        (message "No file: %s" answer)
+      (find-file answer))))
+
+(defun org-pm-load-all-project-data ()
+  "Load project alist, project file lists, duplicate project def lists
+from previously saved date on disk."
+  (interactive)
+  (if (file-exists-p org-pm-project-data-file-path)
+      (load-file org-pm-project-data-file-path)))
+
+(defun org-pm-save-all-project-data ()
+  "Load project alist, project file lists, duplicate project def lists
+from previously saved date on disk."
+  (interactive)
+  (dump-vars-to-file
+   '(org-publish-project-alist
+     ;; org-pm-file-exports
+     org-pm-section-exports
+     org-pm-project-def-duplicates)
+   org-pm-project-data-file-path))
+
+(defun dump-vars-to-file (varlist filename)
+  "simplistic dumping of variables in VARLIST to a file FILENAME"
+  (save-excursion
+    (let ((buf (find-file-noselect filename)))
+      (set-buffer buf)
+      (erase-buffer)
+      (dump varlist buf)
+      (save-buffer)
+      (kill-buffer))))
+
+(defun dump (varlist buffer)
+  "insert into buffer the setq statement to recreate the variables in VARLIST"
+  (loop for var in varlist do
+        (print (list 'setq var (list 'quote (symbol-value var)))
+               buffer)))
+
+(defun org-pm-reset-project-list ()
+  "Set org-publish-project-alist to nil.  Save"
+  (interactive)
+  (cond ((y-or-n-p "Really erase all projects and save?")
+         (setq org-publish-project-alist)
+         (org-pm-save-all-project-data))))
+
 (defun org-pm-edit-saved-project-data ()
   "Edit the file containing the global project data."
   (interactive)
   (find-file org-pm-project-data-file-path))
 
-(defun org-pm-menu ()
-  "Select and run an org-pm command from a grizzl-minibuffer menu list."
+(defun assoc-add (alist key element)
+  "Add element to the sublist of alist which starts with key."
+  (let ((sublist (assoc key alist)))
+    (if sublist
+        (setcdr sublist (cons element (cdr sublist)))
+      (if alist
+          (setcdr alist (cons (list key element) (cdr alist)))
+        (setq alist (list (list key element))))))
+  alist)
+
+(defun assoc-remove (alist key element)
+  "Remove element from the sublist of alist whose car is equal to key."
+  (when alist
+    (let ((sublist (assoc key alist)))
+      (when sublist
+        (setcdr sublist(remove element (cdr sublist)))
+        (if (equal 1 (length sublist)) (setq alist (remove sublist alist))))
+      alist)))
+
+(defun assoc-remove-key (alist key)
+  "Remove all sublists of alist whose car is equal to key."
+  (setq alist (remove* key alist :test 'equal :key 'car)))
+
+  ;;; older version
+(defun assoc-remove-key-simple-style (alist key)
+  "Remove all sublists of alist whose car is equal to key."
+  (let (found)
+    (while (setq found (assoc key alist))
+      (setq alist (delq found alist)))
+    alist))
+
+(defun assoc-replace (alist key newlist)
+  "Remove all sublists of alist whose car is equal to key, and then
+     add (cons key newlist) to alist."
+  (setq alist (assoc-remove-key alist key))
+  (setq alist (cons (cons key newlist) alist)))
+
+(defun org-get-header-property (property &optional all)
+  "Get property from buffer variable.  Returns only fist match except if ALL is defined.
+NOTE: Also works if editing subtree narrowed or in separate narrowed buffer. "
+  (with-current-buffer
+      (current-buffer)
+    (save-excursion
+      (save-restriction
+        (save-match-data
+          (widen)
+          (goto-char (point-min))
+          (let (values)
+            (while (re-search-forward (format "^#\\+%s:?[ \t]*\\(.*\\)" property) nil t)
+              (add-to-list 'values (substring-no-properties (match-string 1))))
+            (if all
+                values
+              (car values))))))))
+
+(defun org-get-section-properties (properties)
+  "Return values of each of the properties in list properties,
+as separate values.  Can be used with multiple-value-bind to set
+each one of several variables to the value of each property in properties list."
+  (save-excursion
+    (org-back-to-heading)
+    (let ((plist (cadr (org-element-at-point))))
+      (values-list
+       (-map (lambda (p) (plist-get plist (intern (concat ":" p)))) properties)))))
+
+;; Fix grizzl-completing-read to display custom prompt
+(require 'grizzl)
+(defun grizzl-completing-read (prompt index)
+  "Performs a completing-read in the minibuffer using INDEX to fuzzy search.
+Each key pressed in the minibuffer filters down the list of matches."
+  (minibuffer-with-setup-hook
+      (lambda ()
+        (setq *grizzl-current-result* nil)
+        (setq *grizzl-current-selection* 0)
+        (grizzl-mode 1)
+        (lexical-let*
+            ((hookfun (lambda ()
+                        (setq *grizzl-current-result*
+                              (grizzl-search (minibuffer-contents)
+                                             index
+                                             *grizzl-current-result*))
+                        (grizzl-display-result index prompt)))
+             (exitfun (lambda ()
+                        (grizzl-mode -1)
+                        (remove-hook 'post-command-hook    hookfun t))))
+          (add-hook 'minibuffer-exit-hook exitfun nil t)
+          (add-hook 'post-command-hook    hookfun nil t)))
+    (read-from-minibuffer (if prompt prompt ">>> "))
+    (grizzl-selected-result index)))
+
+(defun org-set-comment ()
+  "Change the COMMENT state of an entry to COMMENT.
+Do *not* remove COMMENT state if already present.
+This function is derived from org-toggle-coment."
   (interactive)
-  (setq  *grizzl-read-max-results* 32)
-  (let* ((commands '(
-                     org-pm-insert-new-project
-                     org-pm-make-projects
-                     org-pm-add-section-to-project
-                     org-pm-export
-                     org-pm-remove-section-from-project
-                     org-pm-list-project-defs
-                     org-pm-list-exported-files
-                     org-pm-list-duplicate-project-defs
-                     pm/edit-duplicate-project-def
-                     org-pm-load-all-project-data
-                     org-pm-reset-project-list
-                     org-pm-edit-saved-project-data
-                     org-pm-load-project-data
-                     org-pm-save-project-data
-                     org-pm-list-project-defs
-                     org-pm-show-target-file-list
-                     ))
-         (menu (grizzl-make-index
-               (-map (lambda (c)
-                       (replace-regexp-in-string
-                        "-"
-                        " "
-                        (replace-regexp-in-string
-                         "^org-pm-" "" (symbol-name c))))
-                     commands)))
-        selection)
-    (setq selection (grizzl-completing-read  "Select command: " menu))
-    (eval
-     (read (concat
-            "(org-pm-"
-            (replace-regexp-in-string " " "-" selection)
-            ")")))))
+  (save-excursion
+    (org-back-to-heading)
+    (let (case-fold-search)
+      (cond
+       ((looking-at (format org-heading-keyword-regexp-format
+                            org-comment-string))
+        ;; if comment was found, then do nothing:
+        )
+       ((looking-at org-outline-regexp)
+        (goto-char (match-end 0))
+        (insert org-comment-string " "))))))
 
-;; Add org-mode hook for org-pm-key bindings.
-
-(let ((org-pm-key-bindings
-       (lambda ()
-         (define-key org-mode-map (kbd "H-m H-m") 'org-pm-menu)
-         (define-key org-mode-map (kbd "H-m t") 'org-pm-insert-new-project)
-         (define-key org-mode-map (kbd "H-m m") 'org-pm-make-projects)
-         (define-key org-mode-map (kbd "H-m e") 'org-pm-export)
-         (define-key org-mode-map (kbd "H-m l") 'org-pm-list-project-defs)
-)))
-
-(add-hook 'org-mode-hook org-pm-key-bindings))
-
-;; To initialize if present file is compiled after start time, run hook now.
-(funcall org-pm-key-bindings)
+(eval-after-load 'org
+  '(define-key org-mode-map (kbd "C-c C-;") 'org-set-comment))

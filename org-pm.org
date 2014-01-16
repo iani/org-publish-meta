@@ -555,6 +555,29 @@ If project name input by user does not correspond to an existing project, offer 
           (org-set-tags-to (cons (concat "_" project-name "_") tags))))))
 #+END_SRC
 
+*** org-pm-select-project-from-menu
+
+Present menu for selecting one project from the list of known projects.  Utility function used by org-pm-add-section-to-project.
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-select-project-from-menu ()
+    "Present menu for selecting one project from the list of known projects."
+    (interactive)
+    (let* ((projects
+            (-filter
+             (lambda (pn) (not (string-match "^combined_" pn)))
+             (-map 'car org-publish-project-alist)))
+           index selected-project-name)
+      (unless projects (setq projects '("new_project")))
+      (setq index (grizzl-make-index projects))
+      (setq selected-project-name
+            (grizzl-completing-read "Choose a project:" index))
+      (unless (assoc selected-project-name org-publish-project-alist)
+        (org-pm-insert-new-project selected-project-name t))
+      selected-project-name))
+#+END_SRC
+
+
 ** DONE org-pm-remove-section-from-project
 :PROPERTIES:
 :DATE:     <2014-01-13 Mon 08:43>
@@ -1387,10 +1410,56 @@ Edit the file containing the auto-saved data for org-pom.
 #+END_SRC
 
 
-* Auxiliary functions
+* Auxiliary functions + Fixes
 :PROPERTIES:
 :DATE:     <2013-12-18 Wed 17:24>
 :END:
+
+** DONE Functions for adding, removing and replacing elements in a-lists
+CLOSED: [2013-12-19 Thu 09:01]
+:PROPERTIES:
+:ID:       6F334A92-6B8C-473B-B8C5-1BAFB70F819F
+:END:
+
+#+BEGIN_SRC emacs-lisp
+  (defun assoc-add (alist key element)
+    "Add element to the sublist of alist which starts with key."
+    (let ((sublist (assoc key alist)))
+      (if sublist
+          (setcdr sublist (cons element (cdr sublist)))
+        (if alist
+            (setcdr alist (cons (list key element) (cdr alist)))
+          (setq alist (list (list key element))))))
+    alist)
+
+  (defun assoc-remove (alist key element)
+    "Remove element from the sublist of alist whose car is equal to key."
+    (when alist
+      (let ((sublist (assoc key alist)))
+        (when sublist
+          (setcdr sublist(remove element (cdr sublist)))
+          (if (equal 1 (length sublist)) (setq alist (remove sublist alist))))
+        alist)))
+
+  (defun assoc-remove-key (alist key)
+    "Remove all sublists of alist whose car is equal to key."
+    (setq alist (remove* key alist :test 'equal :key 'car)))
+
+    ;;; older version
+  (defun assoc-remove-key-simple-style (alist key)
+    "Remove all sublists of alist whose car is equal to key."
+    (let (found)
+      (while (setq found (assoc key alist))
+        (setq alist (delq found alist)))
+      alist))
+
+  (defun assoc-replace (alist key newlist)
+    "Remove all sublists of alist whose car is equal to key, and then
+       add (cons key newlist) to alist."
+    (setq alist (assoc-remove-key alist key))
+    (setq alist (cons (cons key newlist) alist)))
+
+#+END_SRC
 
 ** DONE Get header properties: org-get-header-property
 :PROPERTIES:
@@ -1453,107 +1522,6 @@ Edit the file containing the auto-saved data for org-pom.
 #+RESULTS:
 : 123
 
-
-** Set state of current heading to COMMENT
-
-This function is derived by modifying org-toggle-comment.
-
-#+BEGIN_SRC emacs-lisp
-  (defun org-set-comment ()
-    "Change the COMMENT state of an entry to COMMENT.
-  Do *not* remove COMMENT state if already present.
-  This function is derived from org-toggle-coment."
-    (interactive)
-    (save-excursion
-      (org-back-to-heading)
-      (let (case-fold-search)
-        (cond
-         ((looking-at (format org-heading-keyword-regexp-format
-                              org-comment-string))
-          ;; if comment was found, then do nothing:
-          )
-         ((looking-at org-outline-regexp)
-          (goto-char (match-end 0))
-          (insert org-comment-string " "))))))
-
-  (eval-after-load 'org
-    '(define-key org-mode-map (kbd "C-c C-;") 'org-set-comment))
-#+END_SRC
-
-** DONE Functions for adding, removing and replacing elements in a-lists
-CLOSED: [2013-12-19 Thu 09:01]
-:PROPERTIES:
-:ID:       6F334A92-6B8C-473B-B8C5-1BAFB70F819F
-:END:
-
-#+BEGIN_SRC emacs-lisp
-  (defun assoc-add (alist key element)
-    "Add element to the sublist of alist which starts with key."
-    (let ((sublist (assoc key alist)))
-      (if sublist
-          (setcdr sublist (cons element (cdr sublist)))
-        (if alist
-            (setcdr alist (cons (list key element) (cdr alist)))
-          (setq alist (list (list key element))))))
-    alist)
-
-  (defun assoc-remove (alist key element)
-    "Remove element from the sublist of alist whose car is equal to key."
-    (when alist
-      (let ((sublist (assoc key alist)))
-        (when sublist
-          (setcdr sublist(remove element (cdr sublist)))
-          (if (equal 1 (length sublist)) (setq alist (remove sublist alist))))
-        alist)))
-
-  (defun assoc-remove-key (alist key)
-    "Remove all sublists of alist whose car is equal to key."
-    (setq alist (remove* key alist :test 'equal :key 'car)))
-
-    ;;; older version
-  (defun assoc-remove-key-simple-style (alist key)
-    "Remove all sublists of alist whose car is equal to key."
-    (let (found)
-      (while (setq found (assoc key alist))
-        (setq alist (delq found alist)))
-      alist))
-
-  (defun assoc-replace (alist key newlist)
-    "Remove all sublists of alist whose car is equal to key, and then
-       add (cons key newlist) to alist."
-    (setq alist (assoc-remove-key alist key))
-    (setq alist (cons (cons key newlist) alist)))
-
-#+END_SRC
-
-#+RESULTS:
-: assoc-replace
-
-
-* TODO 2 FUNCTIONS STILL TO BE ORDERED
-** TODO (MUST MOVE OR REMOVE) Add/remove projects to sections
-*** org-pm-select-project-from-menu
-
-Present menu for selecting one project from the list of known projects.  Utility function used by org-pm-add-section-to-project.
-
-#+BEGIN_SRC emacs-lisp
-  (defun org-pm-select-project-from-menu ()
-    "Present menu for selecting one project from the list of known projects."
-    (interactive)
-    (let* ((projects
-            (-filter
-             (lambda (pn) (not (string-match "^combined_" pn)))
-             (-map 'car org-publish-project-alist)))
-           index selected-project-name)
-      (unless projects (setq projects '("new_project")))
-      (setq index (grizzl-make-index projects))
-      (setq selected-project-name
-            (grizzl-completing-read "Choose a project:" index))
-      (unless (assoc selected-project-name org-publish-project-alist)
-        (org-pm-insert-new-project selected-project-name t))
-      selected-project-name))
-#+END_SRC
-
 ** TODO Fix grizzl-completing-read prompt argument use
 
 #+BEGIN_SRC emacs-lisp
@@ -1582,6 +1550,33 @@ Present menu for selecting one project from the list of known projects.  Utility
       (read-from-minibuffer (if prompt prompt ">>> "))
       (grizzl-selected-result index)))
 
+#+END_SRC
+
+
+** Set state of current heading to COMMENT
+
+This function is derived by modifying org-toggle-comment.
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-set-comment ()
+    "Change the COMMENT state of an entry to COMMENT.
+  Do *not* remove COMMENT state if already present.
+  This function is derived from org-toggle-coment."
+    (interactive)
+    (save-excursion
+      (org-back-to-heading)
+      (let (case-fold-search)
+        (cond
+         ((looking-at (format org-heading-keyword-regexp-format
+                              org-comment-string))
+          ;; if comment was found, then do nothing:
+          )
+         ((looking-at org-outline-regexp)
+          (goto-char (match-end 0))
+          (insert org-comment-string " "))))))
+
+  (eval-after-load 'org
+    '(define-key org-mode-map (kbd "C-c C-;") 'org-set-comment))
 #+END_SRC
 
 
