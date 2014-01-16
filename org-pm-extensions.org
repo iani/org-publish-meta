@@ -6,7 +6,7 @@ Kept here for later revision.
 
 - org-pm-auto-parse
 - org-pm-auto-copy
-
+- org-pm-report-after-copying
 ...
 
 * UNDERWAY Variables
@@ -37,6 +37,18 @@ CLOSED: [2013-12-18 Wed 15:23]
   "If not nil, automatically copy file components to a project to the
   project's source folder before publishing.")
 #+END_SRC
+
+
+** Variable: flag for reporting (may be removed)
+#+BEGIN_SRC emacs-lisp
+  ;; Will replace org-pm-register-project-components.
+
+  ;; Review?  Remove? :
+  (defvar org-pm-report-after-copying-p t
+  "If not-nil, org-pm-copy-components-to-projects will post a report
+  of projects not found or of projects targeted when finishing.")
+#+END_SRC
+
 
 * Auxiliary functions
 :PROPERTIES:
@@ -466,3 +478,57 @@ Dealing with the above:
 2. is possible to check as soon as it happens, because the moment a new project gets defined one can check if the already existing definition is in the same file.  Registering duplicate projects defintions in org-pm-projectd-def-duplicates.  Function org-pm-list-project-defs creates buffer listing all project defs, including duplicates, and provides links for going to any one of thse in order to edit/remove.
 3. could be delegated to commands that a user can call independently of the main specification and publishing process.
 4. could be handled like No. 3.
+* Early/longer versons of menu and keyboard shortcuts
+** Menu: select org-pm command interactively
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-menu ()
+    "Select and run an org-pm command from a grizzl-minibuffer menu list."
+    (interactive)
+    (let* ((commands '(
+                       org-pm-load-all-project-data
+                       org-pm-list-project-defs
+                       org-pm-show-target-file-list
+                       org-pm-make-projects
+                       org-pm-make-project-template
+                       org-pm-copy-all-parts-to-projects
+                       ))
+           (menu (grizzl-make-index
+                 (-map (lambda (c)
+                         (replace-regexp-in-string
+                          "-"
+                          " "
+                          (replace-regexp-in-string
+                           "^org-pm-" "" (symbol-name c))))
+                       commands)))
+          selection)
+      (setq selection (grizzl-completing-read  "Select command: " menu))
+      (eval
+       (read (concat
+              "(org-pm-"
+              (replace-regexp-in-string " " "-" selection)
+              ")")))))
+#+END_SRC
+** Keyboard shortcuts
+
+Note: I use the Hyper-m  (= Mac fn key m) as prefix, because it is not likely to be occupied by other packages.  Users can easily remap.
+
+#+BEGIN_SRC emacs-lisp
+  ;; Add org-mode hook for org-pm-key bindings.
+  ;; To initialize if present file is compiled after start time, run hook qnow.
+  (let ((org-pm-key-bindings
+         (lambda ()
+           (define-key org-mode-map (kbd "H-m H-m") 'org-pm-menu)
+           (define-key org-mode-map (kbd "H-m a") 'org-pm-toggle-auto)
+           (define-key org-mode-map (kbd "H-m s") 'org-pm-save-and-update)
+           (define-key org-mode-map (kbd "H-m v") 'org-pm-toggle-verbose)
+           (define-key org-mode-map (kbd "H-m l") 'org-pm-list-project-defs)
+           (define-key org-mode-map (kbd "H-m m") 'org-pm-make-projects)
+           (define-key org-mode-map (kbd "H-m c") 'org-pm-copy-components-to-projects)
+           (define-key org-mode-map (kbd "H-m t") 'org-pm-make-project-template))))
+    (funcall org-pm-key-bindings)
+    (add-hook 'org-mode-hook
+              org-pm-key-bindings))
+
+
+#+END_SRC

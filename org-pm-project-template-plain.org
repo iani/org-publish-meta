@@ -27,6 +27,6 @@
 ** toc-heading "Contents"
 ** static-base-directory "BASEDIRECTORY/static"
 ** static-publishing-directory "PUBLISHINGDIRECTORY/static"
-** static-base-extension "css\\|js\\|less\\|sass\\|php\\|rb\\|py\\|pdf\\|jpg\\|gif\\|png"
+** static-base-extension "css\\|js\\|less\\|scss\\|php\\|rb\\|py\\|pdf\\|jpg\\|gif\\|png"
 ** static-publishing-function 'org-publish-attachment
 ** static-recursive t
