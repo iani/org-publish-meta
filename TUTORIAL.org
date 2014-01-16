@@ -8,32 +8,31 @@
 :DATE:     <2013-12-18 Wed 09:31>
 :END:
 
-Run the following to install org-pm and to activate auto-parsing and auto-copying:
+Run the following to install org-pm.
 
 #+BEGIN_SRC elisp
 (require 'org-pm)
-;; Auto-parse project configs after saving a buffer:
-(setq org-pm-auto-parse t)
-;; Auto-copy contents of project components after saving a buffer:
-(setq org-pm-auto-copy 'on-save)
 #+END_SRC
 
-The auto-parse and auto-copy features are optional.
+** The Menu
 
-The command org-pm-toggle-auto can be used to toggle between auto-scanning and copying on save and manual mode.
+** Defining a project
 
-(Not yet implemented:) You can also deactivate auto-copy and auto-parse for individual files by setting the values of respective properties in those files to nil.  See documentation for details.  It is recommended to try out org-pm with the auto-features activated at first, because it greatly simplifies its use.
+Command: =org-pm-insert-new-project=
+Keyboard shortcut: H-m n
 
-** First steps: Adding and removing files, the default project
-*** Add a file to a project
+This command inserts a project definition template into the current buffer.
+
+** Adding and removing files, the default project
+*** Add a section to a project
 :PROPERTIES:
 :DATE:     <2013-12-18 Wed 09:51>
 :END:
 
-Command: org-pm-add-file-to-project
-Keyboard shortcut: C-c A.
+Command: org-pm-add-section-to-project
+Keyboard shortcut: H-m a
 
-The command org-pm-add-file-to-project (C-c A) lets the user select a project from a list of existing projects displayed in the menu buffer, and adds the file of the current buffer to the selected project.  If there is no project defined, the command offers to create a default project (see below).
+The command org-pm-add-section-to-project lets the user select a project from a list of existing projects displayed in the menu buffer, and adds the current org-mode section of the current buffer to the selected project.  If there is no project defined, the command offers to create a default project (see below).
 
 To add a file to a project, org-pm-add-file-to-project adds the name of the project in property PROJECT by adding a line like this at the beginning of the org-mode file:
 
