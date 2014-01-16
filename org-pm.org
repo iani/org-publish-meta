@@ -2,7 +2,7 @@
 #+TITLE: Org-publish-meta: Easy projects for Org-mode
 
 
-* Overview: List of Commands
+* DONE Overview: List of Commands
 
 ** Six main command categories
 There are overall 16 top-level user commands and 1 menu command listing the 16 commands.
@@ -26,11 +26,12 @@ The commands are organized into 6 topics/sections:
 |--------------------------+---------------------------------------------|
 | H-m H-m                  | org-pm-menu (lists all commands)            |
 | H-m n                    | org-pm-insert-new-project                   |
-| H-m m or H-m p m         | org-pm-make-projects (current buffer) |
+| H-m m or H-m p m         | org-pm-make-projects (current buffer)       |
 | C-u H-m m or C-u H-m p m | org-pm-make-projects (all files)            |
 | H-m a                    | org-pm-add-section-to-project               |
 | H-m r                    | org-pm-remove-section-from-project          |
 | H-m e                    | org-pm-export                               |
+| H-m P   (TODO)           | org-pm-publish                              |
 |--------------------------+---------------------------------------------|
 | *PROJECT DEFINITIONS*    |                                             |
 |--------------------------+---------------------------------------------|
@@ -39,12 +40,13 @@ The commands are organized into 6 topics/sections:
 | H-m p l                  | org-pm-list-project-defs                    |
 | H-m p d                  | org-pm-list-duplicate-project-defs          |
 | C-u H-m p d              | pm/edit-duplicate-project-def               |
+| H-m p p                  | org-pm-post-project-def                     |
 |--------------------------+---------------------------------------------|
 | *TARGET FILE LISTS*      |                                             |
 |--------------------------+---------------------------------------------|
 | H-m f                    | org-pm-list-exported-files (current buffer) |
 | C-u H-m f                | org-pm-list-exported-files (all)            |
-| H-m ?????                | org-pm-show-target-file-list ???            |
+| H-m ?????  (TODO)        | org-pm-show-target-file-list ???            |
 |--------------------------+---------------------------------------------|
 | *SAVED DATA*             |                                             |
 |--------------------------+---------------------------------------------|
@@ -132,7 +134,7 @@ This function is also called by org-pm-make-projects and org-pm-export.
 Set org-publish-project-alist to nil.  Save.
 
 **** org-pm-edit-saved-project-data
-* Variables
+* DONE Variables
 :PROPERTIES:
 :DATE:     <2013-12-18 Wed 11:52>
 :END:
@@ -215,7 +217,7 @@ CLOSED: [2013-12-21 Sat 22:07]
   org-pm-project-template-plain.org" )
 #+END_SRC
 
-* Main Commands
+* DONE Main Commands
 
 |--------------------------+---------------------------------------------|
 | Shortcut                 | Command                                     |
@@ -231,234 +233,77 @@ CLOSED: [2013-12-21 Sat 22:07]
 | H-m e                    | org-pm-export                               |
 |--------------------------+---------------------------------------------|
 
-* Project Definition Commands
-|--------------------------+---------------------------------------------|
-| Shortcut                 | Command                                     |
-|--------------------------+---------------------------------------------|
-| *PROJECT DEFINITIONS*    |                                             |
-|--------------------------+---------------------------------------------|
-| H-m p e or H-m p s       | org-pm-show-project-definition-section      |
-| H-m p t                  | org-pm-edit-project-template                |
-| H-m p l                  | org-pm-list-project-defs                    |
-| H-m p d                  | org-pm-list-duplicate-project-defs          |
-| C-u H-m p d              | pm/edit-duplicate-project-def               |
-|--------------------------+---------------------------------------------|
+** DONE org-pm-menu
 
-* Target File List Commands
-|--------------------------+---------------------------------------------|
-| Shortcut                 | Command                                     |
-|--------------------------+---------------------------------------------|
-| *TARGET FILE LISTS*      |                                             |
-|--------------------------+---------------------------------------------|
-| H-m f                    | org-pm-list-exported-files (current buffer) |
-| C-u H-m f                | org-pm-list-exported-files (all)            |
-| H-m ?????                | org-pm-show-target-file-list ???            |
-|--------------------------+---------------------------------------------|
-
-* Saved Data Commands
-|--------------------------+---------------------------------------------|
-| Shortcut                 | Command                                     |
-|--------------------------+---------------------------------------------|
-| *SAVED DATA*             |                                             |
-|--------------------------+---------------------------------------------|
-| H-m d l                  | org-pm-load-project-data                    |
-| H-m d s                  | org-pm-save-project-data                    |
-| H-m d r or H-m d c       | org-pm-reset-project-list                   |
-| H-m d e                  | org-pm-edit-saved-project-data              |
-|--------------------------+---------------------------------------------|
-
-
-* Auxiliary functions
-:PROPERTIES:
-:DATE:     <2013-12-18 Wed 17:24>
-:END:
-
-** DONE Get header properties: org-get-header-property
-:PROPERTIES:
-:DATE:     <2013-12-16 Mon 02:50>
-:END:
+Select org-pm command interactively
 
 #+BEGIN_SRC emacs-lisp
-  (defun org-get-header-property (property &optional all)
-    "Get property from buffer variable.  Returns only fist match except if ALL is defined.
-  NOTE: Also works if editing subtree narrowed or in separate narrowed buffer. "
-    (with-current-buffer
-        (current-buffer)
-      (save-excursion
-        (save-restriction
-          (save-match-data
-            (widen)
-            (goto-char (point-min))
-            (let (values)
-              (while (re-search-forward (format "^#\\+%s:?[ \t]*\\(.*\\)" property) nil t)
-                (add-to-list 'values (substring-no-properties (match-string 1))))
-              (if all
-                  values
-                (car values))))))))
-#+END_SRC
-
-#+RESULTS:
-: org-get-header-property
-
-#+TEST: test
-
-#+BEGIN_SRC elisp
-(org-get-header-property "TEST")
-#+END_SRC
-
-#+RESULTS:
-: test
-
-** Get section properties: org-get-section-properties
-:PROPERTIES:
-:DATE:     <2014-01-15 Wed 02:32>
-:TEST: 123
-:END:
-
-#+BEGIN_SRC emacs-lisp
-  (defun org-get-section-properties (properties)
-    "Return values of each of the properties in list properties,
-  as separate values.  Can be used with multiple-value-bind to set
-  each one of several variables to the value of each property in properties list."
-    (save-excursion
-      (org-back-to-heading)
-      (let ((plist (cadr (org-element-at-point))))
-        (values-list
-         (-map (lambda (p) (plist-get plist (intern (concat ":" p)))) properties)))))
-#+END_SRC
-
-#+RESULTS:
-: org-get-section-properties
-
-#+BEGIN_SRC elisp
-(org-get-section-properties '("DATE" "TEST"))
-#+END_SRC
-
-#+RESULTS:
-| <2014-01-15 Wed 02:32> | 123 |
-
-#+BEGIN_SRC elisp
-  (multiple-value-bind (date test)
-      (org-get-section-properties '("DATE" "TEST"))
-    test)
-#+END_SRC
-
-#+RESULTS:
-: 123
-
-
-** Set state of current heading to COMMENT
-
-This function is derived by modifying org-toggle-comment.
-
-#+BEGIN_SRC emacs-lisp
-  (defun org-set-comment ()
-    "Change the COMMENT state of an entry to COMMENT.
-  Do *not* remove COMMENT state if already present.
-  This function is derived from org-toggle-coment."
+  (defun org-pm-menu ()
+    "Select and run an org-pm command from a grizzl-minibuffer menu list."
     (interactive)
-    (save-excursion
-      (org-back-to-heading)
-      (let (case-fold-search)
-        (cond
-         ((looking-at (format org-heading-keyword-regexp-format
-                              org-comment-string))
-          ;; if comment was found, then do nothing:
-          )
-         ((looking-at org-outline-regexp)
-          (goto-char (match-end 0))
-          (insert org-comment-string " "))))))
-
-  (eval-after-load 'org
-    '(define-key org-mode-map (kbd "C-c C-;") 'org-set-comment))
+    (setq  *grizzl-read-max-results* 32)
+    (let* ((commands '(
+                       org-pm-insert-new-project
+                       org-pm-make-projects
+                       org-pm-add-section-to-project
+                       org-pm-export
+                       org-pm-remove-section-from-project
+                       org-pm-edit-project-template
+                       org-pm-list-project-defs
+                       org-pm-list-exported-files
+                       org-pm-list-duplicate-project-defs
+                       pm/edit-duplicate-project-def
+                       org-pm-load-all-project-data
+                       org-pm-reset-project-list
+                       org-pm-edit-saved-project-data
+                       org-pm-load-project-data
+                       org-pm-save-project-data
+                       org-pm-list-project-defs
+                       org-pm-show-target-file-list
+                       ))
+           (menu (grizzl-make-index
+                 (-map (lambda (c)
+                         (replace-regexp-in-string
+                          "-"
+                          " "
+                          (replace-regexp-in-string
+                           "^org-pm-" "" (symbol-name c))))
+                       commands)))
+          selection)
+      (setq selection (grizzl-completing-read  "Select command: " menu))
+      (eval
+       (read (concat
+              "(org-pm-"
+              (replace-regexp-in-string " " "-" selection)
+              ")")))))
 #+END_SRC
 
-** DONE Functions for adding, removing and replacing elements in a-lists
-CLOSED: [2013-12-19 Thu 09:01]
-:PROPERTIES:
-:ID:       6F334A92-6B8C-473B-B8C5-1BAFB70F819F
-:END:
+** UNDERWAY Keyboard shortcuts
+
+Note: I use the Hyper-m  (= Mac fn key m) as prefix, because it is not likely to be occupied by other packages.  Users can easily remap.
 
 #+BEGIN_SRC emacs-lisp
-  (defun assoc-add (alist key element)
-    "Add element to the sublist of alist which starts with key."
-    (let ((sublist (assoc key alist)))
-      (if sublist
-          (setcdr sublist (cons element (cdr sublist)))
-        (if alist
-            (setcdr alist (cons (list key element) (cdr alist)))
-          (setq alist (list (list key element))))))
-    alist)
+  ;; Add org-mode hook for org-pm-key bindings.
 
-  (defun assoc-remove (alist key element)
-    "Remove element from the sublist of alist whose car is equal to key."
-    (when alist
-      (let ((sublist (assoc key alist)))
-        (when sublist
-          (setcdr sublist(remove element (cdr sublist)))
-          (if (equal 1 (length sublist)) (setq alist (remove sublist alist))))
-        alist)))
+  (let ((org-pm-key-bindings
+         (lambda ()
+           (define-key org-mode-map (kbd "H-m H-m") 'org-pm-menu)
+           (define-key org-mode-map (kbd "H-m p n") 'org-pm-insert-new-project)
+           (define-key org-mode-map (kbd "H-m p m") 'org-pm-make-projects)
+           (define-key org-mode-map (kbd "H-m e") 'org-pm-export)
+           (define-key org-mode-map (kbd "H-m p l") 'org-pm-list-project-defs)
+  )))
 
-  (defun assoc-remove-key (alist key)
-    "Remove all sublists of alist whose car is equal to key."
-    (setq alist (remove* key alist :test 'equal :key 'car)))
+  (add-hook 'org-mode-hook org-pm-key-bindings))
 
-    ;;; older version
-  (defun assoc-remove-key-simple-style (alist key)
-    "Remove all sublists of alist whose car is equal to key."
-    (let (found)
-      (while (setq found (assoc key alist))
-        (setq alist (delq found alist)))
-      alist))
-
-  (defun assoc-replace (alist key newlist)
-    "Remove all sublists of alist whose car is equal to key, and then
-       add (cons key newlist) to alist."
-    (setq alist (assoc-remove-key alist key))
-    (setq alist (cons (cons key newlist) alist)))
+  ;; To initialize if present file is compiled after start time, run hook now.
+  ;; (funcall org-pm-key-bindings)
 
 #+END_SRC
 
-#+RESULTS:
-: assoc-replace
 
-
-* Project Definitions
-
-** org-pm-edit-project-template
-
-Edit the file containing the global project template.
-Note that edits may cause conflicts when updating org-pm from git.
-
-#+BEGIN_SRC emacs-lisp
-  (defun org-pm-edit-project-template ()
-    "Edit the file containing the global project template.
-  Note that edits may cause conflicts when updating org-pm from git."
-    (interactive)
-    (find-file org-pm-project-template-file-name))
-#+END_SRC
-
-** org-pm-show-project-definition-section
-
-#+BEGIN_SRC emacs-lisp
-  (defun org-pm-show-project-definition-section ()
-    "Mark all sections tagged PROJECT_DEFS.
-    Additionally go to the first section tagged PROJECT_DEFS, if it exists."
-    (interactive)
-    (let ((defs (org-map-entries '(cadr (org-element-at-point)) "PROJECT_DEFS")))
-      (cond
-       (defs
-         (org-match-sparse-tree nil "PROJECT_DEFS")
-         (goto-char (plist-get (car defs) :begin))
-         (recenter-top-bottom '(4))
-         (message "Showing location of first project definition section."))
-       (t (message "No project definitions were found in this file.")))))
-#+END_SRC
 
 ** DONE org-pm-insert-new-project
-:PROPERTIES:
-:ID:       36439CB5-E875-4E45-B595-5116888C9DCA
-:END:
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-insert-new-project (&optional project-name no-name-query no-query)
@@ -513,20 +358,8 @@ Note that edits may cause conflicts when updating org-pm from git.
 #+END_SRC
 
 
-
-
-** org-pm-reset-project-list / org-pm-clear-project-defs
-
-#+BEGIN_SRC emacs-lisp
-  (defun org-pm-reset-project-list ()
-    "Set org-publish-project-alist to nil.  Save"
-    (interactive)
-    (cond ((y-or-n-p "Really erase all projects and save?")
-           (setq org-publish-project-alist)
-           (org-pm-save-all-project-data))))
-#+END_SRC
-
 ** DONE org-pm-make-projects
+
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-make-projects (&optional do-not-save-now)
     "Construct the projects for all project definitions found in current file.
@@ -564,7 +397,9 @@ Note that edits may cause conflicts when updating org-pm from git.
       (message "Org-pm defined %d projects" (length projects))))
 #+END_SRC
 
-** org-pm-parse-project-def
+*** Auxiliary functions for project parsing
+
+**** org-pm-parse-project-def
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-parse-project-def (proj-node &optional template)
@@ -622,7 +457,7 @@ Note that edits may cause conflicts when updating org-pm from git.
       (cons pname pdef)))
 #+END_SRC
 
-** org-pm-check-add-project
+**** org-pm-check-add-project
 #+BEGIN_SRC emacs-lisp
   (require 'dash)
   (defun org-pm-check-add-project (project)
@@ -676,7 +511,7 @@ Note that edits may cause conflicts when updating org-pm from git.
 #+END_SRC
 
 
-** query-make-folder
+**** query-make-folder
 #+BEGIN_SRC emacs-lisp
   (defun query-make-folder (path &optional prompt-string)
     "If folder at path does not exist, then show dialog offering to user
@@ -697,35 +532,10 @@ Note that edits may cause conflicts when updating org-pm from git.
 #+END_SRC
 
 
-* Add/remove projects to sections
-** org-pm-select-project-from-menu
 
-Present menu for selecting one project from the list of known projects.  Utility function used by org-pm-add-section-to-project.
-
-#+BEGIN_SRC emacs-lisp
-  (defun org-pm-select-project-from-menu ()
-    "Present menu for selecting one project from the list of known projects."
-    (interactive)
-    (let* ((projects
-            (-filter
-             (lambda (pn) (not (string-match "^combined_" pn)))
-             (-map 'car org-publish-project-alist)))
-           index selected-project-name)
-      (unless projects (setq projects '("new_project")))
-      (setq index (grizzl-make-index projects))
-      (setq selected-project-name
-            (grizzl-completing-read "Choose a project:" index))
-      (unless (assoc selected-project-name org-publish-project-alist)
-        (org-pm-insert-new-project selected-project-name t))
-      selected-project-name))
-#+END_SRC
 
 ** DONE org-pm-add-section-to-project
-:PROPERTIES:
-:DATE:     <2014-01-13 Mon 07:30>
-:END:
-
-Add current section (node) to a project interactively selected or input by user.
+Add tag naming selected project to current section (node).
 
 If project name input by user does not correspond to an existing project, offer to create that project.
 
@@ -750,7 +560,8 @@ If project name input by user does not correspond to an existing project, offer 
 :DATE:     <2014-01-13 Mon 08:43>
 :END:
 
-Remove current section (node) from a project interactively selected by user.
+Remove tag naming selected project from current section (node).
+
 #+BEGIN_SRC elisp
   (defun org-pm-remove-section-from-project ()
     "Show menu for selecting a project definition from tags of current section.
@@ -769,78 +580,139 @@ Remove current section (node) from a project interactively selected by user.
          (lambda (p) (equal (car (org-pm-parse-tag p)) project)) tags)))))
 #+END_SRC
 
-** org-pm-get-non-project-tags                                :test:_test2_:
-
-Get those tags which are not enclosed in dash (=-=).
-Function org-pm-make-yaml-matter inserts these tags as part of the YAML matter in the file header for use by Jekyll/Octopress.
+** DONE org-pm-export
 
 #+BEGIN_SRC emacs-lisp
-  (defun org-pm-get-non-project-tags (section-plist)
-    "Get those tags which are not enclosed in dash (=-=).
-  Function org-pm-make-yaml-matter inserts these tags as part of the YAML matter
-  in the file header for use by Jekyll/Octopress."
-    (-reject (lambda (tag) (string-match "^_.*_$" tag)) (plist-get section-plist :tags)))
-#+END_SRC
-
-#+BEGIN_SRC elisp
-  (save-excursion
-    (org-back-to-heading)
-    (org-pm-get-non-project-tags (cadr (org-element-at-point))))
-#+END_SRC
-
-#+RESULTS:
-| test |
-
-
-* Save/Load/Edit project data
-** org-pm-load-all-project-data
-
-#+BEGIN_SRC emacs-lisp
-  (defun org-pm-load-all-project-data ()
-    "Load project alist, project file lists, duplicate project def lists
-  from previously saved date on disk."
+  (defun org-pm-export ()
+    "Top-level function for exporting file and sections to projects.
+   Copy both file and any sections specified by properties, tags
+   to the designated projects and folders.
+   Before copying, re-scan buffer to build list of targets for copying.
+   Add list of sections and target file paths to ... and save to disk."
     (interactive)
-    (if (file-exists-p org-pm-project-data-file-path)
-        (load-file org-pm-project-data-file-path)))
-#+END_SRC
-
-#+RESULTS:
-: org-pm-load-all-project-data
-
-** org-pm-save-all-project-data
-
-#+BEGIN_SRC emacs-lisp
-  (defun org-pm-save-all-project-data ()
-    "Load project alist, project file lists, duplicate project def lists
-  from previously saved date on disk."
-    (interactive)
-    (dump-vars-to-file
-     '(org-publish-project-alist
-       ;; org-pm-file-exports
-       org-pm-section-exports
-       org-pm-project-def-duplicates)
-     org-pm-project-data-file-path))
-
-  (defun dump-vars-to-file (varlist filename)
-    "simplistic dumping of variables in VARLIST to a file FILENAME"
     (save-excursion
-      (let ((buf (find-file-noselect filename)))
-        (set-buffer buf)
-        (erase-buffer)
-        (dump varlist buf)
-        (save-buffer)
-        (kill-buffer))))
+      (save-restriction
+        (widen)
+        (let ((sections-with-paths (org-pm-get-section-project-paths)))
+          (org-pm-export-sections-to-projects sections-with-paths)
+          (setq org-pm-section-exports
+                (assoc-replace org-pm-section-exports
+                               (buffer-file-name (current-buffer))
+                               sections-with-paths))
+          (org-pm-save-all-project-data)))))
 
-  (defun dump (varlist buffer)
-    "insert into buffer the setq statement to recreate the variables in VARLIST"
-    (loop for var in varlist do
-          (print (list 'setq var (list 'quote (symbol-value var)))
-                 buffer)))
+  (defun org-pm-export-buffer-to-file (path-project)
+    "path-project has the form (path . project-name).
+   If path is not nil, save current buffer to path."
+    (let ((path (car path-project)))
+      (when path
+        (make-directory (file-name-directory path) t)
+        (write-region nil nil path))))
+
+  (defun org-pm-export-sections-to-projects (&optional sections-with-paths)
+    "Copy sections of this file to paths specified by tags.
+   List sections-with-paths is constructed by org-pm-get-section-project-paths."
+    (interactive)
+    (unless sections-with-paths
+      (setq sections-with-paths (org-pm-get-section-project-paths)))
+    (let ((buffer (current-buffer)))
+      (dolist (section sections-with-paths)
+        (org-pm-export-1-section-to-projects section buffer))))
+
+  (defun org-pm-export-1-section-to-projects (section-with-paths origin-buffer)
+    "Copy section to temporary buffer, then save it to all
+   paths in the rest of section-with-paths."
+    (let ((target-buffer (get-buffer-create "*org-pm-copy-buf*")))
+      (set-buffer origin-buffer)
+      (goto-char (car section-with-paths))
+      (org-copy-subtree)
+      (set-buffer target-buffer)
+      (org-paste-subtree 1)
+      (dolist (path-project (cdr section-with-paths))
+        (org-pm-export-buffer-to-file path-project))
+      (kill-buffer target-buffer)
+      (message "exported section: %s" section-with-paths)))
+
+  (defun org-pm-save-buffer (specs buffer)
+    "Save current buffer "
+    (let ((target-path (org-pm-make-target specs)))
+      (make-directory (file-name-directory target-path) t)
+      (write-region nil nil target-path)))
+
+  (defun org-pm-make-target (specs)
+    (let* ((project-name (car specs))
+           (folder (cadr specs))
+           (slash (if (string-match "/$" folder) "" "/"))
+           (project (assoc project-name org-publish-project-alist)))
+      (cond (project
+             (add-to-list '*org-pm-updated-projects* project-name)
+             (concat (plist-get (cdr project) :base-directory)
+                     folder slash (caddr specs)))
+            (t
+             (add-to-list '*org-pm-missing-projects* project-name)
+             nil))))
 #+END_SRC
 
+*** Get list of file components to be copied to projects
 
-* Export sections to projects
-** org-pm-get-section-projects
+**** org-pm-get-section-project-paths
+
+Get all sections marked with tags that are enclosed in underscore (=_=).  Parse each value and return a list of lists:
+((section-position (project folder file) (project folder file) ...)
+ (section-position (project folder file) (project folder file) ...)
+...)
+
+#+BEGIN_SRC emacs-lisp
+
+  (defun org-pm-get-section-project-paths ()
+    "Build list of projects-folders-files to export sections of this buffer to.
+  The list is created from those sections whose tags specify projects,
+  i.e . tags enclosed in underscores: _projectname_
+  The list is passed to org-pm-copy-section-project-components for copying.
+  Each element in the list has the form:
+  <start-point of section> (project projectname folder filename)
+                           (project projectname folder filename)
+                           ... "
+    (interactive)
+    (let (components)
+     (org-map-entries
+      '(let* ((node (cadr (org-element-at-point)))
+              (pspecs (-filter (lambda (tag) (string-match "^_.*_$" tag))
+                               (plist-get node :tags)))
+              name date)
+         (message "pspecs: \n%s" pspecs)
+         (if pspecs
+           (let (section-entries)
+            (setq name (plist-get node :raw-value))
+            (setq date (plist-get node :DATE))
+            (dolist (spec pspecs)
+              (setq section-entries
+                    (cons (org-pm-make-target-path
+                           (org-pm-parse-tag
+                            spec
+                            (org-pm-make-filename name)
+                            date)) section-entries)))
+            (setq components (cons (cons (point) section-entries) components))))))
+    ;;  (message "COMPONENTS: \n%s" components)
+     ;; FIXME: TODO: save paths to disc in org-pm save file
+     components))
+
+  ;;; The next function should be reviewed.  May be scrapped.
+  (defun org-pm-get-section-project-targets ()
+    "Return list of paths of files to which sections of current file are copied."
+    (interactive)
+    (let (sections
+          (components
+           (-map (lambda (clist)
+                   (-map (lambda (c) (org-pm-make-displayable-target-path c))
+                         clist))
+                 (-map (lambda (aclist) (cdr aclist))
+                       (org-pm-get-section-project-components)))))
+      (message "%s" (-flatten components))
+      (-flatten components)))
+#+END_SRC
+
+*** org-pm-get-section-projects
 
 #+BEGIN_SRC emacs-lisp
 
@@ -852,21 +724,6 @@ Function org-pm-make-yaml-matter inserts these tags as part of the YAML matter i
            (-filter (lambda (tag) (string-match "^_.*_$" tag))
                     (plist-get (cadr (org-element-at-point)) :tags)))))
 #+END_SRC
-
-** org-pm-copy-components-to-projects
-
-- org-pm-copy-components can be called explicitly by the user as a command.
-- If org-pm-auto-copy is enabled, then it is called automatically.
-- There are two ways to automate the copying:
-  1. Copy whenever the file is saved.
-  2. Copy whenever the project is published.
-
-Assessment:
-
-Version 1 lengthens the file saving time.
-Version 2 lengthens the publishing time.
-
-The accumulated delay of copying project components from all files when publishing may be more distracting than the delay of copying components of a single project.  Additionally, it is better to be able to check the condition of a project at any stage, and to have it updated as soon as a file is saved.  So I start by setting the default to copy components when the file is saved.
 
 *** DONE Construct path of a target file to copy file or section to
 
@@ -995,180 +852,9 @@ Called by org-get-section-components.  Converts the title of a section to a file
       filename))
 #+END_SRC
 
-*** Get list of file components to be copied to projects
-
-**** org-pm-get-section-project-paths
-
-Get all sections marked with tags that are enclosed in underscore (=_=).  Parse each value and return a list of lists:
-((section-position (project folder file) (project folder file) ...)
- (section-position (project folder file) (project folder file) ...)
-...)
-
-**** Code
-#+BEGIN_SRC emacs-lisp
-
-  (defun org-pm-get-section-project-paths ()
-    "Build list of projects-folders-files to export sections of this buffer to.
-  The list is created from those sections whose tags specify projects,
-  i.e . tags enclosed in underscores: _projectname_
-  The list is passed to org-pm-copy-section-project-components for copying.
-  Each element in the list has the form:
-  <start-point of section> (project projectname folder filename)
-                           (project projectname folder filename)
-                           ... "
-    (interactive)
-    (let (components)
-     (org-map-entries
-      '(let* ((node (cadr (org-element-at-point)))
-              (pspecs (-filter (lambda (tag) (string-match "^_.*_$" tag))
-                               (plist-get node :tags)))
-              name date)
-         (message "pspecs: \n%s" pspecs)
-         (if pspecs
-           (let (section-entries)
-            (setq name (plist-get node :raw-value))
-            (setq date (plist-get node :DATE))
-            (dolist (spec pspecs)
-              (setq section-entries
-                    (cons (org-pm-make-target-path
-                           (org-pm-parse-tag
-                            spec
-                            (org-pm-make-filename name)
-                            date)) section-entries)))
-            (setq components (cons (cons (point) section-entries) components))))))
-    ;;  (message "COMPONENTS: \n%s" components)
-     ;; FIXME: TODO: save paths to disc in org-pm save file
-     components))
-
-  ;;; The next function should be reviewed.  May be scrapped.
-  (defun org-pm-get-section-project-targets ()
-    "Return list of paths of files to which sections of current file are copied."
-    (interactive)
-    (let (sections
-          (components
-           (-map (lambda (clist)
-                   (-map (lambda (c) (org-pm-make-displayable-target-path c))
-                         clist))
-                 (-map (lambda (aclist) (cdr aclist))
-                       (org-pm-get-section-project-components)))))
-      (message "%s" (-flatten components))
-      (-flatten components)))
-
-  ;; pass components for posting (reporting) by calling function
 
 
-#+END_SRC
-
-*** COMMENT Copy files / sections to project targets
-#+BEGIN_SRC emacs-lisp
-  (defun org-pm-export ()
-    "Top level function for exporting file and sections to projects.
-  Copy both file and any sections specified by properties, tags
-  to the designated projects and folders.
-  Before copying, re-scan buffer to build list of targets for copying.
-  Add list of sections and target file paths to ... and save to disk."
-    (interactive)
-    (save-excursion
-      (save-restriction
-        (widen)
-        (let ((sections-with-paths (org-pm-get-section-project-paths)))
-         (org-pm-export-sections-to-projects sections-with-paths)
-         (setq org-pm-section-exports
-               (assoc-replace org-pm-section-exports
-                              (buffer-file-name (current-buffer))
-                              sections-with-paths))
-         (org-pm-save-all-project-data)))))
-
-  (defun org-pm-export-buffer-to-file (path-project)
-    "path-project has the form (path . project-name).
-  If path is not nil, save current buffer to path."
-    (let ((path (car path-project)))
-      (when path
-        (make-directory (file-name-directory path) t)
-        (write-region nil nil path))))
-
-  (defun org-pm-export-sections-to-projects (&optional sections-with-paths)
-    "Copy sections of this file to paths specified by tags.
-  List sections-with-paths is constructed by org-pm-get-section-project-paths."
-    (interactive)
-    (unless sections-with-paths
-      (setq sections-with-paths (org-pm-get-section-project-paths)))
-    (let ((buffer (current-buffer)))
-      (dolist (section sections-with-paths)
-        (org-pm-export-1-section-to-projects section buffer))))
-
-  (defun org-pm-export-1-section-to-projects (section-with-paths origin-buffer)
-    "Copy section to temporary buffer, then save it to all
-  paths in the rest of section-with-paths."
-    (let ((target-buffer (get-buffer-create "*org-pm-copy-buf*")))
-      (set-buffer origin-buffer)
-      (goto-char (car section-with-paths))
-      (org-copy-subtree)
-      (set-buffer target-buffer)
-      (org-paste-subtree 1)
-      (dolist (path-project (cdr section-with-paths))
-        (org-pm-export-buffer-to-file path-project))
-      (kill-buffer target-buffer)
-      (message "exported section: %s" section-with-paths)))
-
-  (defun org-pm-save-buffer (specs buffer)
-    "Save current buffer "
-    (let ((target-path (org-pm-make-target specs)))
-      (make-directory (file-name-directory target-path) t)
-      (write-region nil nil target-path)))
-#+END_SRC
-
-#+BEGIN_SRC emacs-lisp
-  (defun org-pm-make-target (specs)
-    (let* ((project-name (car specs))
-           (folder (cadr specs))
-           (slash (if (string-match "/$" folder) "" "/"))
-           (project (assoc project-name org-publish-project-alist)))
-      (cond (project
-             (add-to-list '*org-pm-updated-projects* project-name)
-             (concat (plist-get (cdr project) :base-directory)
-                     folder slash (caddr specs)))
-            (t
-             (add-to-list '*org-pm-missing-projects* project-name)
-             nil))))
-
-  ;; Fix grizzl-completing-read to display custom prompt
-  (require 'grizzl)
-  (defun grizzl-completing-read (prompt index)
-    "Performs a completing-read in the minibuffer using INDEX to fuzzy search.
-  Each key pressed in the minibuffer filters down the list of matches."
-    (minibuffer-with-setup-hook
-        (lambda ()
-          (setq *grizzl-current-result* nil)
-          (setq *grizzl-current-selection* 0)
-          (grizzl-mode 1)
-          (lexical-let*
-              ((hookfun (lambda ()
-                          (setq *grizzl-current-result*
-                                (grizzl-search (minibuffer-contents)
-                                               index
-                                               ,*grizzl-current-result*))
-                          (grizzl-display-result index prompt)))
-               (exitfun (lambda ()
-                          (grizzl-mode -1)
-                          (remove-hook 'post-command-hook    hookfun t))))
-            (add-hook 'minibuffer-exit-hook exitfun nil t)
-            (add-hook 'post-command-hook    hookfun nil t)))
-      (read-from-minibuffer (if prompt prompt ">>> "))
-      (grizzl-selected-result index)))
-
-#+END_SRC
-
-*** TODO List files exported to projects
-
-#+BEGIN_SRC emacs-lisp
-  (defun org-pm-list-exported-files ()
-   "List files exported to projects."
-
-  )
-#+END_SRC
-
-* Create Jekyll/Octopress Headers ("YAML Front Matter")
+*** Create Jekyll/Octopress Headers ("YAML Front Matter")
 
 If the value of property =body-only= in the project-plist is =t=, then org-pm adds YAML front matter at the beginning of the file when exporting.  This makes the file to be processed by Jekyll or Octopress.  The following items are provided, if their values are set:
 
@@ -1183,7 +869,7 @@ If the value of property =body-only= in the project-plist is =t=, then org-pm ad
 - tags :: tags of section or values of property TAGS
 - title :: from title property of file or header of section
 
-** About Yaml front matter
+**** About Yaml front matter
 
 YAML front matter for jekyll or octopress is a header to be added at the beginning of the file, consisting of keyword-value pairs.  The header is demarcated by writing it between 3 dashes.  Example:
 
@@ -1200,7 +886,7 @@ categories:
 ---
 #+END_SRC
 
-** Doc of YAML front matter items
+**** Doc of YAML front matter items
 
 In http://jekyllrb.com/docs/frontmatter/ the following items are given for yaml front matter:
 
@@ -1219,7 +905,7 @@ Examples in http://octopress.org/docs/blogging/ include additional items:
 - author
 - published
 
-** List of YAML front matter items
+**** List of YAML front matter items
 
 Following is list of front matter items collected from  http://jekyllrb.com/docs/frontmatter/ and  http://octopress.org/docs/blogging/ (More to be added if found later).
 
@@ -1234,7 +920,7 @@ Following is list of front matter items collected from  http://jekyllrb.com/docs
 - tags
 - title
 
-** Header examples from octopress
+**** Header examples from octopress
 
 #+BEGIN_SRC
 ---
@@ -1264,7 +950,7 @@ categories:
 #+END_SRC
 
 
-** Code: org-pm-make-yaml-front-matter
+**** org-pm-make-yaml-front-matter
 
 
 #+BEGIN_SRC emacs-lisp
@@ -1341,33 +1027,22 @@ categories:
 #+RESULTS:
 : Org-publish-meta: Easy projects for Org-mode
 
-* Info, Menus, Project and File Management, Keyboard Shortcuts
 
-** UNDERWAY File menu of exported sections
+
+***** org-pm-get-non-project-tags
+
+Get those tags which are not enclosed in dash (=-=).
+Function org-pm-make-yaml-matter inserts these tags as part of the YAML matter in the file header for use by Jekyll/Octopress.
+
 #+BEGIN_SRC emacs-lisp
-  ;;; INCOMPLETE
-
-  (defun org-pm-list-exported-files (all-p)
-    "Create a list of paths of all files which the current file and its sections
-  outputs to.  Present this as a grizzl list for auto-complete search.
-  Open selected file.
-  If called with argument, list exported sections from all files contained
-  in assoc-list org-pm-section-exports."
-    (interactive "P")
-    (let* (section-components
-           (if all-p
-               org-pm-section-exports
-             (setq section-components (org-pm-get-section-project-targets)))
-           (target-list (mapcar (lambda (t) (cdr t)) section-components))
-           (index (grizzl-make-index target-list))
-           answer)
-      (setq answer (grizzl-completing-read "Choose file to open: " index))
-      (if (string-match "(undefined project)$" answer)
-          (message "No file: %s" answer)
-        (find-file answer))))
+  (defun org-pm-get-non-project-tags (section-plist)
+    "Get those tags which are not enclosed in dash (=-=).
+  Function org-pm-make-yaml-matter inserts these tags as part of the YAML matter
+  in the file header for use by Jekyll/Octopress."
+    (-reject (lambda (tag) (string-match "^_.*_$" tag)) (plist-get section-plist :tags)))
 #+END_SRC
 
-** TODO org-pm-publish-project
+** TODO org-pm-publish
 :PROPERTIES:
 :ID:       688C2A25-277F-4263-95C9-FFFDA2F15E87
 :END:
@@ -1377,34 +1052,48 @@ Select a project to publish from the projects targeted by current buffer.  If ca
 Note:
 Since a file containing org-pm tags can be anywhere outside an org-mode project folder, one cannot use org-publish-current-project to automatically provide the target project based on the file.  Therefore, use =org-pm-publish= instead to select the desired project to publish from a list of projects that are targeted by the current file.
 
-** DONE org-pm-list-dupicate-project-defs
-CLOSED: [2013-12-22 Sun 12:21]
+* DONE Project Definition Commands
+|-----------------------+----------------------------------------|
+| Shortcut              | Command                                |
+|-----------------------+----------------------------------------|
+| *PROJECT DEFINITIONS* |                                        |
+|-----------------------+----------------------------------------|
+| H-m p e or H-m p s    | org-pm-show-project-definition-section |
+| H-m p t               | org-pm-edit-project-template           |
+| H-m p l               | org-pm-list-project-defs               |
+| H-m p d               | org-pm-list-duplicate-project-defs     |
+| C-u H-m p d           | pm/edit-duplicate-project-def          |
+|-----------------------+----------------------------------------|
+
+** DONE org-pm-show-project-definition-section
 
 #+BEGIN_SRC emacs-lisp
-  (defun org-pm-list-duplicate-project-defs ()
-    "List project definitions of same name that are found in more than one file or section.
-  Do this in a separate org-mode buffer, and provide links to both file and section."
-
+  (defun org-pm-show-project-definition-section ()
+    "Mark all sections tagged PROJECT_DEFS.
+    Additionally go to the first section tagged PROJECT_DEFS, if it exists."
     (interactive)
-
-    (if (equal 0 (length org-pm-project-def-duplicates))
-        (error "There are no duplicate project definitions at all.\n!!! ... YAyyy ... !!!"))
-
-    (let ((buffer (get-buffer-create "*org-pm-project-def-duplicates*")))
-      (switch-to-buffer buffer)
-      (org-mode)
-      (delete-region (point-min) (point-max))
-      (org-insert-heading)
-      (insert "DUPLICATE PROJECT DEFINITIONS")
-      (dolist (project org-pm-project-def-duplicates)
-        (let ((project-name (car project)))
-          (insert "\n** " project-name "\n")
-          (dolist (def (cdr project))
-            (let ((path-and-id (split-string def "::#")))
-              (insert "file: file:" (car path-and-id) "\n")
-              (insert "node: " "id:" (cadr path-and-id) "\n")))))
-      ))
+    (let ((defs (org-map-entries '(cadr (org-element-at-point)) "PROJECT_DEFS")))
+      (cond
+       (defs
+         (org-match-sparse-tree nil "PROJECT_DEFS")
+         (goto-char (plist-get (car defs) :begin))
+         (recenter-top-bottom '(4))
+         (message "Showing location of first project definition section."))
+       (t (message "No project definitions were found in this file.")))))
 #+END_SRC
+** DONE org-pm-edit-project-template
+
+Edit the file containing the global project template.
+Note that edits may cause conflicts when updating org-pm from git.
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-edit-project-template ()
+    "Edit the file containing the global project template.
+  Note that edits may cause conflicts when updating org-pm from git."
+    (interactive)
+    (find-file org-pm-project-template-file-name))
+#+END_SRC
+
 
 ** DONE org-pm-list-project-defs
 CLOSED: [2013-12-22 Sun 14:30]
@@ -1490,7 +1179,36 @@ Currently, links to IDs that are not in org-link-locations are not found by org-
 #+RESULTS:
 : org-pm-search-link
 
-** UNDERWAY pm/edit-duplicate-project-def
+** DONE org-pm-list-dupicate-project-defs
+CLOSED: [2013-12-22 Sun 12:21]
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-list-duplicate-project-defs ()
+    "List project definitions of same name that are found in more than one file or section.
+  Do this in a separate org-mode buffer, and provide links to both file and section."
+
+    (interactive)
+
+    (if (equal 0 (length org-pm-project-def-duplicates))
+        (error "There are no duplicate project definitions at all.\n!!! ... YAyyy ... !!!"))
+
+    (let ((buffer (get-buffer-create "*org-pm-project-def-duplicates*")))
+      (switch-to-buffer buffer)
+      (org-mode)
+      (delete-region (point-min) (point-max))
+      (org-insert-heading)
+      (insert "DUPLICATE PROJECT DEFINITIONS")
+      (dolist (project org-pm-project-def-duplicates)
+        (let ((project-name (car project)))
+          (insert "\n** " project-name "\n")
+          (dolist (def (cdr project))
+            (let ((path-and-id (split-string def "::#")))
+              (insert "file: file:" (car path-and-id) "\n")
+              (insert "node: " "id:" (cadr path-and-id) "\n")))))
+      ))
+#+END_SRC
+
+** DONE pm/edit-duplicate-project-def
 
 Note: Naming this function org-pm-edit-duplicate-project-def disabled the auto-display of selections in the command line.  Something with org-mode recognizing names of functions and changing the meaning of completing-read?
 
@@ -1527,8 +1245,8 @@ Note: Naming this function org-pm-edit-duplicate-project-def disabled the auto-d
 #+RESULTS:
 : pm/edit-duplicate-project-def
 
-** Post and edit project definition list
-*** org-pm-post-project-def
+
+** DONE org-pm-post-project-def
 :PROPERTIES:
 :DATE:     <2014-01-05 Sun 19:11>
 :END:
@@ -1548,7 +1266,116 @@ Select a project interactively and post its definition.
                (assoc project-name org-publish-project-alist))))
 #+END_SRC
 
-*** org-pm-edit-saved-project-data
+
+* UNDERWAY Target File List Commands
+|--------------------------+---------------------------------------------|
+| Shortcut                 | Command                                     |
+|--------------------------+---------------------------------------------|
+| *TARGET FILE LISTS*      |                                             |
+|--------------------------+---------------------------------------------|
+| H-m f                    | org-pm-list-exported-files (current buffer) |
+| C-u H-m f                | org-pm-list-exported-files (all)            |
+| H-m ?????   (TODO)       | org-pm-show-target-file-list ???            |
+|--------------------------+---------------------------------------------|
+
+** UNDERWAY File menu of exported sections
+#+BEGIN_SRC emacs-lisp
+  ;;; INCOMPLETE
+
+  (defun org-pm-list-exported-files (all-p)
+    "Create a list of paths of all files which the current file and its sections
+  outputs to.  Present this as a grizzl list for auto-complete search.
+  Open selected file.
+  If called with argument, list exported sections from all files contained
+  in assoc-list org-pm-section-exports."
+    (interactive "P")
+    (let* (section-components
+           (if all-p
+               org-pm-section-exports
+             (setq section-components (org-pm-get-section-project-targets)))
+           (target-list (mapcar (lambda (t) (cdr t)) section-components))
+           (index (grizzl-make-index target-list))
+           answer)
+      (setq answer (grizzl-completing-read "Choose file to open: " index))
+      (if (string-match "(undefined project)$" answer)
+          (message "No file: %s" answer)
+        (find-file answer))))
+#+END_SRC
+
+** TODO org-pm-show-target-file-list
+
+
+* DONE Saved Data Commands
+|--------------------------+---------------------------------------------|
+| Shortcut                 | Command                                     |
+|--------------------------+---------------------------------------------|
+| *SAVED DATA*             |                                             |
+|--------------------------+---------------------------------------------|
+| H-m d l                  | org-pm-load-project-data                    |
+| H-m d s                  | org-pm-save-project-data                    |
+| H-m d r or H-m d c       | org-pm-reset-project-list                   |
+| H-m d e                  | org-pm-edit-saved-project-data              |
+|--------------------------+---------------------------------------------|
+
+** DONE org-pm-load-all-project-data
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-load-all-project-data ()
+    "Load project alist, project file lists, duplicate project def lists
+  from previously saved date on disk."
+    (interactive)
+    (if (file-exists-p org-pm-project-data-file-path)
+        (load-file org-pm-project-data-file-path)))
+#+END_SRC
+
+#+RESULTS:
+: org-pm-load-all-project-data
+
+** DONE org-pm-save-all-project-data
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-save-all-project-data ()
+    "Load project alist, project file lists, duplicate project def lists
+  from previously saved date on disk."
+    (interactive)
+    (dump-vars-to-file
+     '(org-publish-project-alist
+       ;; org-pm-file-exports
+       org-pm-section-exports
+       org-pm-project-def-duplicates)
+     org-pm-project-data-file-path))
+
+  (defun dump-vars-to-file (varlist filename)
+    "simplistic dumping of variables in VARLIST to a file FILENAME"
+    (save-excursion
+      (let ((buf (find-file-noselect filename)))
+        (set-buffer buf)
+        (erase-buffer)
+        (dump varlist buf)
+        (save-buffer)
+        (kill-buffer))))
+
+  (defun dump (varlist buffer)
+    "insert into buffer the setq statement to recreate the variables in VARLIST"
+    (loop for var in varlist do
+          (print (list 'setq var (list 'quote (symbol-value var)))
+                 buffer)))
+#+END_SRC
+
+
+** DONE org-pm-reset-project-list / org-pm-clear-project-defs
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-reset-project-list ()
+    "Set org-publish-project-alist to nil.  Save"
+    (interactive)
+    (cond ((y-or-n-p "Really erase all projects and save?")
+           (setq org-publish-project-alist)
+           (org-pm-save-all-project-data))))
+#+END_SRC
+
+
+** DONE org-pm-edit-saved-project-data
 
 Edit the file containing the auto-saved data for org-pom.
 
@@ -1560,71 +1387,203 @@ Edit the file containing the auto-saved data for org-pom.
 #+END_SRC
 
 
-** Menu and Keyboard Shortcuts
-*** Menu: select org-pm command interactively
+* Auxiliary functions
+:PROPERTIES:
+:DATE:     <2013-12-18 Wed 17:24>
+:END:
+
+** DONE Get header properties: org-get-header-property
+:PROPERTIES:
+:DATE:     <2013-12-16 Mon 02:50>
+:END:
 
 #+BEGIN_SRC emacs-lisp
-  (defun org-pm-menu ()
-    "Select and run an org-pm command from a grizzl-minibuffer menu list."
+  (defun org-get-header-property (property &optional all)
+    "Get property from buffer variable.  Returns only fist match except if ALL is defined.
+  NOTE: Also works if editing subtree narrowed or in separate narrowed buffer. "
+    (with-current-buffer
+        (current-buffer)
+      (save-excursion
+        (save-restriction
+          (save-match-data
+            (widen)
+            (goto-char (point-min))
+            (let (values)
+              (while (re-search-forward (format "^#\\+%s:?[ \t]*\\(.*\\)" property) nil t)
+                (add-to-list 'values (substring-no-properties (match-string 1))))
+              (if all
+                  values
+                (car values))))))))
+#+END_SRC
+
+** Get section properties: org-get-section-properties
+:PROPERTIES:
+:DATE:     <2014-01-15 Wed 02:32>
+:TEST: 123
+:END:
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-get-section-properties (properties)
+    "Return values of each of the properties in list properties,
+  as separate values.  Can be used with multiple-value-bind to set
+  each one of several variables to the value of each property in properties list."
+    (save-excursion
+      (org-back-to-heading)
+      (let ((plist (cadr (org-element-at-point))))
+        (values-list
+         (-map (lambda (p) (plist-get plist (intern (concat ":" p)))) properties)))))
+#+END_SRC
+
+#+RESULTS:
+: org-get-section-properties
+
+#+BEGIN_SRC elisp
+(org-get-section-properties '("DATE" "TEST"))
+#+END_SRC
+
+#+RESULTS:
+| <2014-01-15 Wed 02:32> | 123 |
+
+#+BEGIN_SRC elisp
+  (multiple-value-bind (date test)
+      (org-get-section-properties '("DATE" "TEST"))
+    test)
+#+END_SRC
+
+#+RESULTS:
+: 123
+
+
+** Set state of current heading to COMMENT
+
+This function is derived by modifying org-toggle-comment.
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-set-comment ()
+    "Change the COMMENT state of an entry to COMMENT.
+  Do *not* remove COMMENT state if already present.
+  This function is derived from org-toggle-coment."
     (interactive)
-    (setq  *grizzl-read-max-results* 32)
-    (let* ((commands '(
-                       org-pm-insert-new-project
-                       org-pm-make-projects
-                       org-pm-add-section-to-project
-                       org-pm-export
-                       org-pm-remove-section-from-project
-                       org-pm-edit-project-template
-                       org-pm-list-project-defs
-                       org-pm-list-exported-files
-                       org-pm-list-duplicate-project-defs
-                       pm/edit-duplicate-project-def
-                       org-pm-load-all-project-data
-                       org-pm-reset-project-list
-                       org-pm-edit-saved-project-data
-                       org-pm-load-project-data
-                       org-pm-save-project-data
-                       org-pm-list-project-defs
-                       org-pm-show-target-file-list
-                       ))
-           (menu (grizzl-make-index
-                 (-map (lambda (c)
-                         (replace-regexp-in-string
-                          "-"
-                          " "
-                          (replace-regexp-in-string
-                           "^org-pm-" "" (symbol-name c))))
-                       commands)))
-          selection)
-      (setq selection (grizzl-completing-read  "Select command: " menu))
-      (eval
-       (read (concat
-              "(org-pm-"
-              (replace-regexp-in-string " " "-" selection)
-              ")")))))
-#+END_SRC
-*** Keyboard shortcuts
+    (save-excursion
+      (org-back-to-heading)
+      (let (case-fold-search)
+        (cond
+         ((looking-at (format org-heading-keyword-regexp-format
+                              org-comment-string))
+          ;; if comment was found, then do nothing:
+          )
+         ((looking-at org-outline-regexp)
+          (goto-char (match-end 0))
+          (insert org-comment-string " "))))))
 
-Note: I use the Hyper-m  (= Mac fn key m) as prefix, because it is not likely to be occupied by other packages.  Users can easily remap.
+  (eval-after-load 'org
+    '(define-key org-mode-map (kbd "C-c C-;") 'org-set-comment))
+#+END_SRC
+
+** DONE Functions for adding, removing and replacing elements in a-lists
+CLOSED: [2013-12-19 Thu 09:01]
+:PROPERTIES:
+:ID:       6F334A92-6B8C-473B-B8C5-1BAFB70F819F
+:END:
 
 #+BEGIN_SRC emacs-lisp
-  ;; Add org-mode hook for org-pm-key bindings.
+  (defun assoc-add (alist key element)
+    "Add element to the sublist of alist which starts with key."
+    (let ((sublist (assoc key alist)))
+      (if sublist
+          (setcdr sublist (cons element (cdr sublist)))
+        (if alist
+            (setcdr alist (cons (list key element) (cdr alist)))
+          (setq alist (list (list key element))))))
+    alist)
 
-  (let ((org-pm-key-bindings
-         (lambda ()
-           (define-key org-mode-map (kbd "H-m H-m") 'org-pm-menu)
-           (define-key org-mode-map (kbd "H-m p n") 'org-pm-insert-new-project)
-           (define-key org-mode-map (kbd "H-m p m") 'org-pm-make-projects)
-           (define-key org-mode-map (kbd "H-m e") 'org-pm-export)
-           (define-key org-mode-map (kbd "H-m p l") 'org-pm-list-project-defs)
-  )))
+  (defun assoc-remove (alist key element)
+    "Remove element from the sublist of alist whose car is equal to key."
+    (when alist
+      (let ((sublist (assoc key alist)))
+        (when sublist
+          (setcdr sublist(remove element (cdr sublist)))
+          (if (equal 1 (length sublist)) (setq alist (remove sublist alist))))
+        alist)))
 
-  (add-hook 'org-mode-hook org-pm-key-bindings))
+  (defun assoc-remove-key (alist key)
+    "Remove all sublists of alist whose car is equal to key."
+    (setq alist (remove* key alist :test 'equal :key 'car)))
 
-  ;; To initialize if present file is compiled after start time, run hook now.
-  ;; (funcall org-pm-key-bindings)
+    ;;; older version
+  (defun assoc-remove-key-simple-style (alist key)
+    "Remove all sublists of alist whose car is equal to key."
+    (let (found)
+      (while (setq found (assoc key alist))
+        (setq alist (delq found alist)))
+      alist))
+
+  (defun assoc-replace (alist key newlist)
+    "Remove all sublists of alist whose car is equal to key, and then
+       add (cons key newlist) to alist."
+    (setq alist (assoc-remove-key alist key))
+    (setq alist (cons (cons key newlist) alist)))
 
 #+END_SRC
+
+#+RESULTS:
+: assoc-replace
+
+
+* TODO 2 FUNCTIONS STILL TO BE ORDERED
+** TODO (MUST MOVE OR REMOVE) Add/remove projects to sections
+*** org-pm-select-project-from-menu
+
+Present menu for selecting one project from the list of known projects.  Utility function used by org-pm-add-section-to-project.
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-select-project-from-menu ()
+    "Present menu for selecting one project from the list of known projects."
+    (interactive)
+    (let* ((projects
+            (-filter
+             (lambda (pn) (not (string-match "^combined_" pn)))
+             (-map 'car org-publish-project-alist)))
+           index selected-project-name)
+      (unless projects (setq projects '("new_project")))
+      (setq index (grizzl-make-index projects))
+      (setq selected-project-name
+            (grizzl-completing-read "Choose a project:" index))
+      (unless (assoc selected-project-name org-publish-project-alist)
+        (org-pm-insert-new-project selected-project-name t))
+      selected-project-name))
+#+END_SRC
+
+** TODO Fix grizzl-completing-read prompt argument use
+
+#+BEGIN_SRC emacs-lisp
+  ;; Fix grizzl-completing-read to display custom prompt
+  (require 'grizzl)
+  (defun grizzl-completing-read (prompt index)
+    "Performs a completing-read in the minibuffer using INDEX to fuzzy search.
+  Each key pressed in the minibuffer filters down the list of matches."
+    (minibuffer-with-setup-hook
+        (lambda ()
+          (setq *grizzl-current-result* nil)
+          (setq *grizzl-current-selection* 0)
+          (grizzl-mode 1)
+          (lexical-let*
+              ((hookfun (lambda ()
+                          (setq *grizzl-current-result*
+                                (grizzl-search (minibuffer-contents)
+                                               index
+                                               ,*grizzl-current-result*))
+                          (grizzl-display-result index prompt)))
+               (exitfun (lambda ()
+                          (grizzl-mode -1)
+                          (remove-hook 'post-command-hook    hookfun t))))
+            (add-hook 'minibuffer-exit-hook exitfun nil t)
+            (add-hook 'post-command-hook    hookfun nil t)))
+      (read-from-minibuffer (if prompt prompt ">>> "))
+      (grizzl-selected-result index)))
+
+#+END_SRC
+
 
 * COMMENT Project Definitions                                  :PROJECT_DEFS:
 ** org_pm
