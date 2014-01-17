@@ -168,29 +168,6 @@ The following illustrates how the files of a project are retrieved from =org-pm=
 
 String specifying the path where org-pm saves =org-publish-project-alist= and =org-pm-files=.  These are all the data that need to be saved between sessions in order to preserve the current state of org-pm projects.  The default value of =org-pm-project-data-file-path= is: =~/.emacs.d/savefile/org-pm-project-data.el=.
 
-** org-pm-auto-parse
-
-If true, saving an org-mode file will cause org-pm to do the following:
-
-- Parse the file, and store the names of the projects found in =org-pm-files=
-- Create any projects that are defined in the org file and add them to =org-publish-projects-alist=.
-- Store any previously found project definitions from different files or sections in =org-pm-project-duplicate-project-defs=, for reference.
-- Save the contents of =org-publish-projects-alist=, =org-pm-files= and =org-pm-duplicate-project-defs= in the file indicated by =org-pm-project-data-file-path=.
-
-The default value of =org-pm-auto-parse= is =t=.
-
-** org-pm-auto-copy
-
-Indicates when to copy file components to their designated projects.
-
-Possible values:
-
-- =nil= :: Do not copy automatically.  User must run command =org-pm-copy-components= to copy the components.
-- =on-save= :: Copy components each time the corresponding file is saved.
-- =on-publish= :: Copy components to project each time that org-publish is run, just before publishing a project.
-
-Default value: =on-save=
-
 ** org-pm-default-project-name
 
 ** org-pm-default-project-org-folder

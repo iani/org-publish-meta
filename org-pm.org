@@ -31,7 +31,7 @@ The commands are organized into 6 topics/sections:
 | H-m a                    | org-pm-add-section-to-project               |
 | H-m r                    | org-pm-remove-section-from-project          |
 | H-m e                    | org-pm-export                               |
-| H-m P   (TODO)           | org-pm-publish                              |
+| H-m P                    | org-pm-publish                              |
 |--------------------------+---------------------------------------------|
 | *PROJECT DEFINITIONS*    |                                             |
 |--------------------------+---------------------------------------------|
@@ -635,6 +635,7 @@ Remove tag naming selected project from current section (node).
   If called with C-u prefix, then select and publish a project after exporting.
   If called with C-u C-u prefix, then publish all projects of this file after exporting."
     (interactive)
+    (save-buffer)
     (save-excursion
       (save-restriction
         (widen)
@@ -751,7 +752,7 @@ Get all sections marked with tags that are enclosed in underscore (=_=).  Parse 
 
 #+END_SRC
 
-*** org-pm-get-section-projects
+*** org-pm-get-section-projects                                    :_test_:
 
 #+BEGIN_SRC emacs-lisp
 
@@ -1070,7 +1071,7 @@ Function org-pm-make-yaml-matter inserts these tags as part of the YAML matter i
     (-reject (lambda (tag) (string-match "^_.*_$" tag)) (plist-get section-plist :tags)))
 #+END_SRC
 
-** TODO org-pm-publish
+** DONE org-pm-publish
 :PROPERTIES:
 :ID:       688C2A25-277F-4263-95C9-FFFDA2F15E87
 :END:
@@ -1082,22 +1083,36 @@ Since a file containing org-pm tags can be anywhere outside an org-mode project 
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-publish (all)
-    ""
+    "Publish projects to which the current buffer exports.
+  If called without prefix argument, select project to publish from menu.
+  If called with prefix argument, publish all projects to which current buffer exports."
     (interactive "P")
     (if all
         (dolist (project (org-pm-get-export-projects)) (org-publish project))
       (org-publish (org-pm-select-project))))
 
+  (defun org-pm-select-export-project ()
+    "Select a project from the list of projects that the current buffer exports to."
+    (interactive)
+    (let* ((projects (org-pm-get-export-projects))
+           (index (grizzl-make-index projects)))
+      (grizzl-completing-read "Select a project: " index)))
+
   (defun org-pm-get-export-projects ()
     "Get list of all projects that the current buffer exports to."
-    )
-
-  (defun org-pm-select-project ()
-    "Select a project from the list of projects that the current buffer
-  exports to."
-
-    )
-
+    (save-excursion
+      (save-restriction)
+      (widen)
+      (let ((projects nil))
+       (org-map-entries
+        (lambda ()
+          (dolist
+              (project
+               (-map (lambda (p) (car (org-pm-parse-tag p)))
+                     (-filter (lambda (tag) (string-match "^_.*_$" tag))
+                              (plist-get (cadr (org-element-at-point)) :tags))))
+            (add-to-list 'projects project))))
+       projects)))
 
 #+END_SRC
 
