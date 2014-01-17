@@ -246,20 +246,21 @@ Select org-pm command interactively
                        org-pm-insert-new-project
                        org-pm-make-projects
                        org-pm-add-section-to-project
-                       org-pm-export
                        org-pm-remove-section-from-project
+                       org-pm-export
+                       org-pm-publish
+                       org-pm-show-project-definition-section
                        org-pm-edit-project-template
                        org-pm-list-project-defs
-                       org-pm-list-exported-files
                        org-pm-list-duplicate-project-defs
                        pm/edit-duplicate-project-def
-                       org-pm-load-all-project-data
-                       org-pm-reset-project-list
-                       org-pm-edit-saved-project-data
+                       org-pm-post-project-def
+                       org-pm-list-exported-files
+                       org-pm-show-target-file-list
                        org-pm-load-project-data
                        org-pm-save-project-data
-                       org-pm-list-project-defs
-                       org-pm-show-target-file-list
+                       org-pm-reset-project-list
+                       org-pm-edit-saved-project-data
                        ))
            (menu (grizzl-make-index
                  (-map (lambda (c)
@@ -623,13 +624,16 @@ Remove tag naming selected project from current section (node).
 ** DONE org-pm-export
 
 #+BEGIN_SRC emacs-lisp
-  (defun org-pm-export ()
+  (defun org-pm-export (publish-after-export)
     "Top-level function for exporting file and sections to projects.
   Copy both file and any sections specified by properties, tags
   to the designated projects and folders.
   Before copying, re-scan buffer to build list of targets for copying.
-  Add list of sections and target file paths to org-pm-section-exports.
-  Save to disk."
+  Add list of sections (point location and id) and target file paths to
+  org-pm-section-exports, and save it to disk.
+
+  If called with C-u prefix, then select and publish a project after exporting.
+  If called with C-u C-u prefix, then publish all projects of this file after exporting."
     (interactive)
     (save-excursion
       (save-restriction
@@ -640,7 +644,10 @@ Remove tag naming selected project from current section (node).
                 (assoc-replace org-pm-section-exports
                                (buffer-file-name (current-buffer))
                                sections-with-paths))
-          (org-pm-save-all-project-data)))))
+          (org-pm-save-all-project-data)
+          (cond
+           ((equal publish-after-export '(4)) (org-pm-publish))
+           ((equal publish-after-export '(16)) (org-pm-publish '(4))))))))
 
   (defun org-pm-export-buffer-to-file (path-project)
     "path-project has the form (path . project-name).
@@ -1048,18 +1055,7 @@ categories:
           (dolist (tag (split-string tags ", "))
             (insert (format "- %s\n" tag)))))
       (insert "---\n")))
-
 #+END_SRC
-
-
-#+BEGIN_SRC elisp
-(org-get-header-property "TITLE")
-#+END_SRC
-
-#+RESULTS:
-: Org-publish-meta: Easy projects for Org-mode
-
-
 
 ***** org-pm-get-non-project-tags
 
@@ -1079,10 +1075,31 @@ Function org-pm-make-yaml-matter inserts these tags as part of the YAML matter i
 :ID:       688C2A25-277F-4263-95C9-FFFDA2F15E87
 :END:
 
-Select a project to publish from the projects targeted by current buffer.  If called with prefix argument (C-u), then select from all projects found in org-publish-project-alist.
+Select a project to publish from the projects targeted by current buffer.  If called with prefix argument (C-u), publish all projects found in the target-list of this buffer.
 
 Note:
 Since a file containing org-pm tags can be anywhere outside an org-mode project folder, one cannot use org-publish-current-project to automatically provide the target project based on the file.  Therefore, use =org-pm-publish= instead to select the desired project to publish from a list of projects that are targeted by the current file.
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-publish (all)
+    ""
+    (interactive "P")
+    (if all
+        (dolist (project (org-pm-get-export-projects)) (org-publish project))
+      (org-publish (org-pm-select-project))))
+
+  (defun org-pm-get-export-projects ()
+    "Get list of all projects that the current buffer exports to."
+    )
+
+  (defun org-pm-select-project ()
+    "Select a project from the list of projects that the current buffer
+  exports to."
+
+    )
+
+
+#+END_SRC
 
 * DONE Project Definition Commands
 |-----------------------+----------------------------------------|
