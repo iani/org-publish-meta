@@ -24,7 +24,7 @@ The commands are organized into 6 topics/sections:
 |--------------------------+---------------------------------------------|
 | *MAIN COMMANDS*          |                                             |
 |--------------------------+---------------------------------------------|
-| H-m H-m                  | org-pm-menu (lists all commands)            |
+| H-m H-m                  | org-pm-menu (list all commands, select one) |
 | H-m n or H-m p n         | org-pm-insert-new-project                   |
 | H-m m or H-m p m         | org-pm-make-projects (current buffer)       |
 | C-u H-m m or C-u H-m p m | org-pm-make-projects (all files)            |
@@ -46,7 +46,7 @@ The commands are organized into 6 topics/sections:
 |--------------------------+---------------------------------------------|
 | H-m f                    | org-pm-list-exported-files (current buffer) |
 | C-u H-m f                | org-pm-list-exported-files (all)            |
-| H-m ?????  (TODO)        | org-pm-show-target-file-list ???            |
+| H-m F  (TODO)            | org-pm-show-target-file-list ???            |
 |--------------------------+---------------------------------------------|
 | *SAVED DATA*             |                                             |
 |--------------------------+---------------------------------------------|
@@ -224,9 +224,9 @@ CLOSED: [2013-12-21 Sat 22:07]
 |--------------------------+---------------------------------------------|
 | *MAIN COMMANDS*          |                                             |
 |--------------------------+---------------------------------------------|
-| H-m H-m                  | org-pm-menu (lists all commands)            |
+| H-m H-m                  | org-pm-menu (list all commands, select one) |
 | H-m n                    | org-pm-insert-new-project                   |
-| H-m m or H-m p m         | org-pm-make-projects (current buffer) |
+| H-m m or H-m p m         | org-pm-make-projects (current buffer)       |
 | C-u H-m m or C-u H-m p m | org-pm-make-projects (all files)            |
 | H-m a                    | org-pm-add-section-to-project               |
 | H-m r                    | org-pm-remove-section-from-project          |
@@ -302,8 +302,8 @@ Note: I use the Hyper-m  (= Mac fn key m) as prefix, because it is not likely to
            (define-key org-mode-map (kbd "H-m p l") 'org-pm-list-project-defs)
            (define-key org-mode-map (kbd "H-m p d") 'org-pm-list-duplicate-project-defs)
            (define-key org-mode-map (kbd "H-m p p") 'org-pm-post-project-def)
-           (define-key org-mode-map (kbd "H-m l") 'org-list-exported-files)
-           (define-key org-mode-map (kbd "H-m L") 'org-pm-show-target-file-list)
+           (define-key org-mode-map (kbd "H-m f") 'org-list-exported-files)
+           (define-key org-mode-map (kbd "H-m F") 'org-pm-show-target-file-list)
            (define-key org-mode-map (kbd "H-m d l") 'org-pm-load-project-data)
            (define-key org-mode-map (kbd "H-m d s") 'org-pm-save-project-data)
            (define-key org-mode-map (kbd "H-m d r") 'org-pm-reset-project-list)
@@ -625,10 +625,11 @@ Remove tag naming selected project from current section (node).
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-export ()
     "Top-level function for exporting file and sections to projects.
-   Copy both file and any sections specified by properties, tags
-   to the designated projects and folders.
-   Before copying, re-scan buffer to build list of targets for copying.
-   Add list of sections and target file paths to ... and save to disk."
+  Copy both file and any sections specified by properties, tags
+  to the designated projects and folders.
+  Before copying, re-scan buffer to build list of targets for copying.
+  Add list of sections and target file paths to org-pm-section-exports.
+  Save to disk."
     (interactive)
     (save-excursion
       (save-restriction
@@ -668,7 +669,7 @@ Remove tag naming selected project from current section (node).
       (org-copy-subtree)
       (set-buffer target-buffer)
       (org-paste-subtree 1)
-      (dolist (path-project (cdr section-with-paths))
+      (dolist (path-project (cddr section-with-paths))
         (org-pm-export-buffer-to-file path-project))
       (kill-buffer target-buffer)
       (message "exported section: %s" section-with-paths)))
@@ -710,8 +711,10 @@ Get all sections marked with tags that are enclosed in underscore (=_=).  Parse 
   i.e . tags enclosed in underscores: _projectname_
   The list is passed to org-pm-copy-section-project-components for copying.
   Each element in the list has the form:
-  <start-point of section> (project projectname folder filename)
-                           (project projectname folder filename)
+  <start-point of section>
+      <id of section>
+      (project projectname folder filename)
+      (project projectname folder filename)
                            ... "
     (interactive)
     (let (components)
@@ -720,7 +723,7 @@ Get all sections marked with tags that are enclosed in underscore (=_=).  Parse 
               (pspecs (-filter (lambda (tag) (string-match "^_.*_$" tag))
                                (plist-get node :tags)))
               name date)
-         (message "pspecs: \n%s" pspecs)
+         ;; (message "pspecs: \n%s" pspecs)
          (if pspecs
            (let (section-entries)
             (setq name (plist-get node :raw-value))
@@ -732,24 +735,13 @@ Get all sections marked with tags that are enclosed in underscore (=_=).  Parse 
                             spec
                             (org-pm-make-filename name)
                             date)) section-entries)))
-            (setq components (cons (cons (point) section-entries) components))))))
+            (setq components
+                  (cons
+                   (cons (point) (cons (org-id-get-create) section-entries))
+                   components))))))
     ;;  (message "COMPONENTS: \n%s" components)
-     ;; FIXME: TODO: save paths to disc in org-pm save file
      components))
 
-  ;;; The next function should be reviewed.  May be scrapped.
-  (defun org-pm-get-section-project-targets ()
-    "Return list of paths of files to which sections of current file are copied."
-    (interactive)
-    (let (sections
-          (components
-           (-map (lambda (clist)
-                   (-map (lambda (c) (org-pm-make-displayable-target-path c))
-                         clist))
-                 (-map (lambda (aclist) (cdr aclist))
-                       (org-pm-get-section-project-components)))))
-      (message "%s" (-flatten components))
-      (-flatten components)))
 #+END_SRC
 
 *** org-pm-get-section-projects
