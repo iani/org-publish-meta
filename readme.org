@@ -11,7 +11,7 @@ The project is still in alpha.
 
 * What it is
 
-Org-pm (short for org-publish-meta) is an emacs-lisp package that simplifies and extends the task of defining org-mode publication projects, and permits the copying sections of files to multiple projects.
+Org-pm (short for org-publish-meta) is an emacs-lisp package that simplifies and extends the task of defining org-mode publication projects, and permits the copying sections of files to multiple projects.  While it can be used for website generation with org-mode's native publish mechanism, it also supports export of html with YAML headers for the [[http://jekyllrb.com/][Jekyll]] and [[http://octopress.org/][Octopress]] website generation engines.
 
 Org-mode is an Emacs library "for keeping notes, maintaining TODO lists, planning projects, and authoring documents with a fast and effective plain-text system" (http://orgmode.org/).
 
@@ -20,13 +20,15 @@ Org-mode is an Emacs library "for keeping notes, maintaining TODO lists, plannin
 
 * What it does
 
-Org-pm simplifies the definition of org-mode publishing projects, by coding project publishing options as org-mode sections instead of as emacs-lisp code.  It thus eliminates the need to write emacs-lisp code as far as possible.  Furthermore, project definitions as well as css and scripts can be included in the same org-mode files that hold the text contents to be published.  Org-pm makes it possible to publish a any node (section) of a file to any number of different projects.  It also saves the contents of =org-publish-projects-alist= as well as the list of copied sections of files between sessions.
+Org-pm simplifies the definition of org-mode publishing projects, by coding project publishing options as org-mode sections instead of as emacs-lisp code.  It thus virtually eliminates the need to use emacs-lisp code for the definition of projects.  Furthermore, project definitions as well as css and scripts can be included in the same org-mode files that hold the text contents to be published.
+
+Org-pm makes it possible to publish a any node (section) of a file to any number of different projects.  It also saves the contents of =org-publish-projects-alist= as well as the list of copied sections of files between sessions.  It can also automatically insert YAML front matter of files for use with Jekyll or Octopress.
 
 * How it works
 
 Org-pm does not require for a file to be placed inside the folder of an Org-mode (publishing) project.  Instead, one specifies in a section (node) of a file, the projects to which it belongs through properties or tags.
 
-Before publishing a project, all files or parts of files that are registered to this project are copied to the base directory of that project.  One may specify for a file or section to be copied to a subfolder of the project.
+With a single command, org-pm copies the sections of files to the base directories of specified projects, and optionally publishes those projects.  One may specify for a section to be copied to a subfolder of the project.
 
 Project definitions (property-lists) are written as nodes (sections) in any org-mode file, using headings as property names and contents as values of the properties.  Special org-mode properties and tags are used to indicate those sections which contain project definitions and also those files and nodes which belong to projects.
 
@@ -36,15 +38,15 @@ A (grizz-style, minibuffer-) menu plus default keyboard shortcuts give access to
 
 * Features
 
-- Use keyboard shortcuts to add or remove a file or section to/from any project.
+- Use keyboard shortcuts to add or remove a section to/from any project.
 - Generate default project automatically and provide project configuration template for further editing.
 - Generate project definitions from org-mode style contents of sections.
-- KISS (Keep-It-Simple-Short), very simple way to define projects and to indicate target projects using section headings, tags and properties.
-- Include CSS, JavaScript and other script files in the org-mode file as sections. Contents of sections are copied as-they-are.  No need to use extra markup or escape characters.
-- Copy any file or section of file to any one or more projects.
-- Always automatically save configurations for use in further sessions (no need to manually edit project definitions in emacs-lisp).
-- Create org-mode buffer containing list of projects, with links for opening the files that contain those definitions.
+- Use section headings, tags and properties to define projects and to indicate all necessary properties for copying and publishing.
+- Copy any section of a file to any one or more projects.
 - Create YAML front matter for Jekyll, Octopress or similar markdown-based publishing schemes, based on properties of a section.
+- Include CSS, JavaScript and other script files in the org-mode file as sections. Contents of sections are copied as-they-are.  No need to use extra markup or escape characters.
+- Automatically save configurations for use in further sessions (no need to manually edit project definitions in emacs-lisp).
+- Create org-mode buffer containing list of projects, with links for opening the files that contain those definitions.
 
 * Getting started
 

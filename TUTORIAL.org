@@ -3,12 +3,14 @@
 :DATE:     <2013-12-18 Wed 09:30>
 :END:
 
-** Installation and basic configuration
+** Installation
 :PROPERTIES:
 :DATE:     <2013-12-18 Wed 09:31>
 :END:
 
-Run the following to install org-pm.
+Org-publish-meta is currently available only from github.
+After downloading and placing it in your load path
+run the following to make org-pm available to EMACS.
 
 #+BEGIN_SRC elisp
 (require 'org-pm)
@@ -16,65 +18,55 @@ Run the following to install org-pm.
 
 ** The Menu
 
+Command org-pm-menu lists all commands of org-pm, and lets you execute any selected command from a menu presented in the mini-buffer.
+
 ** Defining a project
 
-Command: =org-pm-insert-new-project=
-Keyboard shortcut: H-m n
+Three steps are required to define a project:
 
-This command inserts a project definition template into the current buffer.
+1. Insert the project definition in an org-mode buffer (=org-pm-insert-new-project=)
+2. (Optional:) Edit the project definition to customize parameters
+3. Parse the project definition and add the project in =org-publish-project-alist= (=org-pm-make-projects=)
 
-** Adding and removing files, the default project
+Here are the steps in detail:
+
+*** Insert project definition code to buffer
+
+Command: =org-pm-insert-new-project= (=H-m n=).
+
+The command asks for the name of the project, the base directory and the html directory of the project.  If the directories that are entered in the minibuffer do not exist, org-pm creates them.
+
+Org-pm then inserts a project definition template into the current buffer, as subsection of a section marked with the tag "PROJECT_DEFS".   If such a section does not yet exist, org-pm creates the section at the end of the buffer.
+
+Here is an example of such a section:
+
+*** Editing the properties of a project
+
+*** Updating the project
+
+Command =org-pm-make-projects= (=H-m m=).
+
+The command
+
+** Adding and removing sections to/from projects
 *** Add a section to a project
 :PROPERTIES:
 :DATE:     <2013-12-18 Wed 09:51>
 :END:
 
-Command: org-pm-add-section-to-project
-Keyboard shortcut: H-m a
+Command: =org-pm-add-section-to-project= (=H-m a=).
 
 The command org-pm-add-section-to-project lets the user select a project from a list of existing projects displayed in the menu buffer, and adds the current org-mode section of the current buffer to the selected project.  If there is no project defined, the command offers to create a default project (see below).
 
-To add a file to a project, org-pm-add-file-to-project adds the name of the project in property PROJECT by adding a line like this at the beginning of the org-mode file:
-
-: #+PROJECT: projectname
-
-*** Remove a file from a project
+*** Remove a section from a project
 :PROPERTIES:
 :DATE:     <2013-12-18 Wed 10:16>
 :END:
 
-Command: org-pm-remove-file-from-project
-Keyboard shortcut: C-c R.
+Command: org-pm-remove-section-from-project
+Keyboard shortcut: H-m r.
 
-The command org-pm-remove-file-from-project (C-c R) lets the user select a project from a list of projects to which this project has been added, displayed in the menu buffer, and removes the file of the current buffer from the selected project.  It also removes the corresponding property or tag from the current buffer.
-
-*** The default project
-:PROPERTIES:
-:DATE:     <2013-12-18 Wed 10:25>
-:END:
-
-If no project is yet defined, then org-pm offers to create a default project, like this:
-
-- The name of the default project is "org-pm-default".
-- The folder from which the default project reads the org files, and where org-pm will be copying files to, is ~/pm-org
-- The folder to which the the default project will be publishing the converted (html and other) files is ~/pm-html
-
-If the folders for the default project do not exist already, then org-pm creates them.
-
-You can customize the name and folders of the default project by setting the corresponding variables, like this:
-
-#+BEGIN_SRC elisp
-(setq org-pm-default-project-name "my-site")
-(setq org-pm-default-project-org-folder "~/Documents/org")
-(setq org-pm-default-project-html-folder "~/Sites")
-#+END_SRC
-
-*** CONSIDER_IMPLEMENTING_THIS_FEATURE Auto-generated default project definition template
-:PROPERTIES:
-:DATE:     <2013-12-18 Wed 10:25>
-:END:
-
-When org-pm creates the default project for the first time, it places a file named org-pm-project-template.org in the org-folder of the project which contains the template definition of the project in org-pm manner.  This file can be used as example for defining own projects.  The project definition also adds the org-pm-project-template.org file to the exclude list of the default project.  So the template file is not published in the project by Org.
+The command org-pm-remove-file-from-project lets the user select a project from a list of projects to which this project has been added, displayed in the menu buffer, and removes the file of the current buffer from the selected project.  It also removes the corresponding property or tag from the current buffer.
 
 ** Publishing a project
 :PROPERTIES:
@@ -93,15 +85,6 @@ If the auto-parse option is enabled (see Tutorial section 1: Installation and ba
 If the auto-parse option is not enabled, then call command org-pm-parse-file to update any project definitions contained in the file and also register any parts of the file (nodes, or the file itself) which are marked to be copied to any projects.
 
 If the auto-copy option is enabled (see Tutorial section 1: Installation and basic configuration), then org-pm
-
-** Writing a new project definition
-:PROPERTIES:
-:DATE:     <2013-12-18 Wed 10:43>
-:END:
-
-Note: Do not use hyphens (=-=) in project names, because org-mode cannot recognize tags that contain hyphens.
-
-http://stackoverflow.com/questions/15511892/any-way-to-extend-org-mode-tags-to-include-characters-like
 
 ** Adding the containing file to a project definition
 :PROPERTIES:

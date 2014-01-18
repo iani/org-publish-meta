@@ -5,8 +5,8 @@
        ((file-exists-p home)
         (setq home (concat home "/savefile"))
         (unless (file-exists-p home) (make-directory home))
-        (concat home "/org-pm-project.data.el"))
-       (t (concat home "/.org-pm-project.data.el"))))
+        (concat home "/org-pm-project-data.el"))
+       (t (concat home "/.org-pm-project-data.el"))))
   "Path of file for storing org-publish-project-alist and
 org-pm-files.  If nil, the path is deduced from the existence
 of .emacs.d folder in user's home directory.
@@ -61,20 +61,21 @@ org-pm-project-template-plain.org" )
                      org-pm-insert-new-project
                      org-pm-make-projects
                      org-pm-add-section-to-project
-                     org-pm-export
                      org-pm-remove-section-from-project
+                     org-pm-export
+                     org-pm-publish
+                     org-pm-show-project-definition-section
                      org-pm-edit-project-template
                      org-pm-list-project-defs
-                     org-pm-list-exported-files
                      org-pm-list-duplicate-project-defs
                      pm/edit-duplicate-project-def
-                     org-pm-load-all-project-data
-                     org-pm-reset-project-list
-                     org-pm-edit-saved-project-data
+                     org-pm-post-project-def
+                     org-pm-list-exported-files
+                     org-pm-show-target-file-list
                      org-pm-load-project-data
                      org-pm-save-project-data
-                     org-pm-list-project-defs
-                     org-pm-show-target-file-list
+                     org-pm-reset-project-list
+                     org-pm-edit-saved-project-data
                      ))
          (menu (grizzl-make-index
                (-map (lambda (c)
@@ -94,9 +95,13 @@ org-pm-project-template-plain.org" )
 
 ;; Add org-mode hook for org-pm-key bindings.
 
+;; Make menu globally available:
+(global-set-key (kbd "H-m H-m") 'org-pm-menu)
+
+;; All other commands available in org-mode:
 (let ((org-pm-key-bindings
        (lambda ()
-         (define-key org-mode-map (kbd "H-m H-m") 'org-pm-menu)
+       ;;  (define-key org-mode-map (kbd "H-m H-m") 'org-pm-menu)
          (define-key org-mode-map (kbd "H-m n") 'org-pm-insert-new-project)
          (define-key org-mode-map (kbd "H-m p n") 'org-pm-insert-new-project)
          (define-key org-mode-map (kbd "H-m m") 'org-pm-make-projects)
@@ -111,8 +116,8 @@ org-pm-project-template-plain.org" )
          (define-key org-mode-map (kbd "H-m p l") 'org-pm-list-project-defs)
          (define-key org-mode-map (kbd "H-m p d") 'org-pm-list-duplicate-project-defs)
          (define-key org-mode-map (kbd "H-m p p") 'org-pm-post-project-def)
-         (define-key org-mode-map (kbd "H-m l") 'org-list-exported-files)
-         (define-key org-mode-map (kbd "H-m L") 'org-pm-show-target-file-list)
+         (define-key org-mode-map (kbd "H-m f") 'org-list-exported-files)
+         (define-key org-mode-map (kbd "H-m F") 'org-pm-show-target-file-list)
          (define-key org-mode-map (kbd "H-m d l") 'org-pm-load-project-data)
          (define-key org-mode-map (kbd "H-m d s") 'org-pm-save-project-data)
          (define-key org-mode-map (kbd "H-m d r") 'org-pm-reset-project-list)
@@ -173,7 +178,7 @@ Save updated project, file and duplicate lists to disk."
            (org-paste-subtree 2 template-string)))
     (org-id-get-create)
     (org-pm-check-add-project (org-pm-parse-project-def (cadr (org-element-at-point))))
-    (org-pm-save-all-project-data)))
+    (org-pm-save-project-data)))
 
 (defun org-pm-make-projects (&optional do-not-save-now)
   "Construct the projects for all project definitions found in current file.
@@ -207,7 +212,7 @@ and the new id is stored in the project."
           (setq projects (cons (org-pm-parse-project-def entry) projects))))
      "PROJECT_DEFS")
     (mapcar 'org-pm-check-add-project projects)
-    (unless do-not-save-now (org-pm-save-all-project-data))
+    (unless do-not-save-now (org-pm-save-project-data))
     (message "Org-pm defined %d projects" (length projects))))
 
 (defun org-pm-parse-project-def (proj-node &optional template)
@@ -361,13 +366,18 @@ Add selected project as tag to current section."
       (org-pm-insert-new-project selected-project-name t))
     selected-project-name))
 
-(defun org-pm-export ()
+(defun org-pm-export (publish-after-export)
   "Top-level function for exporting file and sections to projects.
- Copy both file and any sections specified by properties, tags
- to the designated projects and folders.
- Before copying, re-scan buffer to build list of targets for copying.
- Add list of sections and target file paths to ... and save to disk."
-  (interactive)
+Copy both file and any sections specified by properties, tags
+to the designated projects and folders.
+Before copying, re-scan buffer to build list of targets for copying.
+Add list of sections (point location and id) and target file paths to
+org-pm-section-exports, and save it to disk.
+
+If called with C-u prefix, then select and publish a project after exporting.
+If called with C-u C-u prefix, then publish all projects of this file after exporting."
+  (interactive "P")
+  (save-buffer)
   (save-excursion
     (save-restriction
       (widen)
@@ -377,7 +387,10 @@ Add selected project as tag to current section."
               (assoc-replace org-pm-section-exports
                              (buffer-file-name (current-buffer))
                              sections-with-paths))
-        (org-pm-save-all-project-data)))))
+        (org-pm-save-project-data)
+        (cond
+         ((equal publish-after-export '(4)) (org-pm-publish nil))
+         ((equal publish-after-export '(16)) (org-pm-publish '(4))))))))
 
 (defun org-pm-export-buffer-to-file (path-project)
   "path-project has the form (path . project-name).
@@ -400,15 +413,19 @@ Add selected project as tag to current section."
 (defun org-pm-export-1-section-to-projects (section-with-paths origin-buffer)
   "Copy section to temporary buffer, then save it to all
  paths in the rest of section-with-paths."
-  (let ((target-buffer (get-buffer-create "*org-pm-copy-buf*")))
-    (set-buffer origin-buffer)
-    (goto-char (car section-with-paths))
-    (org-copy-subtree)
-    (set-buffer target-buffer)
-    (org-paste-subtree 1)
-    (dolist (path-project (cdr section-with-paths))
-      (org-pm-export-buffer-to-file path-project))
-    (kill-buffer target-buffer)
+  (set-buffer origin-buffer)
+  (goto-char (car section-with-paths))
+  (org-copy-subtree)
+  (let ((plist (cadr (org-element-at-point))))
+    (dolist (path-project (cddr section-with-paths))
+      (let ((target-buffer (get-buffer-create "*org-pm-copy-buf*")))
+        (set-buffer target-buffer)
+        (org-pm-make-yaml-front-matter
+         (cdr (assoc (cdr path-project) org-publish-project-alist))
+         section-plist)
+        (org-paste-subtree 1)
+        (org-pm-export-buffer-to-file path-project)
+        (kill-buffer target-buffer)))
     (message "exported section: %s" section-with-paths)))
 
 (defun org-pm-save-buffer (specs buffer)
@@ -436,8 +453,10 @@ The list is created from those sections whose tags specify projects,
 i.e . tags enclosed in underscores: _projectname_
 The list is passed to org-pm-copy-section-project-components for copying.
 Each element in the list has the form:
-<start-point of section> (project projectname folder filename)
-                         (project projectname folder filename)
+<start-point of section>
+    <id of section>
+    (project projectname folder filename)
+    (project projectname folder filename)
                          ... "
   (interactive)
   (let (components)
@@ -446,7 +465,7 @@ Each element in the list has the form:
             (pspecs (-filter (lambda (tag) (string-match "^_.*_$" tag))
                              (plist-get node :tags)))
             name date)
-       (message "pspecs: \n%s" pspecs)
+       ;; (message "pspecs: \n%s" pspecs)
        (if pspecs
          (let (section-entries)
           (setq name (plist-get node :raw-value))
@@ -458,24 +477,12 @@ Each element in the list has the form:
                           spec
                           (org-pm-make-filename name)
                           date)) section-entries)))
-          (setq components (cons (cons (point) section-entries) components))))))
+          (setq components
+                (cons
+                 (cons (point) (cons (org-id-get-create) section-entries))
+                 components))))))
   ;;  (message "COMPONENTS: \n%s" components)
-   ;; FIXME: TODO: save paths to disc in org-pm save file
    components))
-
-;;; The next function should be reviewed.  May be scrapped.
-(defun org-pm-get-section-project-targets ()
-  "Return list of paths of files to which sections of current file are copied."
-  (interactive)
-  (let (sections
-        (components
-         (-map (lambda (clist)
-                 (-map (lambda (c) (org-pm-make-displayable-target-path c))
-                       clist))
-               (-map (lambda (aclist) (cdr aclist))
-                     (org-pm-get-section-project-components)))))
-    (message "%s" (-flatten components))
-    (-flatten components)))
 
 (defun org-pm-get-section-projects ()
   "Return list of projects found in the tags of the current section"
@@ -650,6 +657,38 @@ Function org-pm-make-yaml-matter inserts these tags as part of the YAML matter
 in the file header for use by Jekyll/Octopress."
   (-reject (lambda (tag) (string-match "^_.*_$" tag)) (plist-get section-plist :tags)))
 
+(defun org-pm-publish (all)
+  "Publish projects to which the current buffer exports.
+If called without prefix argument, select project to publish from menu.
+If called with prefix argument, publish all projects to which current buffer exports."
+  (interactive "P")
+  (if all
+      (dolist (project (org-pm-get-export-projects)) (org-publish project))
+    (org-publish (org-pm-select-project))))
+
+(defun org-pm-select-export-project ()
+  "Select a project from the list of projects that the current buffer exports to."
+  (interactive)
+  (let* ((projects (org-pm-get-export-projects))
+         (index (grizzl-make-index projects)))
+    (grizzl-completing-read "Select a project: " index)))
+
+(defun org-pm-get-export-projects ()
+  "Get list of all projects that the current buffer exports to."
+  (save-excursion
+    (save-restriction)
+    (widen)
+    (let ((projects nil))
+     (org-map-entries
+      (lambda ()
+        (dolist
+            (project
+             (-map (lambda (p) (car (org-pm-parse-tag p)))
+                   (-filter (lambda (tag) (string-match "^_.*_$" tag))
+                            (plist-get (cadr (org-element-at-point)) :tags))))
+          (add-to-list 'projects project))))
+     projects)))
+
 (defun org-pm-show-project-definition-section ()
   "Mark all sections tagged PROJECT_DEFS.
   Additionally go to the first section tagged PROJECT_DEFS, if it exists."
@@ -819,14 +858,14 @@ in assoc-list org-pm-section-exports."
         (message "No file: %s" answer)
       (find-file answer))))
 
-(defun org-pm-load-all-project-data ()
+(defun org-pm-load-project-data ()
   "Load project alist, project file lists, duplicate project def lists
 from previously saved date on disk."
   (interactive)
   (if (file-exists-p org-pm-project-data-file-path)
       (load-file org-pm-project-data-file-path)))
 
-(defun org-pm-save-all-project-data ()
+(defun org-pm-save-project-data ()
   "Load project alist, project file lists, duplicate project def lists
 from previously saved date on disk."
   (interactive)
@@ -858,7 +897,7 @@ from previously saved date on disk."
   (interactive)
   (cond ((y-or-n-p "Really erase all projects and save?")
          (setq org-publish-project-alist)
-         (org-pm-save-all-project-data))))
+         (org-pm-save-project-data))))
 
 (defun org-pm-edit-saved-project-data ()
   "Edit the file containing the global project data."
@@ -973,3 +1012,7 @@ This function is derived from org-toggle-coment."
 
 (eval-after-load 'org
   '(define-key org-mode-map (kbd "C-c C-;") 'org-set-comment))
+
+(eval-after-load "org-pm" '(org-pm-load-project-data))
+
+(provide 'org-pm)

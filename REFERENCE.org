@@ -11,42 +11,42 @@ Org-pm is a kind or pre-processor for org-publish.  It does following things:
 
 Here is an overview of the commands available in org-pm:
 
-|--------------------------+---------------------------------------------|
-| Shortcut                 | Command                                     |
-|--------------------------+---------------------------------------------|
-| *MAIN COMMANDS*          |                                             |
-|--------------------------+---------------------------------------------|
-| H-m H-m                  | org-pm-menu (lists all commands)            |
-| H-m n or H-m p n         | org-pm-insert-new-project                   |
-| H-m m or H-m p m         | org-pm-make-projects (current buffer)       |
-| C-u H-m m or C-u H-m p m | org-pm-make-projects (all files)            |
-| H-m a                    | org-pm-add-section-to-project               |
-| H-m r                    | org-pm-remove-section-from-project          |
-| H-m e                    | org-pm-export                               |
-| H-m P   (TODO)           | org-pm-publish                              |
-|--------------------------+---------------------------------------------|
-| *PROJECT DEFINITIONS*    |                                             |
-|--------------------------+---------------------------------------------|
-| H-m p e or H-m p s       | org-pm-show-project-definition-section      |
-| H-m p t                  | org-pm-edit-project-template                |
-| H-m p l                  | org-pm-list-project-defs                    |
-| H-m p d                  | org-pm-list-duplicate-project-defs          |
-| C-u H-m p d              | pm/edit-duplicate-project-def               |
-| H-m p p                  | org-pm-post-project-def                     |
-|--------------------------+---------------------------------------------|
-| *TARGET FILE LISTS*      |                                             |
-|--------------------------+---------------------------------------------|
-| H-m f                    | org-pm-list-exported-files (current buffer) |
-| C-u H-m f                | org-pm-list-exported-files (all)            |
-| H-m F  (TODO)            | org-pm-show-target-file-list ???            |
-|--------------------------+---------------------------------------------|
-| *SAVED DATA*             |                                             |
-|--------------------------+---------------------------------------------|
-| H-m d l                  | org-pm-load-project-data                    |
-| H-m d s                  | org-pm-save-project-data                    |
-| H-m d r or H-m d c       | org-pm-reset-project-list                   |
-| H-m d e                  | org-pm-edit-saved-project-data              |
-|--------------------------+---------------------------------------------|
+|--------------------------+------------------------------------------------|
+| Shortcut                 | Command                                        |
+|--------------------------+------------------------------------------------|
+| *MAIN COMMANDS*          |                                                |
+|--------------------------+------------------------------------------------|
+| H-m H-m                  | org-pm-menu (list all commands, run selection) |
+| H-m n or H-m p n         | org-pm-insert-new-project                      |
+| H-m m or H-m p m         | org-pm-make-projects (current buffer)          |
+| C-u H-m m or C-u H-m p m | org-pm-make-projects (all files)               |
+| H-m a                    | org-pm-add-section-to-project                  |
+| H-m r                    | org-pm-remove-section-from-project             |
+| H-m e                    | org-pm-export                                  |
+| H-m P   (TODO)           | org-pm-publish                                 |
+|--------------------------+------------------------------------------------|
+| *PROJECT DEFINITIONS*    |                                                |
+|--------------------------+------------------------------------------------|
+| H-m p e or H-m p s       | org-pm-show-project-definition-section         |
+| H-m p t                  | org-pm-edit-project-template                   |
+| H-m p l                  | org-pm-list-project-defs                       |
+| H-m p d                  | org-pm-list-duplicate-project-defs             |
+| C-u H-m p d              | pm/edit-duplicate-project-def                  |
+| H-m p p                  | org-pm-post-project-def                        |
+|--------------------------+------------------------------------------------|
+| *TARGET FILE LISTS*      |                                                |
+|--------------------------+------------------------------------------------|
+| H-m f                    | org-pm-list-exported-files (current buffer)    |
+| C-u H-m f                | org-pm-list-exported-files (all)               |
+| H-m F  (TODO)            | org-pm-show-target-file-list ???               |
+|--------------------------+------------------------------------------------|
+| *SAVED DATA*             |                                                |
+|--------------------------+------------------------------------------------|
+| H-m d l                  | org-pm-load-project-data                       |
+| H-m d s                  | org-pm-save-project-data                       |
+| H-m d r or H-m d c       | org-pm-reset-project-list                      |
+| H-m d e                  | org-pm-edit-saved-project-data                 |
+|--------------------------+------------------------------------------------|
 
 * Defining projects
 

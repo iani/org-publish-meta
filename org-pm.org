@@ -46,7 +46,7 @@ The commands are organized into 6 topics/sections:
 |--------------------------+---------------------------------------------|
 | H-m f                    | org-pm-list-exported-files (current buffer) |
 | C-u H-m f                | org-pm-list-exported-files (all)            |
-| H-m F  (TODO)            | org-pm-show-target-file-list ???            |
+| H-m F                    | org-pm-show-target-file-list                |
 |--------------------------+---------------------------------------------|
 | *SAVED DATA*             |                                             |
 |--------------------------+---------------------------------------------|
@@ -134,6 +134,7 @@ This function is also called by org-pm-make-projects and org-pm-export.
 Set org-publish-project-alist to nil.  Save.
 
 **** org-pm-edit-saved-project-data
+
 * DONE Variables
 :PROPERTIES:
 :DATE:     <2013-12-18 Wed 11:52>
@@ -152,8 +153,8 @@ CLOSED: [2013-12-18 Wed 15:23]
          ((file-exists-p home)
           (setq home (concat home "/savefile"))
           (unless (file-exists-p home) (make-directory home))
-          (concat home "/org-pm-project.data.el"))
-         (t (concat home "/.org-pm-project.data.el"))))
+          (concat home "/org-pm-project-data.el"))
+         (t (concat home "/.org-pm-project-data.el"))))
     "Path of file for storing org-publish-project-alist and
   org-pm-files.  If nil, the path is deduced from the existence
   of .emacs.d folder in user's home directory.
@@ -286,9 +287,13 @@ Note: I use the Hyper-m  (= Mac fn key m) as prefix, because it is not likely to
 #+BEGIN_SRC emacs-lisp
   ;; Add org-mode hook for org-pm-key bindings.
 
+  ;; Make menu globally available:
+  (global-set-key (kbd "H-m H-m") 'org-pm-menu)
+
+  ;; All other commands available in org-mode:
   (let ((org-pm-key-bindings
          (lambda ()
-           (define-key org-mode-map (kbd "H-m H-m") 'org-pm-menu)
+         ;;  (define-key org-mode-map (kbd "H-m H-m") 'org-pm-menu)
            (define-key org-mode-map (kbd "H-m n") 'org-pm-insert-new-project)
            (define-key org-mode-map (kbd "H-m p n") 'org-pm-insert-new-project)
            (define-key org-mode-map (kbd "H-m m") 'org-pm-make-projects)
@@ -372,7 +377,7 @@ Note: I use the Hyper-m  (= Mac fn key m) as prefix, because it is not likely to
              (org-paste-subtree 2 template-string)))
       (org-id-get-create)
       (org-pm-check-add-project (org-pm-parse-project-def (cadr (org-element-at-point))))
-      (org-pm-save-all-project-data)))
+      (org-pm-save-project-data)))
 #+END_SRC
 
 
@@ -411,7 +416,7 @@ Note: I use the Hyper-m  (= Mac fn key m) as prefix, because it is not likely to
             (setq projects (cons (org-pm-parse-project-def entry) projects))))
        "PROJECT_DEFS")
       (mapcar 'org-pm-check-add-project projects)
-      (unless do-not-save-now (org-pm-save-all-project-data))
+      (unless do-not-save-now (org-pm-save-project-data))
       (message "Org-pm defined %d projects" (length projects))))
 #+END_SRC
 
@@ -621,66 +626,122 @@ Remove tag naming selected project from current section (node).
          (lambda (p) (equal (car (org-pm-parse-tag p)) project)) tags)))))
 #+END_SRC
 
-** DONE org-pm-export
+** TODO org-pm-export
+
+TODO: strip date postfix from heading if present
+TODO: remove project-export-related tags
+TODO: use org-pm-publish-buffer-to. Thereby obviate org-publish step.
+Do this only for projects with property export-to-jeckyll t.
 
 #+BEGIN_SRC emacs-lisp
-  (defun org-pm-export (publish-after-export)
+  (defun org-pm-export (&optional publish-after-export)
     "Top-level function for exporting file and sections to projects.
-  Copy both file and any sections specified by properties, tags
-  to the designated projects and folders.
-  Before copying, re-scan buffer to build list of targets for copying.
-  Add list of sections (point location and id) and target file paths to
-  org-pm-section-exports, and save it to disk.
+    Copy both file and any sections specified by properties, tags
+    to the designated projects and folders.
+    Before copying, re-scan buffer to build list of targets for copying.
+    Add list of sections (point location and id) and target file paths to
+    org-pm-section-exports, and save it to disk.
 
-  If called with C-u prefix, then select and publish a project after exporting.
-  If called with C-u C-u prefix, then publish all projects of this file after exporting."
-    (interactive)
+    If called with C-u prefix, then select and publish a project after exporting.
+    If called with C-u C-u prefix, then publish all projects of this file after exporting."
+    (interactive "P")
     (save-buffer)
+    (org-pm-export-sections-to-projects)
+    (cond
+     ((equal publish-after-export '(4)) (org-pm-publish nil))
+     ((equal publish-after-export '(16)) (org-pm-publish '(4)))))
+
+  (defun org-pm-export-sections-to-projects (&optional sections-with-paths)
+    "Copy sections of this file to paths specified by tags.
+     List sections-with-paths is constructed by org-pm-get-section-project-paths."
+    (interactive)
     (save-excursion
       (save-restriction
         (widen)
-        (let ((sections-with-paths (org-pm-get-section-project-paths)))
-          (org-pm-export-sections-to-projects sections-with-paths)
+        (unless sections-with-paths
+          (setq sections-with-paths (org-pm-get-section-project-paths)))
+        (let* ((buffer (current-buffer))
+              (filename (buffer-file-name buffer)))
+          (dolist (section sections-with-paths)
+            (org-pm-export-1-section-to-projects section buffer))
           (setq org-pm-section-exports
-                (assoc-replace org-pm-section-exports
-                               (buffer-file-name (current-buffer))
-                               sections-with-paths))
-          (org-pm-save-all-project-data)
-          (cond
-           ((equal publish-after-export '(4)) (org-pm-publish))
-           ((equal publish-after-export '(16)) (org-pm-publish '(4))))))))
+                (assoc-replace org-pm-section-exports filename sections-with-paths)))
+        (org-pm-save-project-data))))
+
+  ;; TODO: strip date postfix from heading if present
+  ;; TODO: remove project-export-related tags
+  ;; TODO: use org-pm-publish-buffer-to. Thereby obviate org-publish step.
+  ;; Do this only for projects with property export-to-jeckyll t.
+  (defun org-pm-export-1-section-to-projects (section-with-paths origin-buffer)
+    "Copy section to temporary buffer, then save it to all
+     paths in the rest of section-with-paths."
+    (set-buffer origin-buffer)
+    (goto-char (car section-with-paths))
+    (org-copy-subtree)
+    (let ((section-plist (cadr (org-element-at-point))))
+      (dolist (path-project (cddr section-with-paths))
+        (let ((target-buffer (get-buffer-create "*org-pm-copy-buf*")))
+          (set-buffer target-buffer)
+          (org-pm-make-yaml-front-matter
+           (cdr (assoc (cdr path-project) org-publish-project-alist))
+           section-plist)
+          (org-paste-subtree 1) ;; leaves point at top of tree! GOOD!
+          ;; TODO: remove date postfix from header if present.
+          ;; TODO: remove project-export-related tags.
+          ;; (org-set-tags-to nil) ;; only for jeckyll style export
+          (org-pm-export-buffer-to-file path-project)
+          (kill-buffer target-buffer)))
+      (message "exported section: %s" section-with-paths)))
+
+  ;;; TODO: Adapt this to work with buffer instead of file
+  ;;; Original function: org-publish-org-to
+  (defun org-pm-publish-buffer-to (backend buffer filename extension plist &optional pub-dir)
+    "Publish an Org file to a specified back-end.
+  This version uses a buffer as source of content instaed of a file.
+  It is adapted from org-publish-org-to.
+
+  BACKEND is a symbol representing the back-end used for
+  transcoding.  FILENAME is the filename of the Org file to be
+  published.  EXTENSION is the extension used for the output
+  string, with the leading dot.  PLIST is the property list for the
+  given project.
+
+  Optional argument PUB-DIR, when non-nil is the publishing
+  directory.
+
+  Return output file name."
+    (unless (or (not pub-dir) (file-exists-p pub-dir)) (make-directory pub-dir t))
+    ;; Check if a buffer visiting FILENAME is already open.
+    (let* ((org-inhibit-startup t)
+           (visitingp (find-buffer-visiting filename))
+           (work-buffer (or visitingp (find-file-noselect filename))))
+      (prog1 (with-current-buffer work-buffer
+               (let ((output-file
+                      (org-export-output-file-name extension nil pub-dir))
+                     (body-p (plist-get plist :body-only)))
+                 (org-export-to-file backend output-file
+                   nil nil nil body-p
+                   ;; Add `org-publish-collect-numbering' and
+                   ;; `org-publish-collect-index' to final output
+                   ;; filters.  The latter isn't dependent on
+                   ;; `:makeindex', since we want to keep it up-to-date
+                   ;; in cache anyway.
+                   (org-combine-plists
+                    plist
+                    `(:filter-final-output
+                      ,(cons 'org-publish-collect-numbering
+                             (cons 'org-publish-collect-index
+                                   (plist-get plist :filter-final-output))))))))
+        ;; Remove opened buffer in the process.
+        (unless visitingp (kill-buffer work-buffer)))))
 
   (defun org-pm-export-buffer-to-file (path-project)
     "path-project has the form (path . project-name).
-   If path is not nil, save current buffer to path."
+     If path is not nil, save current buffer to path."
     (let ((path (car path-project)))
       (when path
         (make-directory (file-name-directory path) t)
         (write-region nil nil path))))
-
-  (defun org-pm-export-sections-to-projects (&optional sections-with-paths)
-    "Copy sections of this file to paths specified by tags.
-   List sections-with-paths is constructed by org-pm-get-section-project-paths."
-    (interactive)
-    (unless sections-with-paths
-      (setq sections-with-paths (org-pm-get-section-project-paths)))
-    (let ((buffer (current-buffer)))
-      (dolist (section sections-with-paths)
-        (org-pm-export-1-section-to-projects section buffer))))
-
-  (defun org-pm-export-1-section-to-projects (section-with-paths origin-buffer)
-    "Copy section to temporary buffer, then save it to all
-   paths in the rest of section-with-paths."
-    (let ((target-buffer (get-buffer-create "*org-pm-copy-buf*")))
-      (set-buffer origin-buffer)
-      (goto-char (car section-with-paths))
-      (org-copy-subtree)
-      (set-buffer target-buffer)
-      (org-paste-subtree 1)
-      (dolist (path-project (cddr section-with-paths))
-        (org-pm-export-buffer-to-file path-project))
-      (kill-buffer target-buffer)
-      (message "exported section: %s" section-with-paths)))
 
   (defun org-pm-save-buffer (specs buffer)
     "Save current buffer "
@@ -752,7 +813,7 @@ Get all sections marked with tags that are enclosed in underscore (=_=).  Parse 
 
 #+END_SRC
 
-*** org-pm-get-section-projects                                    :_test_:
+*** org-pm-get-section-projects
 
 #+BEGIN_SRC emacs-lisp
 
@@ -1005,13 +1066,13 @@ categories:
   from global emacs variables, the project's p-list or the section's properties,
   or the section's tags:
 
-  - author :: value of eamcs/orgmode variable author
+  - author :: value of property AUTHOR or emacs/orgmode variable author
   - categories :: value of property CATEGORIES
   - commments :: value of property COMMENTS
-  - date :: value of property DATE
+  - date :: value of property DATE or current date and time
   - external-url :: value of property EXTERNAL-URL
-  - layout :: 'default' if no DATE property is set. 'blog' if DATE property is set.
-              Value can be customized by setting property LAYOUT.
+  - layout :: value of property LAYOUT, if available.  Else:
+              'default' if no DATE property is set, 'blog' if DATE property is set.
   - permalink :: value of property PERMALINK
   - published :: value of property PUBLISHED
   - tags :: tags of section or values of property TAGS
@@ -1022,7 +1083,8 @@ categories:
     (when (plist-get project-plist :body-only)
       (insert "---\n")
       (let*
-          ((title (plist-get section-plist :raw-value))
+          ((time-format-string  "%Y-%m-%d %T %z")
+           (title (plist-get section-plist :raw-value))
            (tags (org-pm-get-non-project-tags section-plist))
            (author (plist-get section-plist :AUTHOR))
            (categories (plist-get section-plist :CATEGORIES))
@@ -1035,12 +1097,18 @@ categories:
            (sharing (plist-get section-plist :SHARING))
            (footer (plist-get section-plist :FOOTER)))
         (unless layout (setq layout (if date "blog" "default")))
-        (unless date (setq date (...)))
+        (if date
+            (setq date (format-time-string
+                        time-format-string
+                        (org-time-string-to-time date)))
+          (setq date (format-time-string time-format-string)))
         (unless author (setq author (user-full-name)))
         (insert (format "title: %s\n" title))
         (insert (format "layout: %s\n" layout))
         (insert (format "author: %s\n" author))
-        (insert (format "date: %s\n" date))
+        (insert (format-time-string
+                 "date: %Y-%m-%d %T %z\n"
+                 (if date (org-time-string-to-time date))))
         (if external-url (insert (format "external-url: %s\n" external-url)))
         (if permalink (insert (format "permalink: %s\n" permalink)))
         (if published (insert (format "published: %s\n" published)))
@@ -1053,8 +1121,7 @@ categories:
             (insert (format "- %s\n" category))))
         (when tags
           (insert "tags:\n")
-          (dolist (tag (split-string tags ", "))
-            (insert (format "- %s\n" tag)))))
+          (dolist (tag tags) (insert (format "- %s\n" tag)))))
       (insert "---\n")))
 #+END_SRC
 
@@ -1344,26 +1411,26 @@ Select a project interactively and post its definition.
 
 ** UNDERWAY File menu of exported sections
 #+BEGIN_SRC emacs-lisp
-  ;;; INCOMPLETE
-
-  (defun org-pm-list-exported-files (all-p)
+  (defun org-pm-list-exported-files (&optional all-p)
     "Create a list of paths of all files which the current file and its sections
   outputs to.  Present this as a grizzl list for auto-complete search.
   Open selected file.
   If called with argument, list exported sections from all files contained
   in assoc-list org-pm-section-exports."
     (interactive "P")
-    (let* (section-components
-           (if all-p
-               org-pm-section-exports
-             (setq section-components (org-pm-get-section-project-targets)))
-           (target-list (mapcar (lambda (t) (cdr t)) section-components))
-           (index (grizzl-make-index target-list))
-           answer)
-      (setq answer (grizzl-completing-read "Choose file to open: " index))
-      (if (string-match "(undefined project)$" answer)
-          (message "No file: %s" answer)
-        (find-file answer))))
+    (let* ((source-files
+            (if all-p
+                org-pm-section-exports
+              (list (assoc (buffer-file-name) org-pm-section-exports))))
+           paths index selected-path)
+      (dolist (sections source-files)
+        (dolist (section (cdr sections))
+          (dolist (path-project (cddr section))
+            (if (car path-project) (add-to-list 'paths (car path-project))))))
+      (setq index (grizzl-make-index paths))
+      (setq selected-path (grizzl-completing-read "Choose file to open: " index))
+      (if selected-path (find-file selected-path))))
+
 #+END_SRC
 
 ** TODO org-pm-show-target-file-list
@@ -1381,10 +1448,10 @@ Select a project interactively and post its definition.
 | H-m d e                  | org-pm-edit-saved-project-data              |
 |--------------------------+---------------------------------------------|
 
-** DONE org-pm-load-all-project-data
+** DONE org-pm-load-project-data
 
 #+BEGIN_SRC emacs-lisp
-  (defun org-pm-load-all-project-data ()
+  (defun org-pm-load-project-data ()
     "Load project alist, project file lists, duplicate project def lists
   from previously saved date on disk."
     (interactive)
@@ -1395,10 +1462,10 @@ Select a project interactively and post its definition.
 #+RESULTS:
 : org-pm-load-all-project-data
 
-** DONE org-pm-save-all-project-data
+** DONE org-pm-save-project-data
 
 #+BEGIN_SRC emacs-lisp
-  (defun org-pm-save-all-project-data ()
+  (defun org-pm-save-project-data ()
     "Load project alist, project file lists, duplicate project def lists
   from previously saved date on disk."
     (interactive)
@@ -1435,7 +1502,7 @@ Select a project interactively and post its definition.
     (interactive)
     (cond ((y-or-n-p "Really erase all projects and save?")
            (setq org-publish-project-alist)
-           (org-pm-save-all-project-data))))
+           (org-pm-save-project-data))))
 #+END_SRC
 
 
@@ -1620,6 +1687,18 @@ This function is derived by modifying org-toggle-comment.
     '(define-key org-mode-map (kbd "C-c C-;") 'org-set-comment))
 #+END_SRC
 
+
+* Load project data at init time
+
+#+BEGIN_SRC emacs-lisp
+(eval-after-load "org-pm" '(org-pm-load-project-data))
+#+END_SRC
+
+* Provide org-pm library
+
+#+BEGIN_SRC emacs-lisp
+(provide 'org-pm)
+#+END_SRC
 
 * COMMENT Project Definitions                                  :PROJECT_DEFS:
 ** org_pm
