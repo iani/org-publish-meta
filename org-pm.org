@@ -760,27 +760,38 @@ Test case without cache-initialization:
 This works with the version below:
 
 #+BEGIN_SRC elisp
-  (defun org-pm-publish-buffer-to (buffer path plist)
+  (defun org-pm-publish-buffer-to (buffer path project section-plist)
     "Publish an Org-mode buffer to html.
 
   BUFFER is the buffer to publish.
   PATH is the target filename of publish the buffer to.
-  PLIST is the property list for the given project.
+  PROJECT is the name+property list for the given project.
   Optional argument PUB-DIR, when non-nil is the publishing
-  directory.
-
-  Return output file name."
+  directory."
     ;; Check if a buffer visiting FILENAME is already open.
-    (let* ((org-inhibit-startup t)
-           (pub-dir (file-name-directory path)))
+    (let* ((pname (car project))
+           (plist (cdr project))
+           (org-inhibit-startup t)
+           (pub-dir (file-name-directory path))
+           (body-p (plist-get plist :body-only))
+           (work-buffer buffer)
+           get-rid-of-buffer-when-done)
+      (when (plist-get plist :export-to-jekyll)
+        ;; if this is for jekyll, then make yaml header.
+        ;; do this in a separate buffer, leaving the original untouched.
+          (setq get-rid-of-buffer-when-done t)
+          (setq work-buffer (get-buffer "*org-pm-publish-buffer*"))
+          (with-current-buffer work-buffer
+            (org-pm-make-yaml-front-matter plist section-plist)
+            (insert-buffer buffer)))
       (unless (file-exists-p pub-dir) (make-directory pub-dir t))
-      (prog1 (with-current-buffer buffer
-               (let ((output-file path)
-                     (body-p (plist-get plist :body-only)))
+      (prog1 (with-current-buffer work-buffer
+               (let ((output-file path))
                  (org-export-to-file 'html output-file
                    nil nil nil body-p plist)))
         ;; Remove working-buffer if it is private to this function
-        )))
+        (if get-rid-of-buffer-when-done (kill-buffer work-buffer)))))
+
 #+END_SRC
 
 #+RESULTS:
@@ -1142,7 +1153,6 @@ categories:
 
 
 **** org-pm-make-yaml-front-matter
-
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-make-yaml-front-matter (project-plist section-plist)
