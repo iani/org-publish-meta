@@ -626,12 +626,13 @@ Remove tag naming selected project from current section (node).
          (lambda (p) (equal (car (org-pm-parse-tag p)) project)) tags)))))
 #+END_SRC
 
-** TODO org-pm-export
+** UNDERWAY org-pm-export
 
 TODO: strip date postfix from heading if present
 TODO: remove project-export-related tags
 TODO: use org-pm-publish-buffer-to. Thereby obviate org-publish step.
 Do this only for projects with property export-to-jeckyll t.
+See function org-pm-publish-buffer-to in next session.
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-export (&optional publish-after-export)
@@ -693,48 +694,6 @@ Do this only for projects with property export-to-jeckyll t.
           (kill-buffer target-buffer)))
       (message "exported section: %s" section-with-paths)))
 
-  ;;; TODO: Adapt this to work with buffer instead of file
-  ;;; Original function: org-publish-org-to
-  (defun org-pm-publish-buffer-to (backend buffer filename extension plist &optional pub-dir)
-    "Publish an Org file to a specified back-end.
-  This version uses a buffer as source of content instaed of a file.
-  It is adapted from org-publish-org-to.
-
-  BACKEND is a symbol representing the back-end used for
-  transcoding.  FILENAME is the filename of the Org file to be
-  published.  EXTENSION is the extension used for the output
-  string, with the leading dot.  PLIST is the property list for the
-  given project.
-
-  Optional argument PUB-DIR, when non-nil is the publishing
-  directory.
-
-  Return output file name."
-    (unless (or (not pub-dir) (file-exists-p pub-dir)) (make-directory pub-dir t))
-    ;; Check if a buffer visiting FILENAME is already open.
-    (let* ((org-inhibit-startup t)
-           (visitingp (find-buffer-visiting filename))
-           (work-buffer (or visitingp (find-file-noselect filename))))
-      (prog1 (with-current-buffer work-buffer
-               (let ((output-file
-                      (org-export-output-file-name extension nil pub-dir))
-                     (body-p (plist-get plist :body-only)))
-                 (org-export-to-file backend output-file
-                   nil nil nil body-p
-                   ;; Add `org-publish-collect-numbering' and
-                   ;; `org-publish-collect-index' to final output
-                   ;; filters.  The latter isn't dependent on
-                   ;; `:makeindex', since we want to keep it up-to-date
-                   ;; in cache anyway.
-                   (org-combine-plists
-                    plist
-                    `(:filter-final-output
-                      ,(cons 'org-publish-collect-numbering
-                             (cons 'org-publish-collect-index
-                                   (plist-get plist :filter-final-output))))))))
-        ;; Remove opened buffer in the process.
-        (unless visitingp (kill-buffer work-buffer)))))
-
   (defun org-pm-export-buffer-to-file (path-project)
     "path-project has the form (path . project-name).
      If path is not nil, save current buffer to path."
@@ -761,6 +720,133 @@ Do this only for projects with property export-to-jeckyll t.
             (t
              (add-to-list '*org-pm-missing-projects* project-name)
              nil))))
+#+END_SRC
+
+*** TODO org-pm-publish-buffer-to
+
+Test case for =org-pm-publish-buffer-to=.  Shows that it works if we initialize cache.
+
+#+BEGIN_SRC
+(let* ((project (assoc "octopress_pm_test"  org-publish-project-alist))
+       (pname (car project))
+       (plist (cdr project))
+      (root (plist-get plist :publishing-directory))
+      (path (concat root "/test.html")))
+   (org-publish-initialize-cache pname)
+  (org-pm-publish-buffer-to (get-buffer "test") path plist)
+  )
+#+END_SRC
+
+**** Initial Test version: Remove cache-requiring filters
+
+Test case without cache-initialization:
+
+#+BEGIN_SRC elisp
+(let* ((project (assoc "octopress_pm_test"  org-publish-project-alist))
+       (pname (car project))
+       (plist (cdr project))
+      (root (plist-get plist :publishing-directory))
+      (path (concat root "/test.html")))
+;;   (org-publish-initialize-cache pname)
+  (org-pm-publish-buffer-to (get-buffer "test") path plist)
+  )
+#+END_SRC
+
+#+BEGIN_SRC elisp
+  (defun org-publish-org-to (buffer path plist)
+    "Publish an Org-mode buffer to html.
+
+  BUFFER is the buffer to publish.
+  PATH is the target filename of publish the buffer to.
+  PLIST is the property list for the given project.
+  Optional argument PUB-DIR, when non-nil is the publishing
+  directory.
+
+  Return output file name."
+    ;; Check if a buffer visiting FILENAME is already open.
+    (let* ((org-inhibit-startup t)
+           (pub-dir (file-name-directory path)))
+      (unless (file-exists-p pub-dir) (make-directory pub-dir t))
+      (prog1 (with-current-buffer buffer
+               (let ((output-file path)
+                     (body-p (plist-get plist :body-only)))
+                 (org-export-to-file 'html output-file
+                   nil nil nil body-p
+                   ;; Add `org-publish-collect-numbering' and
+                   ;; `org-publish-collect-index' to final output
+                   ;; filters.  The latter isn't dependent on
+                   ;; `:makeindex', since we want to keep it up-to-date
+                   ;; in cache anyway.
+                   plist)))
+        ;; DO NOT Remove opened buffer in the process.
+        )))
+#+END_SRC
+
+**** With Yaml: For final version
+
+#+BEGIN_SRC elisp
+  ;;; TODO: Adapt this to work with buffer instead of file
+  ;;; Original function: org-publish-org-to
+  (defun org-pm-publish-buffer-to (buffer path project section-plist)
+    "Publish a buffer to html.
+  Adapted from org-publish-org-to.
+
+  BUFFER is the buffer containing the text to be converted to html.
+  PATH is the full path to write the file to.
+  PROJECT is the project-name + property list for the given project.
+  SECTION-PLIST is the plist of the section that is copied to buffer.
+
+  If project plist has property export-to-jekyll set to true, then:
+  - Copy the buffer into a new buffer in order not to affect next publications.
+  - Create and insert jekyll YAML front matter at the beginning of the new buffer.
+
+
+  "
+    ;; Check if a buffer visiting FILENAME is already open.
+    (let* ((pname (car project))
+           (plist (cdr project))
+           must-kill-buffer
+           work-buffer
+           (pub-dir (file-name-directory path))
+           (org-inhibit-startup t))
+      (unless (file-exists-p pub-dir) (make-directory pub-dir t))
+      (cond ((plist-get plist :export-to-jekyll)
+             (setq must-kill-buffer t)
+             (setq work-buffer (get-buffer-create "*org-pm-copy-yaml-buf*"))
+             ... first make yaml front matter based on plist, section-plist
+             ... and put it in work-buffer
+             ... then copy/append buffer to work-buffer
+             ... use append-to-buffer for this.  Description:
+             (append-to-buffer BUFFER START END)
+
+             Append to specified buffer the text of the region.
+             It is inserted into that buffer before its point.
+
+             When calling from a program, give three arguments:
+             BUFFER (or buffer name), START and END.
+             START and END specify the portion of the current buffer to be copied.
+            ;; ()
+             )
+        (t (setq work-buffer buffer)))
+      ;;; initialize cache - otherwise error occurs.
+      ;;; ALTERNATIVELY REMOVE THE org-combine-plists call below!!!
+      (org-publish-initialize-cache pname)
+      ;; can be progn instead of prog1:
+      (prog1 (with-current-buffer work-buffer
+               (let ((body-p (plist-get plist :body-only)))
+                   (org-export-to-file 'html path nil nil nil body-p
+                   ;; Add `org-publish-collect-numbering' and
+                   ;; `org-publish-collect-index' to final output
+                   ;; filters.  The latter isn't dependent on
+                   ;; `:makeindex', since we want to keep it up-to-date
+                   ;; in cache anyway.
+                   (org-combine-plists
+                    plist
+                    `(:filter-final-output
+                      ,(cons 'org-publish-collect-numbering
+                             (cons 'org-publish-collect-index
+                                   (plist-get plist :filter-final-output)))))))))
+      (when must-kill-buffer (kill-buffer work-buffer))))
 #+END_SRC
 
 *** Get list of file components to be copied to projects
