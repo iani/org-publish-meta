@@ -425,38 +425,6 @@ Add selected project as tag to current section."
         (kill-buffer target-buffer)))
     (message "exported section: %s" section-with-paths)))
 
-;;; TODO: Adapt this to work with buffer instead of file
-;;; Original function: org-publish-org-to
-(defun org-pm-publish-buffer-to (buffer path plist)
-  "Publish a buffer to html.
-Adapted from org-publish-org-to.
-
-BUFFER is the buffer containing the text to be converted to html.
-PATH is the full path to write the file to.
-PLIST is the property list for the given project.
-Return output file name."
-  ;; Check if a buffer visiting FILENAME is already open.
-  (let* ((pub-dir (file-name-directory path))
-         (org-inhibit-startup t))
-    (unless (file-exists-p pub-dir) (make-directory pub-dir t))
-    (prog1 (with-current-buffer buffer
-             (let ((body-p (plist-get plist :body-only)))
-               ;; no way to smack the header into the file
-               ;; if body-p is true
-               ;; will always use the buffer as is, readily assembled
-               (org-export-to-file "html" path nil nil nil body-p
-                 ;; Add `org-publish-collect-numbering' and
-                 ;; `org-publish-collect-index' to final output
-                 ;; filters.  The latter isn't dependent on
-                 ;; `:makeindex', since we want to keep it up-to-date
-                 ;; in cache anyway.
-                 (org-combine-plists
-                  plist
-                  `(:filter-final-output
-                    ,(cons 'org-publish-collect-numbering
-                           (cons 'org-publish-collect-index
-                                 (plist-get plist :filter-final-output)))))))))))
-
 (defun org-pm-export-buffer-to-file (path-project)
   "path-project has the form (path . project-name).
    If path is not nil, save current buffer to path."

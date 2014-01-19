@@ -737,7 +737,9 @@ Test case for =org-pm-publish-buffer-to=.  Shows that it works if we initialize 
   )
 #+END_SRC
 
-**** Initial Test version: Remove cache-requiring filters
+**** QUOTE Version to use: Remove cache-requiring filters
+
+Transfer the YAML stuff from the version in the next section to the present version.
 
 Test case without cache-initialization:
 
@@ -752,8 +754,13 @@ Test case without cache-initialization:
   )
 #+END_SRC
 
+#+RESULTS:
+: ~/Documents/Dev/Web/octopress-pm-test-html/test.html
+
+This works with the version below:
+
 #+BEGIN_SRC elisp
-  (defun org-publish-org-to (buffer path plist)
+  (defun org-pm-publish-buffer-to (buffer path plist)
     "Publish an Org-mode buffer to html.
 
   BUFFER is the buffer to publish.
@@ -771,18 +778,15 @@ Test case without cache-initialization:
                (let ((output-file path)
                      (body-p (plist-get plist :body-only)))
                  (org-export-to-file 'html output-file
-                   nil nil nil body-p
-                   ;; Add `org-publish-collect-numbering' and
-                   ;; `org-publish-collect-index' to final output
-                   ;; filters.  The latter isn't dependent on
-                   ;; `:makeindex', since we want to keep it up-to-date
-                   ;; in cache anyway.
-                   plist)))
-        ;; DO NOT Remove opened buffer in the process.
+                   nil nil nil body-p plist)))
+        ;; Remove working-buffer if it is private to this function
         )))
 #+END_SRC
 
-**** With Yaml: For final version
+#+RESULTS:
+: org-pm-publish-buffer-to
+
+**** With Yaml: Transfer this to above
 
 #+BEGIN_SRC elisp
   ;;; TODO: Adapt this to work with buffer instead of file
@@ -1167,7 +1171,7 @@ categories:
   - footer :: from property FOOTER
   "
     (when (plist-get project-plist :body-only)
-      (insert "---\n")
+      (insert "#+BEGIN_HTML\n---\n")
       (let*
           ((time-format-string  "%Y-%m-%d %T %z")
            (title (plist-get section-plist :raw-value))
@@ -1208,7 +1212,7 @@ categories:
         (when tags
           (insert "tags:\n")
           (dolist (tag tags) (insert (format "- %s\n" tag)))))
-      (insert "---\n")))
+      (insert "---\n#+END_HTML\n")))
 #+END_SRC
 
 ***** org-pm-get-non-project-tags
