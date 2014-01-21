@@ -37,7 +37,7 @@ The commands are organized into 6 topics/sections:
 |--------------------------+---------------------------------------------|
 | H-m p e or H-m p s       | org-pm-show-project-definition-section      |
 | H-m p t                  | org-pm-edit-project-template                |
-| H-m p l                  | org-pm-list-project-defs                    |
+| H-m p l                  | org-pm-project-def-list |
 | H-m p d                  | org-pm-list-duplicate-project-defs          |
 | C-u H-m p d              | pm/edit-duplicate-project-def               |
 | H-m p p                  | org-pm-post-project-def                     |
@@ -95,7 +95,7 @@ Project definitions are those nodes which are contained in nodes tagged as PROJE
 In the present buffer, mark all sections tagged PROJECT_DEFS.
 Additionally go to the first section tagged PROJECT_DEFS, if it exists.
 
-**** org-pm-list-project-defs
+**** org-pm-project-def-list
 
 **** org-pm-list-dupicate-project-defs
 
@@ -193,7 +193,7 @@ CLOSED: [2013-12-21 Sat 22:07]
   See functions:
   - org-pm-check-add-project
   - org-pm-list-dupicate-project-defs
-  - org-pm-list-project-defs
+  - org-pm-project-def-list
   - pm/edit-duplicate-project-def"
   )
 #+END_SRC
@@ -238,12 +238,23 @@ CLOSED: [2013-12-21 Sat 22:07]
 
 Select org-pm command interactively
 
+#+BEGIN_SRC elisp
+  (defun debug-org-pm-menu ()
+    (interactive)
+    (let* ((commands '("a" "b"))
+           (menu (grizzl-make-index commands)))
+      (grizzl-completing-read "select command: " menu)))
+#+END_SRC
+
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-menu ()
     "Select and run an org-pm command from a grizzl-minibuffer menu list."
     (interactive)
     (setq  *grizzl-read-max-results* 32)
     (let* ((commands '(
+                       org-pm-source-file-menu
+                       org-pm-target-file-menu
+                       org-pm-project-def-list
                        org-pm-insert-new-project
                        org-pm-make-projects
                        org-pm-add-section-to-project
@@ -252,12 +263,9 @@ Select org-pm command interactively
                        org-pm-publish
                        org-pm-show-project-definition-section
                        org-pm-edit-project-template
-                       org-pm-list-project-defs
                        org-pm-list-duplicate-project-defs
                        pm/edit-duplicate-project-def
                        org-pm-post-project-def
-                       org-pm-list-exported-files
-                       org-pm-show-target-file-list
                        org-pm-load-project-data
                        org-pm-save-project-data
                        org-pm-reset-project-list
@@ -272,7 +280,8 @@ Select org-pm command interactively
                            "^org-pm-" "" (symbol-name c))))
                        commands)))
           selection)
-      (setq selection (grizzl-completing-read  "Select command: " menu))
+      (message "menu index: %s" menu)
+      (setq selection (grizzl-completing-read "Select command: " menu))
       (eval
        (read (concat
               "(org-pm-"
@@ -305,7 +314,7 @@ Note: I use the Hyper-m  (= Mac fn key m) as prefix, because it is not likely to
            (define-key org-mode-map (kbd "H-m p e") 'org-pm-show-project-definition-section)
            (define-key org-mode-map (kbd "H-m p s") 'org-pm-show-project-definition-section)
            (define-key org-mode-map (kbd "H-m p t") 'org-pm-edit-project-template)
-           (define-key org-mode-map (kbd "H-m p l") 'org-pm-list-project-defs)
+           (define-key org-mode-map (kbd "H-m p l") 'org-pm-project-def-list)
            (define-key org-mode-map (kbd "H-m p d") 'org-pm-list-duplicate-project-defs)
            (define-key org-mode-map (kbd "H-m p p") 'org-pm-post-project-def)
            (define-key org-mode-map (kbd "H-m f") 'org-list-exported-files)
@@ -758,7 +767,7 @@ Test case for =org-pm-publish-buffer-to-html=.  Shows that it works if we initia
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-export ()
     "Top-level function for exporting sections to projects.
-  Immediately renders sections that belong to html-projects.
+  Renders sections of the current org-mode buffer that belong to html-projects.
   Files produced by this function are ready for viewing on web, or for
   processing with Jekyll to create site pages.
 
@@ -821,6 +830,11 @@ Test case for =org-pm-publish-buffer-to-html=.  Shows that it works if we initia
       (message "exported section: %s" section-with-paths)))
 
   (defun org-pm-make-section-buffer (origin-buffer position)
+    "Copy the contents of an org-mode section located at position
+  in origin-buffer to a temporary buffer, for exporting.
+  Return the temporary buffer.
+  Used by org-pm-export-1-section-to-projects.
+  Passed as argument to org-pm-export-buffer-to-html."
     (with-current-buffer origin-buffer
       (goto-char position)
       (org-copy-subtree))
@@ -1485,7 +1499,7 @@ Since a file containing org-pm tags can be anywhere outside an org-mode project 
 |-----------------------+----------------------------------------|
 | H-m p e or H-m p s    | org-pm-show-project-definition-section |
 | H-m p t               | org-pm-edit-project-template           |
-| H-m p l               | org-pm-list-project-defs               |
+| H-m p l               | org-pm-project-def-list |
 | H-m p d               | org-pm-list-duplicate-project-defs     |
 | C-u H-m p d           | pm/edit-duplicate-project-def          |
 |-----------------------+----------------------------------------|
@@ -1518,13 +1532,42 @@ Note that edits may cause conflicts when updating org-pm from git.
     (interactive)
     (find-file org-pm-project-template-file-name))
 #+END_SRC
+** org-pm-source-file-menu
 
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-source-file-menu ()
+      "Select and open a file from the list of files containing sections
+    that are exported by org-pm."
+      (interactive)
+      (let* ((paths (-map 'car org-pm-section-exports))
+             (index (grizzl-make-index paths))
+             (answer (grizzl-completing-read "Select a file: " index)))
+        (find-file answer)))
+#+END_SRC
 
-** DONE org-pm-list-project-defs
+** org-pm-target-file-menu
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-target-file-menu ()
+    "Select and open a file from the list of files containing sections
+    that are exported by org-pm."
+    (interactive)
+    (let* ((paths)
+           (index)
+           (answer))
+      (dolist (file org-pm-section-exports)
+        (dolist (section (cdr file))
+         (dolist (pair (cddr section)) (if (car pair) (add-to-list 'paths (car pair))))))
+      (setq index (grizzl-make-index paths))
+      (setq answer (grizzl-completing-read "Select a file: " index))
+      (find-file answer)))
+#+END_SRC
+
+** DONE org-pm-project-def-list
 CLOSED: [2013-12-22 Sun 14:30]
 
 #+BEGIN_SRC emacs-lisp
-  (defun org-pm-list-project-defs ()
+  (defun org-pm-project-def-list ()
     "Build list of projects with links to file and node containing the project definition,
   in a separate org-mode buffer, and provide links to both file and section.
   Also list duplicate project definitions,
@@ -1579,12 +1622,12 @@ CLOSED: [2013-12-22 Sun 14:30]
 #+END_SRC
 
 #+RESULTS:
-: org-pm-list-project-defs
+: org-pm-project-def-list
 
 *** DONE org-pm-search-link
 CLOSED: [2013-12-22 Sun 18:45]
 
-Currently, links to IDs that are not in org-link-locations are not found by org-mode.  =org-pm-search-link= finds such links by going to the file and then searching for the property with the id of the link.  It is used in org-pm-list-project-defs to enable jumping to links of duplicate project defs.  It can also be used for the same purpose in lists of components.
+Currently, links to IDs that are not in org-link-locations are not found by org-mode.  =org-pm-search-link= finds such links by going to the file and then searching for the property with the id of the link.  It is used in org-pm-project-def-list to enable jumping to links of duplicate project defs.  It can also be used for the same purpose in lists of components.
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-search-link (link)
