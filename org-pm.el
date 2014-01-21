@@ -368,14 +368,14 @@ Add selected project as tag to current section."
 
 (defun org-pm-export (&optional publish-after-export)
   "Top-level function for exporting file and sections to projects.
-  Copy both file and any sections specified by properties, tags
-  to the designated projects and folders.
-  Before copying, re-scan buffer to build list of targets for copying.
-  Add list of sections (point location and id) and target file paths to
-  org-pm-section-exports, and save it to disk.
-
-  If called with C-u prefix, then select and publish a project after exporting.
-  If called with C-u C-u prefix, then publish all projects of this file after exporting."
+Copy both file and any sections specified by properties, tags
+to the designated projects and folders.
+Before copying, re-scan buffer to build list of targets for copying.
+Add list of sections (point location and id) and target file paths to
+rg-pm-section-exports, and save it to disk.
+If called with C-u prefix, then select and publish a project after exporting.
+If called with C-u C-u prefix, then publish all projects of this file after
+exporting."
   (interactive "P")
   (save-buffer)
   (org-pm-export-sections-to-projects)
@@ -385,7 +385,7 @@ Add selected project as tag to current section."
 
 (defun org-pm-export-sections-to-projects (&optional sections-with-paths)
   "Copy sections of this file to paths specified by tags.
-   List sections-with-paths is constructed by org-pm-get-section-project-paths."
+List sections-with-paths is constructed by org-pm-get-section-project-paths."
   (interactive)
   (save-excursion
     (save-restriction
@@ -400,30 +400,34 @@ Add selected project as tag to current section."
               (assoc-replace org-pm-section-exports filename sections-with-paths)))
       (org-pm-save-project-data))))
 
-;; TODO: strip date postfix from heading if present
-;; TODO: remove project-export-related tags
-;; TODO: use org-pm-publish-buffer-to. Thereby obviate org-publish step.
-;; Do this only for projects with property export-to-jeckyll t.
 (defun org-pm-export-1-section-to-projects (section-with-paths origin-buffer)
   "Copy section to temporary buffer, then save it to all
    paths in the rest of section-with-paths."
   (set-buffer origin-buffer)
   (goto-char (car section-with-paths))
-  (org-copy-subtree)
-  (let ((section-plist (cadr (org-element-at-point))))
+  (let ((section-plist (cadr (org-element-at-point)))
+        (target-buffer (org-pm-make-section-buffer)))
     (dolist (path-project (cddr section-with-paths))
-      (let ((target-buffer (get-buffer-create "*org-pm-copy-buf*")))
-        (set-buffer target-buffer)
-        (org-pm-make-yaml-front-matter
-         (cdr (assoc (cdr path-project) org-publish-project-alist))
-         section-plist)
-        (org-paste-subtree 1) ;; leaves point at top of tree! GOOD!
-        ;; TODO: remove date postfix from header if present.
-        ;; TODO: remove project-export-related tags.
-        ;; (org-set-tags-to nil) ;; only for jeckyll style export
-        (org-pm-export-buffer-to-file path-project)
-        (kill-buffer target-buffer)))
+      (when (car path-project)
+        (let ((project (assoc (cdr path-project) org-publish-project-alist))
+              (plist (cdr project)))
+          (if (plist-get plist :publish-to-jekyll))
+          (org-pm-make-yaml-front-matter plist section-plist)
+          (org-pm-export-buffer-to-html
+          target-buffer (cdr project) (car path-project)))))
     (message "exported section: %s" section-with-paths)))
+
+(defun org-pm-make-section-buffer ()
+  (org-copy-subtree)
+  (with-current-buffer (get-buffer-create "*org-pm-copy-buf*")
+    (erase-buffer)
+    (org-mode)
+    (org-paste-subtree 1)
+    ;; TODO:
+    ;; (later: optionally remove title?)
+    ;; strip trailing date from header
+    ;; remove tags that indicate projects
+    (current-buffer)))
 
 (defun org-pm-export-buffer-to-file (path-project)
   "path-project has the form (path . project-name).
@@ -451,6 +455,36 @@ Add selected project as tag to current section."
           (t
            (add-to-list '*org-pm-missing-projects* project-name)
            nil))))
+
+(defun org-html-provide-relative-path (string backend info)
+  "Provide relative path for link."
+  (when (org-export-derived-backend-p backend 'html)
+    (let ((base-dir (plist-get info :base-directory))
+          (input-file (plist-get info :input-file)))
+      (when (and base-dir input-file)
+        (replace-regexp-in-string
+         "{{.}}"
+         (org-make-relpath-string
+          (plist-get info :base-directory)
+          ;; distance of input file from base-directory = relative path!
+          (plist-get info ':input-file))
+         string)))))
+
+  ;;; Add relative path filter to export final output functions
+(add-to-list 'org-export-filter-final-output-functions
+             'org-html-provide-relative-path)
+
+(defun org-make-relpath-string (base-path file-path)
+  "create a relative path for reaching base-path from file-path ('./../..' etc)"
+  (let (
+        (path ".")
+        (depth (-
+                (length (split-string (file-name-directory file-path) "/"))
+                (length (split-string base-path "/")))))
+    (dotimes (number
+              (- depth 1)
+              path)
+      (setq path (concat path "/..")))))
 
 (defun org-pm-get-section-project-paths ()
   "Build list of projects-folders-files to export sections of this buffer to.
@@ -593,74 +627,96 @@ Becomes:
       (setq filename (concat (substring date 1 11) "-" filename)))
     filename))
 
-(defun org-pm-make-yaml-front-matter (project-plist section-plist)
-  "Make YAML front matter for Jekyll or Octopress.
+(defun org-pm-export (&optional publish-after-export)
+  "Top-level function for exporting file and sections to projects.
+Copy both file and any sections specified by properties, tags
+to the designated projects and folders.
+Before copying, re-scan buffer to build list of targets for copying.
+Add list of sections (point location and id) and target file paths to
+rg-pm-section-exports, and save it to disk.
+If called with C-u prefix, then select and publish a project after exporting.
+If called with C-u C-u prefix, then publish all projects of this file after
+exporting."
+  (interactive "P")
+  (save-buffer)
+  (org-pm-export-sections-to-projects)
+  (cond
+   ((equal publish-after-export '(4)) (org-pm-publish nil))
+   ((equal publish-after-export '(16)) (org-pm-publish '(4)))))
 
-If the value of property body-only in the project-plist is t, then add YAML
-front matter at the beginning of the file when exporting.  This causes the file
-to be processed by Jekyll or Octopress.
+(defun org-pm-export-sections-to-projects (&optional sections-with-paths)
+  "Copy sections of this file to paths specified by tags.
+List sections-with-paths is constructed by org-pm-get-section-project-paths."
+  (interactive)
+  (save-excursion
+    (save-restriction
+      (widen)
+      (setq sections-with-paths
+        (or sections-with-paths (org-pm-get-section-project-paths)))
+      (let* ((buffer (current-buffer))
+            (filename (buffer-file-name buffer)))
+        (dolist (section sections-with-paths)
+          (org-pm-export-1-section-to-projects section buffer))
+        (setq org-pm-section-exports
+              (assoc-replace org-pm-section-exports filename sections-with-paths)))
+      (org-pm-save-project-data))))
 
-The following items are provided, depending on the values of corresponding properties
-from global emacs variables, the project's p-list or the section's properties,
-or the section's tags:
+(defun org-pm-export-1-section-to-projects (section-with-paths origin-buffer)
+  "Copy section to temporary buffer, then save it to all
+   paths in the rest of section-with-paths."
+  (set-buffer origin-buffer)
+  (goto-char (car section-with-paths))
+  (let ((section-plist (cadr (org-element-at-point)))
+        (target-buffer (org-pm-make-section-buffer)))
+    (dolist (path-project (cddr section-with-paths))
+      (when (car path-project)
+        (let* ((project (assoc (cdr path-project) org-publish-project-alist))
+              (plist (cdr project))
+              (path (car path-project)))
 
-- author :: value of property AUTHOR or emacs/orgmode variable author
-- categories :: value of property CATEGORIES
-- commments :: value of property COMMENTS
-- date :: value of property DATE or current date and time
-- external-url :: value of property EXTERNAL-URL
-- layout :: value of property LAYOUT, if available.  Else:
-            'default' if no DATE property is set, 'blog' if DATE property is set.
-- permalink :: value of property PERMALINK
-- published :: value of property PUBLISHED
-- tags :: tags of section or values of property TAGS
-- title :: from header of section.
-- sharing :: from property SHARING
-- footer :: from property FOOTER
-"
-  (when (plist-get project-plist :body-only)
-    (insert "---\n")
-    (let*
-        ((time-format-string  "%Y-%m-%d %T %z")
-         (title (plist-get section-plist :raw-value))
-         (tags (org-pm-get-non-project-tags section-plist))
-         (author (plist-get section-plist :AUTHOR))
-         (categories (plist-get section-plist :CATEGORIES))
-         (comments (plist-get section-plist :COMMENTS))
-         (date (plist-get section-plist :DATE))
-         (external-url (plist-get section-plist :EXTERNAL-URL))
-         (layout (plist-get section-plist :LAYOUT))
-         (permalink (plist-get section-plist :PERMALINK))
-         (published (plist-get section-plist :PUBLISHED))
-         (sharing (plist-get section-plist :SHARING))
-         (footer (plist-get section-plist :FOOTER)))
-      (unless layout (setq layout (if date "blog" "default")))
-      (if date
-          (setq date (format-time-string
-                      time-format-string
-                      (org-time-string-to-time date)))
-        (setq date (format-time-string time-format-string)))
-      (unless author (setq author (user-full-name)))
-      (insert (format "title: %s\n" title))
-      (insert (format "layout: %s\n" layout))
-      (insert (format "author: %s\n" author))
-      (insert (format-time-string
-               "date: %Y-%m-%d %T %z\n"
-               (if date (org-time-string-to-time date))))
-      (if external-url (insert (format "external-url: %s\n" external-url)))
-      (if permalink (insert (format "permalink: %s\n" permalink)))
-      (if published (insert (format "published: %s\n" published)))
-      (if comments (insert (format "comments: %s\n" comments)))
-      (if sharing (insert (format "sharing: %s\n" sharing)))
-      (if footer (insert (format "footer: %s\n" footer)))
-      (when categories
-        (insert "categories:\n")
-        (dolist (category (split-string categories ", "))
-          (insert (format "- %s\n" category))))
-      (when tags
-        (insert "tags:\n")
-        (dolist (tag tags) (insert (format "- %s\n" tag)))))
-    (insert "---\n")))
+          (org-pm-export-buffer-to-html
+           target-buffer path
+           (org-pm-make-yaml-front-matter plist section-plist)))))
+    (message "exported section: %s" section-with-paths)))
+
+(defun org-pm-make-section-buffer ()
+  (org-copy-subtree)
+  (with-current-buffer (get-buffer-create "*org-pm-copy-buf*")
+    (erase-buffer)
+    (org-mode)
+    (org-paste-subtree 1)
+    ;; TODO:
+    ;; (later: optionally remove title?)
+    ;; strip trailing date from header
+    ;; remove tags that indicate projects
+    (current-buffer)))
+
+(defun org-pm-export-buffer-to-file (path-project)
+  "path-project has the form (path . project-name).
+   If path is not nil, save current buffer to path."
+  (let ((path (car path-project)))
+    (when path
+      (make-directory (file-name-directory path) t)
+      (write-region nil nil path))))
+
+(defun org-pm-save-buffer (specs buffer)
+  "Save current buffer "
+  (let ((target-path (org-pm-make-target specs)))
+    (make-directory (file-name-directory target-path) t)
+    (write-region nil nil target-path)))
+
+(defun org-pm-make-target (specs)
+  (let* ((project-name (car specs))
+         (folder (cadr specs))
+         (slash (if (string-match "/$" folder) "" "/"))
+         (project (assoc project-name org-publish-project-alist)))
+    (cond (project
+           (add-to-list '*org-pm-updated-projects* project-name)
+           (concat (plist-get (cdr project) :base-directory)
+                   folder slash (caddr specs)))
+          (t
+           (add-to-list '*org-pm-missing-projects* project-name)
+           nil))))
 
 (defun org-pm-get-non-project-tags (section-plist)
   "Get those tags which are not enclosed in dash (=-=).

@@ -1,5 +1,6 @@
 * PROJECTNAME
 ** body-only t
+** publish-to-jekyll t
 ** base-directory "BASEDIRECTORY"
 ** base-extension "org"
 ** recursive t

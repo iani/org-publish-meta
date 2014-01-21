@@ -628,23 +628,129 @@ Remove tag naming selected project from current section (node).
 
 ** UNDERWAY org-pm-export
 
-TODO: strip date postfix from heading if present
-TODO: remove project-export-related tags
-TODO: use org-pm-publish-buffer-to. Thereby obviate org-publish step.
-Do this only for projects with property export-to-jeckyll t.
-See function org-pm-publish-buffer-to in next session.
+*** Notes
+STATUS: Focus on =org-pm-export-1-section-to-projects=
+
+First thing to do:
+
+Decide which category this section belongs to:
+
+1. non-html (css, scss, el, etc.):  If project alist property :publishing-function is not org-html-publish-to-html, then just save the contents to file, in the path provided by the section scanning process. (Later: try to use org-publish functions for the saving?).
+2. html export (convert to html using available org-publish functions).  Use =org-pm-export-buffer-to-html=.  Details:
+   1. Copy section to buffer.
+   2. Remove extra section levels, trailing date from header etc.
+   3. Loop for all projects in tags of section, and do following:
+      1. Create string containing YAML header, using =org-pm-make-yaml-header=.
+      2. Store it in current project alist, in property =:yaml-header= which is used as info channel by org-publish functions.
+      3. Call =org-pm-export-buffer-to-html=, which will use a filter to copy the yaml header before saving.
+      4. Store an empty string in =:yaml-header=
+
+Note that both the yaml header construction and the conversion to html is done again for each project.  This is because differences in project property values may require differt renderings.
+
+**** non-html export
+
+Copy the contents of the section to the buffer, but leave out the heading.  To get the contents, use this:
+
+: (plist-get section-plist :contents-begin) ;; beginning of contents
+; (plist-get section-plist :contents-end) ;; end of contents
+
+Note: P
+
+See for example section-plist of the present section here:
+
+#+BEGIN_SRC elisp
+  (save-excursion
+    (org-back-to-heading)
+    (cadr (org-element-at-point)))
+#+END_SRC
+
+#+RESULTS:
+| :raw-value | non-html export | :begin | 26972 | :end | 27255 | :pre-blank | 1 | :hiddenp | nil | :contents-begin | 26994 | :contents-end | 27253 | :level | 4 | :priority | nil | :tags | nil | :todo-keyword | nil | :todo-type | nil | :post-blank | 1 | :footnote-section-p | nil | :archivedp | nil | :commentedp | nil | :quotedp | nil | :CATEGORY | org-pm | :title | non-html export |
+
+**** html export
+
+For the present, do not strip the section title, but include it in the buffer to be exported.
+
+Test formatting with section title, and if needed, rewrite to omit the section title, possibly using the =:contents-begin= and =:contents-end= markers as with non-html export.
+
+- Reduce the section level of all sections until the first section of the buffer has level 1.
+- strip date postfix from heading if present.
+- remove project-export-related tags.
+- generate YAML front matter if required.
+- use org-pm-publish-buffer-to. Thereby obviate org-publish step.
+
+***** Reducing section level to 1
+
+To reduce section level, do not use org-promote-subtree, because (a) it calls unnecessary functions related to updating display (b) it is only available in vesion for promoting 1 level at a time.
+
+Instead, use this method:
+
+- find the level of the section from the section's plist
+- compute the number of levels to reduce:
+
+: (- (plist-get section-plist :level) 1)
+
+If number of levels to reduce > 0, then first copy the section to the buffer for converting, and then run this on that buffer:
+
+Here is the formula. (One more magic regex[p]. hahaha)
+
+#+BEGIN_SRC elisp
+(re-search-forward "\n\\*\\{5\\}\\*+ " nil t)
+(replace-match (concat "\n" (substring (match-string 0) 3)))
+#+END_SRC
+
+Simpler yet:
+#+BEGIN_SRC elisp
+(re-search-forward "\n\\*+ " nil t)
+(replace-match (concat "\n" (substring (match-string 0) 2)))
+#+END_SRC
+
+
+#+RESULTS:
+: 28828
+
+Should be just after this:
+******** test!!!
+
+*****
+
+#+begin_src elisp
+(while (re-search-forward "\n\*\*\* " nil t)
+    (replace-match TO-STRING nil t))
+#+end_src
+
+#+RESULTS:
+
+#+BEGIN_SRC elisp
+(re-search-forward "h.lp")
+#+END_SRC
+
+#+RESULTS:
+: 28667
+
+(see help string of functions replace-string, replace-match, search-forward).
+
+***** strip date postfix
+
+***** remove project-export-related tags
+
+***** generate YAML front matter if needed
+
+...
+
+*** Code
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-export (&optional publish-after-export)
     "Top-level function for exporting file and sections to projects.
-    Copy both file and any sections specified by properties, tags
-    to the designated projects and folders.
-    Before copying, re-scan buffer to build list of targets for copying.
-    Add list of sections (point location and id) and target file paths to
-    org-pm-section-exports, and save it to disk.
-
-    If called with C-u prefix, then select and publish a project after exporting.
-    If called with C-u C-u prefix, then publish all projects of this file after exporting."
+  Copy both file and any sections specified by properties, tags
+  to the designated projects and folders.
+  Before copying, re-scan buffer to build list of targets for copying.
+  Add list of sections (point location and id) and target file paths to
+  rg-pm-section-exports, and save it to disk.
+  If called with C-u prefix, then select and publish a project after exporting.
+  If called with C-u C-u prefix, then publish all projects of this file after
+  exporting."
     (interactive "P")
     (save-buffer)
     (org-pm-export-sections-to-projects)
@@ -654,7 +760,7 @@ See function org-pm-publish-buffer-to in next session.
 
   (defun org-pm-export-sections-to-projects (&optional sections-with-paths)
     "Copy sections of this file to paths specified by tags.
-     List sections-with-paths is constructed by org-pm-get-section-project-paths."
+  List sections-with-paths is constructed by org-pm-get-section-project-paths."
     (interactive)
     (save-excursion
       (save-restriction
@@ -669,30 +775,17 @@ See function org-pm-publish-buffer-to in next session.
                 (assoc-replace org-pm-section-exports filename sections-with-paths)))
         (org-pm-save-project-data))))
 
-  ;; TODO: strip date postfix from heading if present
-  ;; TODO: remove project-export-related tags
-  ;; TODO: use org-pm-publish-buffer-to. Thereby obviate org-publish step.
-  ;; Do this only for projects with property export-to-jeckyll t.
-  (defun org-pm-export-1-section-to-projects (section-with-paths origin-buffer)
-    "Copy section to temporary buffer, then save it to all
-     paths in the rest of section-with-paths."
-    (set-buffer origin-buffer)
-    (goto-char (car section-with-paths))
+  (defun org-pm-make-section-buffer ()
     (org-copy-subtree)
-    (let ((section-plist (cadr (org-element-at-point))))
-      (dolist (path-project (cddr section-with-paths))
-        (let ((target-buffer (get-buffer-create "*org-pm-copy-buf*")))
-          (set-buffer target-buffer)
-          (org-pm-make-yaml-front-matter
-           (cdr (assoc (cdr path-project) org-publish-project-alist))
-           section-plist)
-          (org-paste-subtree 1) ;; leaves point at top of tree! GOOD!
-          ;; TODO: remove date postfix from header if present.
-          ;; TODO: remove project-export-related tags.
-          ;; (org-set-tags-to nil) ;; only for jeckyll style export
-          (org-pm-export-buffer-to-file path-project)
-          (kill-buffer target-buffer)))
-      (message "exported section: %s" section-with-paths)))
+    (with-current-buffer (get-buffer-create "*org-pm-copy-buf*")
+      (erase-buffer)
+      (org-mode)
+      (org-paste-subtree 1)
+      ;; TODO:
+      ;; (later: optionally remove title?)
+      ;; strip trailing date from header
+      ;; remove tags that indicate projects
+      (current-buffer)))
 
   (defun org-pm-export-buffer-to-file (path-project)
     "path-project has the form (path . project-name).
@@ -722,9 +815,12 @@ See function org-pm-publish-buffer-to in next session.
              nil))))
 #+END_SRC
 
-*** TODO org-pm-publish-buffer-to
+#+RESULTS:
+: 28687
 
-Test case for =org-pm-publish-buffer-to=.  Shows that it works if we initialize cache.
+*** TODO org-pm-publish-buffer-to-html
+
+Test case for =org-pm-publish-buffer-to-html=.  Shows that it works if we initialize cache.
 
 #+BEGIN_SRC
 (let* ((project (assoc "octopress_pm_test"  org-publish-project-alist))
@@ -732,26 +828,78 @@ Test case for =org-pm-publish-buffer-to=.  Shows that it works if we initialize 
        (plist (cdr project))
       (root (plist-get plist :publishing-directory))
       (path (concat root "/test.html")))
-   (org-publish-initialize-cache pname)
-  (org-pm-publish-buffer-to (get-buffer "test") path plist)
+ ;;  (org-publish-initialize-cache pname)
+  (org-pm-publish-buffer-to-html (get-buffer "test") path plist)
   )
 #+END_SRC
 
-**** QUOTE Version to use: Remove cache-requiring filters
+**** Define Filter for adding yaml front matter
+
+When headlines are present in an org buffer, org-export-as encloses the entire body in divs.  So the only way is to add the YAML header *AFTER* org-export-as has finished the conversion.  Use the publish filter mechanism provided for this by orgmode.  The next section here contains a working example from dynsite. Adapt this example to insert a header instead of doing replace-regexp-in-string.
+
+***** Providing relative paths to root of published project
+
+This makes sure that when a file is copied to a subfolder of the publishing directory, the paths pointing to includes such as css, images, etc. will be converted to show to the root of the project, so that links work.  Such links must be marked using the string ={{.}}= to denote the relative root to the published project, that is, the =publishing-directory=.
+
+****** Original example.
+#+BEGIN_SRC emacs-lisp
+  (defun org-html-provide-relative-path (string backend info)
+    "Provide relative path for link."
+    (when (org-export-derived-backend-p backend 'html)
+      (let ((base-dir (plist-get info :base-directory))
+            (input-file (plist-get info :input-file)))
+        (when (and base-dir input-file)
+          (replace-regexp-in-string
+           "{{.}}"
+           (org-make-relpath-string
+            (plist-get info :base-directory)
+            ;; distance of input file from base-directory = relative path!
+            (plist-get info ':input-file))
+           string)))))
+
+    ;;; Add relative path filter to export final output functions
+  (add-to-list 'org-export-filter-final-output-functions
+               'org-html-provide-relative-path)
+
+  (defun org-make-relpath-string (base-path file-path)
+    "create a relative path for reaching base-path from file-path ('./../..' etc)"
+    (let (
+          (path ".")
+          (depth (-
+                  (length (split-string (file-name-directory file-path) "/"))
+                  (length (split-string base-path "/")))))
+      (dotimes (number
+                (- depth 1)
+                path)
+        (setq path (concat path "/..")))))
+
+#+END_SRC
+
+#+RESULTS:
+: org-make-relpath-string
+
+******* QUOTE Version to use: Remove cache-requiring filters
+
+UPDATE: The YAML stuff must be done in a filter.  This is the only way.
+See preparation in section above.
 
 Transfer the YAML stuff from the version in the next section to the present version.
 
 Test case without cache-initialization:
 
 #+BEGIN_SRC elisp
-(let* ((project (assoc "octopress_pm_test"  org-publish-project-alist))
-       (pname (car project))
-       (plist (cdr project))
-      (root (plist-get plist :publishing-directory))
-      (path (concat root "/test.html")))
-;;   (org-publish-initialize-cache pname)
-  (org-pm-publish-buffer-to (get-buffer "test") path plist)
-  )
+  (let* ((project (assoc "octopress_pm_test"  org-publish-project-alist))
+         (pname (car project))
+         (plist (cdr project))
+        (root (plist-get plist :publishing-directory))
+        (path (concat root "/test.html")))
+  ;;   (org-publish-initialize-cache pname)
+    (with-current-buffer (get-buffer "test")
+      (let ((section-plist (cadr (org-element-at-point))))
+        ;;  (org-pm-make-yaml-front-matter plist section-plist)
+        (org-pm-publish-buffer-to (current-buffer) path project)
+        )))
+
 #+END_SRC
 
 #+RESULTS:
@@ -760,44 +908,34 @@ Test case without cache-initialization:
 This works with the version below:
 
 #+BEGIN_SRC elisp
-  (defun org-pm-publish-buffer-to (buffer path project section-plist)
+  (defun org-pm-publish-buffer-to-html (buffer path plist)
     "Publish an Org-mode buffer to html.
+  Adapted from org-publish-org-to.
 
   BUFFER is the buffer to publish.
   PATH is the target filename of publish the buffer to.
-  PROJECT is the name+property list for the given project.
-  Optional argument PUB-DIR, when non-nil is the publishing
-  directory."
-    ;; Check if a buffer visiting FILENAME is already open.
-    (let* ((pname (car project))
-           (plist (cdr project))
-           (org-inhibit-startup t)
+  PLIST is the property list for the given project."
+
+    (let* ((org-inhibit-startup t)
            (pub-dir (file-name-directory path))
-           (body-p (plist-get plist :body-only))
-           (work-buffer buffer)
-           get-rid-of-buffer-when-done)
-      (when (plist-get plist :export-to-jekyll)
-        ;; if this is for jekyll, then make yaml header.
-        ;; do this in a separate buffer, leaving the original untouched.
-          (setq get-rid-of-buffer-when-done t)
-          (setq work-buffer (get-buffer "*org-pm-publish-buffer*"))
-          (with-current-buffer work-buffer
-            (org-pm-make-yaml-front-matter plist section-plist)
-            (insert-buffer buffer)))
+           (body-p (plist-get plist :body-only)))
+      ;; DISABLING THIS: DEBUGGING!
       (unless (file-exists-p pub-dir) (make-directory pub-dir t))
-      (prog1 (with-current-buffer work-buffer
-               (let ((output-file path))
-                 (org-export-to-file 'html output-file
-                   nil nil nil body-p plist)))
-        ;; Remove working-buffer if it is private to this function
-        (if get-rid-of-buffer-when-done (kill-buffer work-buffer)))))
+      (if t (with-current-buffer work-buffer
+         (let ((output-file path))
+           (org-export-to-file 'html output-file
+             nil nil nil body-p plist))))
+      ;; Remove working-buffer if it is private to this function
+      ;; (if get-rid-of-buffer-when-done (kill-buffer work-buffer))
+      (message "work buffer:  %s" work-buffer)
+      ))
 
 #+END_SRC
 
 #+RESULTS:
 : org-pm-publish-buffer-to
 
-**** With Yaml: Transfer this to above
+******* With Yaml: Transfer this to above
 
 #+BEGIN_SRC elisp
   ;;; TODO: Adapt this to work with buffer instead of file
@@ -864,9 +1002,24 @@ This works with the version below:
       (when must-kill-buffer (kill-buffer work-buffer))))
 #+END_SRC
 
-*** Get list of file components to be copied to projects
+****** YAML filter
 
-**** org-pm-get-section-project-paths
+#+BEGIN_SRC elisp
+  (defun org-pm-add-yaml-front-matter (string backend info)
+    "Add yaml front matter header to export string before writing file."
+    (when (org-export-derived-backend-p backend 'html)
+      (let ((yaml (plist-get info :yaml-front-matter))
+            (if yaml (concat yaml string) string)))))
+
+  ;;; Add yaml front matter for jekyll / octopress files
+  (add-to-list 'org-export-filter-final-output-functions
+               'org-pm-add-yaml-front-matter)
+#+END_SRC
+
+
+**** Get list of file components to be copied to projects
+
+***** org-pm-get-section-project-paths
 
 Get all sections marked with tags that are enclosed in underscore (=_=).  Parse each value and return a list of lists:
 ((section-position (project folder file) (project folder file) ...)
@@ -914,7 +1067,7 @@ Get all sections marked with tags that are enclosed in underscore (=_=).  Parse 
 
 #+END_SRC
 
-*** org-pm-get-section-projects
+**** org-pm-get-section-projects
 
 #+BEGIN_SRC emacs-lisp
 
@@ -927,7 +1080,7 @@ Get all sections marked with tags that are enclosed in underscore (=_=).  Parse 
                     (plist-get (cadr (org-element-at-point)) :tags)))))
 #+END_SRC
 
-*** DONE Construct path of a target file to copy file or section to
+**** DONE Construct path of a target file to copy file or section to
 
 Three functions are defined here:
 
@@ -935,14 +1088,14 @@ Three functions are defined here:
 2. =org-pm-make-target-path= constructs the final path, based on the list containing the project, folder and file, which is produced by =org-pm-parse-component=.
 3. =org-pm-make-filename= convert heading of section to filename:  Strip non-alphanumeric characters, replace spaces by dashes, remove trailing timestamp, add blog (Jeckyll etc.) compatible date prefix if DATE property is given.
 
-**** org-pm-parse-component
+***** org-pm-parse-component
 Called by:
 - org-pm-get-file-components
 - org-pm-get-section-components
 
 Process data obtained from property or tag, and create list of form: (project folder filename). This is then processed by org-pm-make-target-path to make the path used to copy the file.
 
-**** org-pm-make-target-path
+***** org-pm-make-target-path
 
 Called by
 - org-pm-copy-file-components
@@ -950,11 +1103,11 @@ Called by
 
 Construct path for copying a file or section to, from list (project folder file) received from org-pm-parse-component. This funcion returns a cons pair: (path . path-or-project).  =path= is used for copying.  =path-or-project= for display/menus. If project def not found, path is nil and path-or-project is '<project-name> (not found)'
 
-**** org-pm-make-filename
+***** org-pm-make-filename
 
 Called by org-get-section-components.  Converts the title of a section to a filename by replacing non-alphanumeric characters with dashes (=-=).  Also removes trailing timestamp from title.
 
-**** Code
+***** Code
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-parse-tag (tag &optional filename date)
@@ -1056,7 +1209,7 @@ Called by org-get-section-components.  Converts the title of a section to a file
 
 
 
-*** Create Jekyll/Octopress Headers ("YAML Front Matter")
+**** Create Jekyll/Octopress Headers ("YAML Front Matter")
 
 If the value of property =body-only= in the project-plist is =t=, then org-pm adds YAML front matter at the beginning of the file when exporting.  This makes the file to be processed by Jekyll or Octopress.  The following items are provided, if their values are set:
 
@@ -1071,7 +1224,7 @@ If the value of property =body-only= in the project-plist is =t=, then org-pm ad
 - tags :: tags of section or values of property TAGS
 - title :: from title property of file or header of section
 
-**** About Yaml front matter
+***** About Yaml front matter
 
 YAML front matter for jekyll or octopress is a header to be added at the beginning of the file, consisting of keyword-value pairs.  The header is demarcated by writing it between 3 dashes.  Example:
 
@@ -1088,7 +1241,7 @@ categories:
 ---
 #+END_SRC
 
-**** Doc of YAML front matter items
+***** Doc of YAML front matter items
 
 In http://jekyllrb.com/docs/frontmatter/ the following items are given for yaml front matter:
 
@@ -1107,7 +1260,7 @@ Examples in http://octopress.org/docs/blogging/ include additional items:
 - author
 - published
 
-**** List of YAML front matter items
+***** List of YAML front matter items
 
 Following is list of front matter items collected from  http://jekyllrb.com/docs/frontmatter/ and  http://octopress.org/docs/blogging/ (More to be added if found later).
 
@@ -1122,7 +1275,7 @@ Following is list of front matter items collected from  http://jekyllrb.com/docs
 - tags
 - title
 
-**** Header examples from octopress
+***** Header examples from octopress
 
 #+BEGIN_SRC
 ---
@@ -1151,12 +1304,21 @@ categories:
 ---
 #+END_SRC
 
-
 **** org-pm-make-yaml-front-matter
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-make-yaml-front-matter (project-plist section-plist)
     "Make YAML front matter for Jekyll or Octopress.
+  Add string containing the yaml-header as property :yaml-header to project-plist.
+  Return the modified project-plist, to be used by org-pm-publish-buffer-to-html.
+
+  This is then used by org-pm-add-yaml-front-matter, which is a filter added to
+  'org-export-filter-final-output-functions and called by the final publishing function.
+
+
+
+  If :body-only is nil, then the yaml-header string is the empty string.
+
 
   If the value of property body-only in the project-plist is t, then add YAML
   front matter at the beginning of the file when exporting.  This causes the file
@@ -1223,6 +1385,104 @@ categories:
           (insert "tags:\n")
           (dolist (tag tags) (insert (format "- %s\n" tag)))))
       (insert "---\n#+END_HTML\n")))
+#+END_SRC
+**** org-pm-export
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-export (&optional publish-after-export)
+    "Top-level function for exporting file and sections to projects.
+  Copy both file and any sections specified by properties, tags
+  to the designated projects and folders.
+  Before copying, re-scan buffer to build list of targets for copying.
+  Add list of sections (point location and id) and target file paths to
+  rg-pm-section-exports, and save it to disk.
+  If called with C-u prefix, then select and publish a project after exporting.
+  If called with C-u C-u prefix, then publish all projects of this file after
+  exporting."
+    (interactive "P")
+    (save-buffer)
+    (org-pm-export-sections-to-projects)
+    (cond
+     ((equal publish-after-export '(4)) (org-pm-publish nil))
+     ((equal publish-after-export '(16)) (org-pm-publish '(4)))))
+
+  (defun org-pm-export-sections-to-projects (&optional sections-with-paths)
+    "Copy sections of this file to paths specified by tags.
+  List sections-with-paths is constructed by org-pm-get-section-project-paths."
+    (interactive)
+    (save-excursion
+      (save-restriction
+        (widen)
+        (setq sections-with-paths
+          (or sections-with-paths (org-pm-get-section-project-paths)))
+        (let* ((buffer (current-buffer))
+              (filename (buffer-file-name buffer)))
+          (dolist (section sections-with-paths)
+            (org-pm-export-1-section-to-projects section buffer))
+          (setq org-pm-section-exports
+                (assoc-replace org-pm-section-exports filename sections-with-paths)))
+        (org-pm-save-project-data))))
+
+  (defun org-pm-export-1-section-to-projects (section-with-paths origin-buffer)
+    "Copy section to temporary buffer, then save it to all
+     paths in the rest of section-with-paths."
+    (set-buffer origin-buffer)
+    (goto-char (car section-with-paths))
+    (let ((section-plist (cadr (org-element-at-point)))
+          (target-buffer (org-pm-make-section-buffer)))
+      (dolist (path-project (cddr section-with-paths))
+        (when (car path-project)
+          (let* ((project (assoc (cdr path-project) org-publish-project-alist))
+                (plist (cdr project))
+                (path (car path-project)))
+            (if (equal (plist-get plist :publishing-function) 'org-html-publish-to-html)
+             (org-pm-export-buffer-to-html
+              target-buffer path
+              (org-pm-make-yaml-front-matter plist section-plist))
+             (with-current-buffer target-buffer
+               (let ((dir (file-name-directory path)))
+                 (unless (file-exists-p dir) (make-directory dir t)))
+               (write-region nil nil path))))))
+      (message "exported section: %s" section-with-paths)))
+
+  (defun org-pm-make-section-buffer ()
+    (org-copy-subtree)
+    (with-current-buffer (get-buffer-create "*org-pm-copy-buf*")
+      (erase-buffer)
+      (org-mode)
+      (org-paste-subtree 1)
+      ;; TODO:
+      ;; (later: optionally remove title?)
+      ;; strip trailing date from header
+      ;; remove tags that indicate projects
+      (current-buffer)))
+
+  (defun org-pm-export-buffer-to-file (path-project)
+    "path-project has the form (path . project-name).
+     If path is not nil, save current buffer to path."
+    (let ((path (car path-project)))
+      (when path
+        (make-directory (file-name-directory path) t)
+        (write-region nil nil path))))
+
+  (defun org-pm-save-buffer (specs buffer)
+    "Save current buffer "
+    (let ((target-path (org-pm-make-target specs)))
+      (make-directory (file-name-directory target-path) t)
+      (write-region nil nil target-path)))
+
+  (defun org-pm-make-target (specs)
+    (let* ((project-name (car specs))
+           (folder (cadr specs))
+           (slash (if (string-match "/$" folder) "" "/"))
+           (project (assoc project-name org-publish-project-alist)))
+      (cond (project
+             (add-to-list '*org-pm-updated-projects* project-name)
+             (concat (plist-get (cdr project) :base-directory)
+                     folder slash (caddr specs)))
+            (t
+             (add-to-list '*org-pm-missing-projects* project-name)
+             nil))))
 #+END_SRC
 
 ***** org-pm-get-non-project-tags
