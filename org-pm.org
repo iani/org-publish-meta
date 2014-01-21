@@ -1309,20 +1309,15 @@ categories:
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-make-yaml-front-matter (project-plist section-plist)
     "Make YAML front matter for Jekyll or Octopress.
-  Add string containing the yaml-header as property :yaml-header to project-plist.
-  Return the modified project-plist, to be used by org-pm-publish-buffer-to-html.
-
-  This is then used by org-pm-add-yaml-front-matter, which is a filter added to
-  'org-export-filter-final-output-functions and called by the final publishing function.
-
-
-
-  If :body-only is nil, then the yaml-header string is the empty string.
-
 
   If the value of property body-only in the project-plist is t, then add YAML
   front matter at the beginning of the file when exporting.  This causes the file
   to be processed by Jekyll or Octopress.
+
+  Add string containing the yaml-header as property :yaml-header to project-plist.
+  Return the modified project-plist, to be used by org-pm-publish-buffer-to-html.
+  This is then used by org-pm-add-yaml-front-matter, which is a filter added to
+  'org-export-filter-final-output-functions and called by the final publishing function.
 
   The following items are provided, depending on the values of corresponding properties
   from global emacs variables, the project's p-list or the section's properties,
@@ -1341,50 +1336,58 @@ categories:
   - title :: from header of section.
   - sharing :: from property SHARING
   - footer :: from property FOOTER
-  "
-    (when (plist-get project-plist :body-only)
-      (insert "#+BEGIN_HTML\n---\n")
-      (let*
-          ((time-format-string  "%Y-%m-%d %T %z")
-           (title (plist-get section-plist :raw-value))
-           (tags (org-pm-get-non-project-tags section-plist))
-           (author (plist-get section-plist :AUTHOR))
-           (categories (plist-get section-plist :CATEGORIES))
-           (comments (plist-get section-plist :COMMENTS))
-           (date (plist-get section-plist :DATE))
-           (external-url (plist-get section-plist :EXTERNAL-URL))
-           (layout (plist-get section-plist :LAYOUT))
-           (permalink (plist-get section-plist :PERMALINK))
-           (published (plist-get section-plist :PUBLISHED))
-           (sharing (plist-get section-plist :SHARING))
-           (footer (plist-get section-plist :FOOTER)))
-        (unless layout (setq layout (if date "blog" "default")))
-        (if date
-            (setq date (format-time-string
-                        time-format-string
-                        (org-time-string-to-time date)))
-          (setq date (format-time-string time-format-string)))
-        (unless author (setq author (user-full-name)))
-        (insert (format "title: %s\n" title))
-        (insert (format "layout: %s\n" layout))
-        (insert (format "author: %s\n" author))
-        (insert (format-time-string
-                 "date: %Y-%m-%d %T %z\n"
-                 (if date (org-time-string-to-time date))))
-        (if external-url (insert (format "external-url: %s\n" external-url)))
-        (if permalink (insert (format "permalink: %s\n" permalink)))
-        (if published (insert (format "published: %s\n" published)))
-        (if comments (insert (format "comments: %s\n" comments)))
-        (if sharing (insert (format "sharing: %s\n" sharing)))
-        (if footer (insert (format "footer: %s\n" footer)))
-        (when categories
-          (insert "categories:\n")
-          (dolist (category (split-string categories ", "))
-            (insert (format "- %s\n" category))))
-        (when tags
-          (insert "tags:\n")
-          (dolist (tag tags) (insert (format "- %s\n" tag)))))
-      (insert "---\n#+END_HTML\n")))
+
+  If :body-only is nil, then the yaml-header string is the empty string."
+    (let (yaml-header)
+      (if (plist-get project-plist :body-only)
+          (let*
+              ((buffer (get-buffer-create "*yaml-header*"))
+               (time-format-string  "%Y-%m-%d %T %z")
+               (title (plist-get section-plist :raw-value))
+               (tags (org-pm-get-non-project-tags section-plist))
+               (author (plist-get section-plist :AUTHOR))
+               (categories (plist-get section-plist :CATEGORIES))
+               (comments (plist-get section-plist :COMMENTS))
+               (date (plist-get section-plist :DATE))
+               (external-url (plist-get section-plist :EXTERNAL-URL))
+               (layout (plist-get section-plist :LAYOUT))
+               (permalink (plist-get section-plist :PERMALINK))
+               (published (plist-get section-plist :PUBLISHED))
+               (sharing (plist-get section-plist :SHARING))
+               (footer (plist-get section-plist :FOOTER)))
+            (unless layout (setq layout (if date "blog" "default")))
+            (if date
+                (setq date (format-time-string
+                            time-format-string
+                            (org-time-string-to-time date)))
+              (setq date (format-time-string time-format-string)))
+            (unless author (setq author (user-full-name)))
+            (with-current-buffer buffer
+              (insert (format "title: %s\n" title))
+              (insert (format "layout: %s\n" layout))
+              (insert (format "author: %s\n" author))
+              (insert (format-time-string
+                       "date: %Y-%m-%d %T %z\n"
+                       (if date (org-time-string-to-time date))))
+              (if external-url (insert (format "external-url: %s\n" external-url)))
+              (if permalink (insert (format "permalink: %s\n" permalink)))
+              (if published (insert (format "published: %s\n" published)))
+              (if comments (insert (format "comments: %s\n" comments)))
+              (if sharing (insert (format "sharing: %s\n" sharing)))
+              (if footer (insert (format "footer: %s\n" footer)))
+              (when categories
+                (insert "categories:\n")
+                (dolist (category (split-string categories ", "))
+                  (insert (format "- %s\n" category))))
+              (when tags
+                (insert "tags:\n")
+                (dolist (tag tags) (insert (format "- %s\n" tag))))
+              (insert "---\n")
+              (setq yaml-header (buffer-string)))
+            (kill-buffer buffer)
+            )
+        (setq yaml-header ""))
+      (plist-put project-plist :yaml-header yaml-header)))
 #+END_SRC
 **** org-pm-export
 
