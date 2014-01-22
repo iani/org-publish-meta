@@ -1064,17 +1064,19 @@ Test case without cache-initialization:
 
 ****** YAML filter
 
-#+BEGIN_SRC elisp
+#+BEGIN_SRC emacs-lisp
   (defun org-pm-add-yaml-front-matter (string backend info)
     "Add yaml front matter header to export string before writing file."
     (when (org-export-derived-backend-p backend 'html)
-      (let ((yaml (plist-get info :yaml-front-matter))
-            (if yaml (concat yaml string) string)))))
+      (concat (or (plist-get info :yaml-header) "") string)))
 
   ;;; Add yaml front matter for jekyll / octopress files
   (add-to-list 'org-export-filter-final-output-functions
                'org-pm-add-yaml-front-matter)
 #+END_SRC
+
+#+RESULTS:
+| org-pm-add-yaml-front-matter | org-html-provide-relative-path |
 
 
 **** Get list of file components to be copied to projects
@@ -1445,6 +1447,7 @@ categories:
               (setq date (format-time-string time-format-string)))
             (setq author (or author (user-full-name)))
             (with-current-buffer buffer
+              (insert "---\n")
               (insert (format "title: %s\n" title))
               (insert (format "layout: %s\n" layout))
               (insert (format "author: %s\n" author))
@@ -1471,6 +1474,9 @@ categories:
         (setq yaml-header ""))
       (plist-put project-plist :yaml-header yaml-header)))
 #+END_SRC
+
+#+RESULTS:
+: org-pm-make-yaml-front-matter
 
 ** DONE org-pm-publish (interactive: select and publish project)
 :PROPERTIES:
