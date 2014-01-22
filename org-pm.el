@@ -58,6 +58,8 @@ org-pm-project-template-plain.org" )
   (interactive)
   (setq  *grizzl-read-max-results* 32)
   (let* ((commands '(
+                     org-pm-open-target-of-this-file
+                     org-pm-open-source-of-this-file
                      org-pm-source-file-menu
                      org-pm-target-file-menu
                      org-pm-project-def-list
@@ -77,21 +79,26 @@ org-pm-project-template-plain.org" )
                      org-pm-reset-project-list
                      org-pm-edit-saved-project-data
                      ))
+         (index 0)
          (menu (grizzl-make-index
                (-map (lambda (c)
-                       (replace-regexp-in-string
-                        "-"
-                        " "
-                        (replace-regexp-in-string
-                         "^org-pm-" "" (symbol-name c))))
+                       (format "%d: %s"
+                               (setq index (+ 1 index))
+                               (replace-regexp-in-string
+                                "-"
+                                " "
+                                (replace-regexp-in-string
+                                 "^org-pm-" "" (symbol-name c)))))
                      commands)))
         selection)
-    (message "menu index: %s" menu)
     (setq selection (grizzl-completing-read "Select command: " menu))
     (eval
      (read (concat
             "(org-pm-"
-            (replace-regexp-in-string " " "-" selection)
+            (replace-regexp-in-string
+             " " "-"
+             (replace-regexp-in-string
+              "^[0-9]+: " "" selection))
             ")")))))
 
 ;; Add org-mode hook for org-pm-key bindings.
@@ -103,6 +110,10 @@ org-pm-project-template-plain.org" )
 (let ((org-pm-key-bindings
        (lambda ()
        ;;  (define-key org-mode-map (kbd "H-m H-m") 'org-pm-menu)
+         (define-key org-mode-map (kbd "H-m s") 'org-pm-source-file-menu)
+         (define-key org-mode-map (kbd "H-m H-s") 'org-pm-open-source-of-this-file)
+         (define-key org-mode-map (kbd "H-m t") 'org-pm-target-file-menu)
+         (define-key org-mode-map (kbd "H-m H-t") 'org-pm-open-target-of-this-file)
          (define-key org-mode-map (kbd "H-m n") 'org-pm-insert-new-project)
          (define-key org-mode-map (kbd "H-m p n") 'org-pm-insert-new-project)
          (define-key org-mode-map (kbd "H-m m") 'org-pm-make-projects)
@@ -117,16 +128,14 @@ org-pm-project-template-plain.org" )
          (define-key org-mode-map (kbd "H-m p l") 'org-pm-project-def-list)
          (define-key org-mode-map (kbd "H-m p d") 'org-pm-list-duplicate-project-defs)
          (define-key org-mode-map (kbd "H-m p p") 'org-pm-post-project-def)
-         (define-key org-mode-map (kbd "H-m f") 'org-list-exported-files)
-         (define-key org-mode-map (kbd "H-m F") 'org-pm-show-target-file-list)
          (define-key org-mode-map (kbd "H-m d l") 'org-pm-load-project-data)
          (define-key org-mode-map (kbd "H-m d s") 'org-pm-save-project-data)
          (define-key org-mode-map (kbd "H-m d r") 'org-pm-reset-project-list)
          (define-key org-mode-map (kbd "H-m d c") 'org-pm-reset-project-list)
          (define-key org-mode-map (kbd "H-m d e") 'org-pm-edit-saved-project-data)
-)))
-
-(add-hook 'org-mode-hook org-pm-key-bindings))
+         )))
+  (add-hook 'org-mode-hook org-pm-key-bindings)
+  )
 
 ;; To initialize if present file is compiled after start time, run hook now.
 ;; (funcall org-pm-key-bindings)
@@ -422,7 +431,7 @@ to create YAML front matter where required."
               (plist (cdr project))
               (path (car path-project)))
           (if (equal (plist-get plist :publishing-function) 'org-html-publish-to-html)
-           (org-pm-export-buffer-to-html
+           (org-pm-publish-buffer-to-html
             target-buffer path
             (org-pm-make-yaml-front-matter plist section-plist))
            (with-current-buffer target-buffer
@@ -450,19 +459,22 @@ Passed as argument to org-pm-export-buffer-to-html."
     ;; remove tags that indicate projects
     (current-buffer)))
 
-(defun org-pm-export-buffer-to-file (path-project)
-  "path-project has the form (path . project-name).
-   If path is not nil, save current buffer to path."
-  (let ((path (car path-project)))
-    (when path
-      (make-directory (file-name-directory path) t)
-      (write-region nil nil path))))
+(defun org-pm-publish-buffer-to-html (buffer path plist)
+  "Publish an Org-mode buffer to html.
+  Adapted from org-publish-org-to.
 
-(defun org-pm-save-buffer (specs buffer)
-  "Save current buffer "
-  (let ((target-path (org-pm-make-target specs)))
-    (make-directory (file-name-directory target-path) t)
-    (write-region nil nil target-path)))
+  BUFFER is the buffer to publish.
+  PATH is the target filename of publish the buffer to.
+  PLIST is the property list for the given project."
+
+  (let* ((org-inhibit-startup t)
+         (pub-dir (file-name-directory path))
+         (body-p (plist-get plist :body-only)))
+    (unless (file-exists-p pub-dir) (make-directory pub-dir t))
+    (with-current-buffer buffer
+      (let ((output-file path))
+        (org-export-to-file 'html output-file
+          nil nil nil body-p plist)))))
 
 (defun org-pm-make-target (specs)
   (let* ((project-name (car specs))
@@ -549,6 +561,24 @@ Each element in the list has the form:
                  components))))))
   ;;  (message "COMPONENTS: \n%s" components)
    components))
+
+(defun org-pm-get-1-section-project-paths ()
+  "Get the paths for exporting the current section, based on its tags."
+ (let* ((node (cadr (org-element-at-point)))
+        (pspecs (-filter (lambda (tag) (string-match "^_.*_$" tag))
+                         (plist-get node :tags)))
+        name date paths path)
+   (when pspecs
+       (setq name (plist-get node :raw-value))
+       (setq date (plist-get node :DATE))
+       (dolist (spec pspecs)
+         (setq path (car (org-pm-make-target-path
+                      (org-pm-parse-tag
+                       spec
+                       (org-pm-make-filename name)
+                       date))))
+         (if path (setq paths (cons path paths)))))
+   paths))
 
 (defun org-pm-get-section-projects ()
   "Return list of projects found in the tags of the current section"
@@ -787,9 +817,73 @@ Note that edits may cause conflicts when updating org-pm from git."
   (interactive)
   (find-file org-pm-project-template-file-name))
 
+(defun org-pm-source-file-menu ()
+    "Select and open a file from the list of files containing sections
+  that are exported by org-pm."
+    (interactive)
+    (let* ((paths (-map 'car org-pm-section-exports))
+           (index (grizzl-make-index paths))
+           (answer (grizzl-completing-read "Select a file: " index)))
+      (find-file answer)))
 
+(defun org-pm-target-file-menu ()
+  "Select and open a file from the list of files containing sections
+  that are exported by org-pm."
+  (interactive)
+  (let* ((paths)
+         (index)
+         (answer))
+    (dolist (file org-pm-section-exports)
+      (dolist (section (cdr file))
+       (dolist (pair (cddr section)) (if (car pair) (add-to-list 'paths (car pair))))))
+    (setq index (grizzl-make-index paths))
+    (setq answer (grizzl-completing-read "Select a file: " index))
+    (find-file answer)))
 
+(defun org-pm-open-source-of-this-file ()
+  "Show the section that produced the present file:
 
+Open the file which contains the section from which the
+present buffer's file was exported, and go to that section"
+  (interactive)
+  (let (paths section-id found-p source-file
+              (this-file (buffer-file-name (current-buffer))))
+    (when this-file
+      (dolist (file-sections org-pm-section-exports)
+        (setq source-file (car file-sections))
+        (dolist (section (cdr file-sections))
+          (setq section-id (cadr section))
+          (dolist (pair (cddr section))
+            (when (and (car pair) (equal (file-truename (car pair)) this-file))
+              (setq found-p t)
+              (find-file source-file)
+              (widen)
+              (beginning-of-buffer)
+              (search-forward section-id)
+              (org-back-to-heading)
+              (recenter-top-bottom '(4))
+              (org-show-subtree))))))
+    (unless found-p (message "Could not find a source for file %s" (buffer-name)))))
+
+(defun org-pm-open-target-of-this-file ()
+  "Open a target from the list of targets of this section or
+any of its super-sections."
+  (interactive)
+  (let (paths path index)
+    (save-excursion
+      (save-restriction
+        (widen)
+        (org-back-to-heading)
+        (while (and (not (setq paths (org-pm-get-1-section-project-paths)))
+                    (org-current-level > 1))
+         (org-up-heading-safe))))
+    (cond (paths
+           (cond ((> (length paths) 1)
+                  (setq index (grizzl-make-index paths))
+                  (setq path (grizzl-completing-read "Select target: " index)))
+                 (t (setq path (car paths))))
+           (find-file path))
+          (t (message "No targets found for %s" (org-get-heading))))))
 
 (defun org-pm-project-def-list ()
   "Build list of projects with links to file and node containing the project definition,
