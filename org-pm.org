@@ -307,46 +307,31 @@ Note: I use the Hyper-m  (= Mac fn key m) as prefix, because it is not likely to
 #+BEGIN_SRC emacs-lisp
   ;; Add org-mode hook for org-pm-key bindings.
 
-  ;; Make menu globally available:
+  ;; Make all commands globally available:
   (global-set-key (kbd "H-m H-m") 'org-pm-menu)
-
-  ;; All other commands available in org-mode:
-  (let ((org-pm-key-bindings
-         (lambda ()
-         ;;  (define-key org-mode-map (kbd "H-m H-m") 'org-pm-menu)
-           (define-key org-mode-map (kbd "H-m s") 'org-pm-source-file-menu)
-           (define-key org-mode-map (kbd "H-m H-s") 'org-pm-open-source-of-this-file)
-           (define-key org-mode-map (kbd "H-m t") 'org-pm-target-file-menu)
-           (define-key org-mode-map (kbd "H-m H-t") 'org-pm-open-target-of-this-file)
-           (define-key org-mode-map (kbd "H-m n") 'org-pm-insert-new-project)
-           (define-key org-mode-map (kbd "H-m p n") 'org-pm-insert-new-project)
-           (define-key org-mode-map (kbd "H-m m") 'org-pm-make-projects)
-           (define-key org-mode-map (kbd "H-m p m") 'org-pm-make-projects)
-           (define-key org-mode-map (kbd "H-m a") 'org-pm-add-section-to-project)
-           (define-key org-mode-map (kbd "H-m r") 'org-pm-remove-section-from-project)
-           (define-key org-mode-map (kbd "H-m e") 'org-pm-export)
-           (define-key org-mode-map (kbd "H-m P") 'org-pm-publish)
-           (define-key org-mode-map (kbd "H-m p e") 'org-pm-show-project-definition-section)
-           (define-key org-mode-map (kbd "H-m p s") 'org-pm-show-project-definition-section)
-           (define-key org-mode-map (kbd "H-m p t") 'org-pm-edit-project-template)
-           (define-key org-mode-map (kbd "H-m p l") 'org-pm-project-def-list)
-           (define-key org-mode-map (kbd "H-m p d") 'org-pm-list-duplicate-project-defs)
-           (define-key org-mode-map (kbd "H-m p p") 'org-pm-post-project-def)
-           (define-key org-mode-map (kbd "H-m d l") 'org-pm-load-project-data)
-           (define-key org-mode-map (kbd "H-m d s") 'org-pm-save-project-data)
-           (define-key org-mode-map (kbd "H-m d r") 'org-pm-reset-project-list)
-           (define-key org-mode-map (kbd "H-m d c") 'org-pm-reset-project-list)
-           (define-key org-mode-map (kbd "H-m d e") 'org-pm-edit-saved-project-data)
-           )))
-    (add-hook 'org-mode-hook org-pm-key-bindings)
-    )
-
-  ;; To initialize if present file is compiled after start time, run hook now.
-  ;; (funcall org-pm-key-bindings)
-
+  (global-set-key (kbd "H-m H-s") 'org-pm-open-source-of-this-file)
+  (global-set-key (kbd "H-m t") 'org-pm-target-file-menu)
+  (global-set-key (kbd "H-m H-t") 'org-pm-open-target-of-this-file)
+  (global-set-key (kbd "H-m n") 'org-pm-insert-new-project)
+  (global-set-key (kbd "H-m p n") 'org-pm-insert-new-project)
+  (global-set-key (kbd "H-m m") 'org-pm-make-projects)
+  (global-set-key (kbd "H-m p m") 'org-pm-make-projects)
+  (global-set-key (kbd "H-m a") 'org-pm-add-section-to-project)
+  (global-set-key (kbd "H-m r") 'org-pm-remove-section-from-project)
+  (global-set-key (kbd "H-m e") 'org-pm-export)
+  (global-set-key (kbd "H-m P") 'org-pm-publish)
+  (global-set-key (kbd "H-m p e") 'org-pm-show-project-definition-section)
+  (global-set-key (kbd "H-m p s") 'org-pm-show-project-definition-section)
+  (global-set-key (kbd "H-m p t") 'org-pm-edit-project-template)
+  (global-set-key (kbd "H-m p l") 'org-pm-project-def-list)
+  (global-set-key (kbd "H-m p d") 'org-pm-list-duplicate-project-defs)
+  (global-set-key (kbd "H-m p p") 'org-pm-post-project-def)
+  (global-set-key (kbd "H-m d l") 'org-pm-load-project-data)
+  (global-set-key (kbd "H-m d s") 'org-pm-save-project-data)
+  (global-set-key (kbd "H-m d r") 'org-pm-reset-project-list)
+  (global-set-key (kbd "H-m d c") 'org-pm-reset-project-list)
+  (global-set-key (kbd "H-m d e") 'org-pm-edit-saved-project-data)
 #+END_SRC
-
-
 
 ** DONE org-pm-insert-new-project
 
@@ -1118,7 +1103,7 @@ Get all sections marked with tags that are enclosed in underscore (=_=).  Parse 
                     (cons (org-pm-make-target-path
                            (org-pm-parse-tag
                             spec
-                            (org-pm-make-filename name)
+                            (org-pm-make-filename name date)
                             date)) section-entries)))
             (setq components
                   (cons
@@ -1145,7 +1130,7 @@ Get all sections marked with tags that are enclosed in underscore (=_=).  Parse 
            (setq path (car (org-pm-make-target-path
                         (org-pm-parse-tag
                          spec
-                         (org-pm-make-filename name)
+                         (org-pm-make-filename name date)
                          date))))
            (if path (setq paths (cons path paths)))))
      paths))
@@ -1221,7 +1206,7 @@ Called by org-get-section-components.  Converts the title of a section to a file
     ;; provide extension
     (unless filename (setq filename "index"))
     (unless (file-name-extension filename)
-      (setq filename (concat filename ".org")))
+      (setq filename (concat filename ".html")))
     ;; if date present, prepend date in jekyll blog-entry format
     (when (and date
                (string-match
@@ -1285,7 +1270,7 @@ Called by org-get-section-components.  Converts the title of a section to a file
              "^-" "" (replace-regexp-in-string "-$" "" filename)))
       (when (and date
                  (string-match
-                  "^<\\([[:digit:]]\\{4\\}-[[:digit:]]\\{2\\}-[[:digit:]]\\{2\\}\\)"
+                  "^[<\[]\\([[:digit:]]\\{4\\}-[[:digit:]]\\{2\\}-[[:digit:]]\\{2\\}\\)"
                   date))
         (setq filename (concat (substring date 1 11) "-" filename)))
       filename))

@@ -82,8 +82,12 @@ org-pm-project-template-plain.org" )
          (index 0)
          (menu (grizzl-make-index
                (-map (lambda (c)
-                       (format "%d: %s"
-                               (setq index (+ 1 index))
+                       (format "%s: %s"
+                               (progn
+                                 (setq index (+ 1 index))
+                                 (if (> index 9)
+                                     (format "%d" index)
+                                   (format ".%d" index)))
                                (replace-regexp-in-string
                                 "-"
                                 " "
@@ -98,47 +102,35 @@ org-pm-project-template-plain.org" )
             (replace-regexp-in-string
              " " "-"
              (replace-regexp-in-string
-              "^[0-9]+: " "" selection))
+              "^[.0-9]+: " "" selection))
             ")")))))
 
 ;; Add org-mode hook for org-pm-key bindings.
 
-;; Make menu globally available:
+;; Make all commands globally available:
 (global-set-key (kbd "H-m H-m") 'org-pm-menu)
-
-;; All other commands available in org-mode:
-(let ((org-pm-key-bindings
-       (lambda ()
-       ;;  (define-key org-mode-map (kbd "H-m H-m") 'org-pm-menu)
-         (define-key org-mode-map (kbd "H-m s") 'org-pm-source-file-menu)
-         (define-key org-mode-map (kbd "H-m H-s") 'org-pm-open-source-of-this-file)
-         (define-key org-mode-map (kbd "H-m t") 'org-pm-target-file-menu)
-         (define-key org-mode-map (kbd "H-m H-t") 'org-pm-open-target-of-this-file)
-         (define-key org-mode-map (kbd "H-m n") 'org-pm-insert-new-project)
-         (define-key org-mode-map (kbd "H-m p n") 'org-pm-insert-new-project)
-         (define-key org-mode-map (kbd "H-m m") 'org-pm-make-projects)
-         (define-key org-mode-map (kbd "H-m p m") 'org-pm-make-projects)
-         (define-key org-mode-map (kbd "H-m a") 'org-pm-add-section-to-project)
-         (define-key org-mode-map (kbd "H-m r") 'org-pm-remove-section-from-project)
-         (define-key org-mode-map (kbd "H-m e") 'org-pm-export)
-         (define-key org-mode-map (kbd "H-m P") 'org-pm-publish)
-         (define-key org-mode-map (kbd "H-m p e") 'org-pm-show-project-definition-section)
-         (define-key org-mode-map (kbd "H-m p s") 'org-pm-show-project-definition-section)
-         (define-key org-mode-map (kbd "H-m p t") 'org-pm-edit-project-template)
-         (define-key org-mode-map (kbd "H-m p l") 'org-pm-project-def-list)
-         (define-key org-mode-map (kbd "H-m p d") 'org-pm-list-duplicate-project-defs)
-         (define-key org-mode-map (kbd "H-m p p") 'org-pm-post-project-def)
-         (define-key org-mode-map (kbd "H-m d l") 'org-pm-load-project-data)
-         (define-key org-mode-map (kbd "H-m d s") 'org-pm-save-project-data)
-         (define-key org-mode-map (kbd "H-m d r") 'org-pm-reset-project-list)
-         (define-key org-mode-map (kbd "H-m d c") 'org-pm-reset-project-list)
-         (define-key org-mode-map (kbd "H-m d e") 'org-pm-edit-saved-project-data)
-         )))
-  (add-hook 'org-mode-hook org-pm-key-bindings)
-  )
-
-;; To initialize if present file is compiled after start time, run hook now.
-;; (funcall org-pm-key-bindings)
+(global-set-key (kbd "H-m H-s") 'org-pm-open-source-of-this-file)
+(global-set-key (kbd "H-m t") 'org-pm-target-file-menu)
+(global-set-key (kbd "H-m H-t") 'org-pm-open-target-of-this-file)
+(global-set-key (kbd "H-m n") 'org-pm-insert-new-project)
+(global-set-key (kbd "H-m p n") 'org-pm-insert-new-project)
+(global-set-key (kbd "H-m m") 'org-pm-make-projects)
+(global-set-key (kbd "H-m p m") 'org-pm-make-projects)
+(global-set-key (kbd "H-m a") 'org-pm-add-section-to-project)
+(global-set-key (kbd "H-m r") 'org-pm-remove-section-from-project)
+(global-set-key (kbd "H-m e") 'org-pm-export)
+(global-set-key (kbd "H-m P") 'org-pm-publish)
+(global-set-key (kbd "H-m p e") 'org-pm-show-project-definition-section)
+(global-set-key (kbd "H-m p s") 'org-pm-show-project-definition-section)
+(global-set-key (kbd "H-m p t") 'org-pm-edit-project-template)
+(global-set-key (kbd "H-m p l") 'org-pm-project-def-list)
+(global-set-key (kbd "H-m p d") 'org-pm-list-duplicate-project-defs)
+(global-set-key (kbd "H-m p p") 'org-pm-post-project-def)
+(global-set-key (kbd "H-m d l") 'org-pm-load-project-data)
+(global-set-key (kbd "H-m d s") 'org-pm-save-project-data)
+(global-set-key (kbd "H-m d r") 'org-pm-reset-project-list)
+(global-set-key (kbd "H-m d c") 'org-pm-reset-project-list)
+(global-set-key (kbd "H-m d e") 'org-pm-edit-saved-project-data)
 
 (defun org-pm-insert-new-project (&optional project-name no-name-query no-query)
   "Create a project definition template and insert it into current file.
@@ -421,7 +413,7 @@ SECTION-PLIST is obtained from the section to be exported, and is used
 to create YAML front matter where required."
   (let* ((section-begin (car section-with-paths))
          (section-plist
-         (with-current-buffer origin-buffer
+         (with-current-+buffer origin-buffer
            (goto-char section-begin)
            (cadr (org-element-at-point))))
         (target-buffer (org-pm-make-section-buffer origin-buffer section-begin)))
@@ -525,6 +517,15 @@ in the file header for use by Jekyll/Octopress."
               path)
       (setq path (concat path "/..")))))
 
+(defun org-pm-add-yaml-front-matter (string backend info)
+  "Add yaml front matter header to export string before writing file."
+  (when (org-export-derived-backend-p backend 'html)
+    (concat (or (plist-get info :yaml-header) "") string)))
+
+;;; Add yaml front matter for jekyll / octopress files
+(add-to-list 'org-export-filter-final-output-functions
+             'org-pm-add-yaml-front-matter)
+
 (defun org-pm-get-section-project-paths ()
   "Build list of projects-folders-files to export sections of this buffer to.
 The list is created from those sections whose tags specify projects,
@@ -553,7 +554,7 @@ Each element in the list has the form:
                   (cons (org-pm-make-target-path
                          (org-pm-parse-tag
                           spec
-                          (org-pm-make-filename name)
+                          (org-pm-make-filename name date)
                           date)) section-entries)))
           (setq components
                 (cons
@@ -575,7 +576,7 @@ Each element in the list has the form:
          (setq path (car (org-pm-make-target-path
                       (org-pm-parse-tag
                        spec
-                       (org-pm-make-filename name)
+                       (org-pm-make-filename name date)
                        date))))
          (if path (setq paths (cons path paths)))))
    paths))
@@ -615,7 +616,7 @@ org-pm-make-filename, which is called by org-pm-get-section-project-components."
   ;; provide extension
   (unless filename (setq filename "index"))
   (unless (file-name-extension filename)
-    (setq filename (concat filename ".org")))
+    (setq filename (concat filename ".html")))
   ;; if date present, prepend date in jekyll blog-entry format
   (when (and date
              (string-match
@@ -677,6 +678,11 @@ Becomes:
     (setq filename
           (replace-regexp-in-string
            "^-" "" (replace-regexp-in-string "-$" "" filename)))
+    (message "make-filename looking at date: %s" date)
+    (message "make-filename looking at date match: %s"
+             (string-match
+              "^<\\([[:digit:]]\\{4\\}-[[:digit:]]\\{2\\}-[[:digit:]]\\{2\\}\\)"
+              (or date "")))
     (when (and date
                (string-match
                 "^<\\([[:digit:]]\\{4\\}-[[:digit:]]\\{2\\}-[[:digit:]]\\{2\\}\\)"
@@ -740,6 +746,7 @@ If :body-only is nil, then the yaml-header string is the empty string."
             (setq date (format-time-string time-format-string)))
           (setq author (or author (user-full-name)))
           (with-current-buffer buffer
+            (insert "---\n")
             (insert (format "title: %s\n" title))
             (insert (format "layout: %s\n" layout))
             (insert (format "author: %s\n" author))
