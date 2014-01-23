@@ -53,49 +53,54 @@ org-pm-project-template-jekyll.org
 An alternative template for full html export with header is provided:
 org-pm-project-template-plain.org" )
 
+(require 'grizzl)
+
+(defvar *org-pm-menu*)
+(setq *org-pm-menu*
+      (let* ((commands '(
+                         org-pm-open-target-of-this-file
+                         org-pm-open-source-of-this-file
+                         org-pm-source-file-menu
+                         org-pm-target-file-menu
+                         org-pm-project-def-list
+                         org-pm-insert-new-project
+                         org-pm-make-projects
+                         org-pm-add-section-to-project
+                         org-pm-remove-section-from-project
+                         org-pm-export
+                         org-pm-publish
+                         org-pm-show-project-definition-section
+                         org-pm-edit-project-template
+                         org-pm-list-duplicate-project-defs
+                         pm/edit-duplicate-project-def
+                         org-pm-post-project-def
+                         org-pm-load-project-data
+                         org-pm-save-project-data
+                         org-pm-reset-project-list
+                         org-pm-edit-saved-project-data
+                         ))
+             (index 0))
+        (grizzl-make-index
+         (-map (lambda (c)
+                 (format "%s: %s"
+                         (progn
+                           (setq index (+ 1 index))
+                           (if (> index 9)
+                               (format "%d" index)
+                             (format ".%d" index)))
+                         (replace-regexp-in-string
+                          "-"
+                          " "
+                          (replace-regexp-in-string
+                           "^org-pm-" "" (symbol-name c)))))
+               commands))))
+
 (defun org-pm-menu ()
   "Select and run an org-pm command from a grizzl-minibuffer menu list."
   (interactive)
   (setq  *grizzl-read-max-results* 32)
-  (let* ((commands '(
-                     org-pm-open-target-of-this-file
-                     org-pm-open-source-of-this-file
-                     org-pm-source-file-menu
-                     org-pm-target-file-menu
-                     org-pm-project-def-list
-                     org-pm-insert-new-project
-                     org-pm-make-projects
-                     org-pm-add-section-to-project
-                     org-pm-remove-section-from-project
-                     org-pm-export
-                     org-pm-publish
-                     org-pm-show-project-definition-section
-                     org-pm-edit-project-template
-                     org-pm-list-duplicate-project-defs
-                     pm/edit-duplicate-project-def
-                     org-pm-post-project-def
-                     org-pm-load-project-data
-                     org-pm-save-project-data
-                     org-pm-reset-project-list
-                     org-pm-edit-saved-project-data
-                     ))
-         (index 0)
-         (menu (grizzl-make-index
-               (-map (lambda (c)
-                       (format "%s: %s"
-                               (progn
-                                 (setq index (+ 1 index))
-                                 (if (> index 9)
-                                     (format "%d" index)
-                                   (format ".%d" index)))
-                               (replace-regexp-in-string
-                                "-"
-                                " "
-                                (replace-regexp-in-string
-                                 "^org-pm-" "" (symbol-name c)))))
-                     commands)))
-        selection)
-    (setq selection (grizzl-completing-read "Select command: " menu))
+  (let* (selection)
+    (setq selection (grizzl-completing-read "Select command: " *org-pm-menu*))
     (eval
      (read (concat
             "(org-pm-"
@@ -413,7 +418,7 @@ SECTION-PLIST is obtained from the section to be exported, and is used
 to create YAML front matter where required."
   (let* ((section-begin (car section-with-paths))
          (section-plist
-         (with-current-+buffer origin-buffer
+         (with-current-buffer origin-buffer
            (goto-char section-begin)
            (cadr (org-element-at-point))))
         (target-buffer (org-pm-make-section-buffer origin-buffer section-begin)))
@@ -638,7 +643,7 @@ org-pm-make-filename, which is called by org-pm-get-section-project-components."
 Combine base directory + folder + file from list proj-folder-file
 to make target-path.
 Return (path . project-name)
-The car of the result is used to copy the component to the path.
+The car of the res:ult is used to copy the component to the path.
 The cdr of the result (project-name) is used for display and debugging."
   (let* ((pname (car proj-folder-file))
          (project (cdr (assoc pname org-publish-project-alist)))
@@ -646,7 +651,8 @@ The cdr of the result (project-name) is used for display and debugging."
          (slash (if (string-match "/$" folder) "" "/"))
          (target-path
           (if project
-              (concat (plist-get project :base-directory)
+              ;; Publishing directly to publishing directory!
+              (concat (plist-get project :publishing-directory)
                       folder slash (caddr proj-folder-file)))))
     (cons target-path pname)))
 
@@ -678,14 +684,9 @@ Becomes:
     (setq filename
           (replace-regexp-in-string
            "^-" "" (replace-regexp-in-string "-$" "" filename)))
-    (message "make-filename looking at date: %s" date)
-    (message "make-filename looking at date match: %s"
-             (string-match
-              "^<\\([[:digit:]]\\{4\\}-[[:digit:]]\\{2\\}-[[:digit:]]\\{2\\}\\)"
-              (or date "")))
     (when (and date
                (string-match
-                "^<\\([[:digit:]]\\{4\\}-[[:digit:]]\\{2\\}-[[:digit:]]\\{2\\}\\)"
+                "^[<\[]\\([[:digit:]]\\{4\\}-[[:digit:]]\\{2\\}-[[:digit:]]\\{2\\}\\)"
                 date))
       (setq filename (concat (substring date 1 11) "-" filename)))
     filename))
