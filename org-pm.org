@@ -1272,31 +1272,36 @@ other use of the section list by the underscore-tag based export mechanism.
     )
 #+END_SRC
 
-******** COMMENT Test                                     :ORG_PM_EXPORT_TAGS:
+******* org-pm-get-tag-matching-lists                    :ORG_PM_EXPORT_TAGS:
 
-#+BEGIN_SRC elisp
-  (let (match-list)
-   (org-map-entries
-    '(lambda ()
-       (let (project deflist (plist (cadr (org-element-at-point))))
-         (cond
-          ((member "ORG_PM_EXPORT_TAGS" (plist-get plist :tags)))
-          (t
-           (setq deflist (split-string (plist-get plist :raw-value) " "))
-           (setq project (assoc (car deflist) org-publish-project-alist))
-           (setq match-list (cons (cons project (cdr deflist)) match-list))))))
-    "ORG_PM_EXPORT_TAGS"
-    'file)
-   match-list)
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-get-tag-matching-lists ()
+    (let (match-list)
+     (org-map-entries
+      '(lambda ()
+         (let (project deflist (plist (cadr (org-element-at-point))))
+           (cond
+            ((member "ORG_PM_EXPORT_TAGS" (plist-get plist :tags)))
+            (t
+             (setq deflist (split-string (plist-get plist :raw-value) " "))
+             (setq project (assoc (car deflist) org-publish-project-alist))
+             (when project
+               (setq match-list (cons (cons project (cdr deflist)) match-list)))))))
+      "ORG_PM_EXPORT_TAGS"
+      'file)
+     match-list))
 #+END_SRC
 
 #+RESULTS:
-| nil                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |   2 |       |       |      |     |     |      |      |      |                                                                                                                                                                                                                                                                               |   |
-| (octopress_pm_test :project-name octopress_pm_test :node-id 5B6A6F23-AB07-4F56-BFC8-783634E3D8A9 :node-filename /Users/iani2/Dropbox/000WORKFILES/org/monitoring/log.org :project-id /Users/iani2/Dropbox/000WORKFILES/org/monitoring/log.org::#5B6A6F23-AB07-4F56-BFC8-783634E3D8A9 :last-updated [2014-01-23 Thu 19:26] :body-only t :publish-to-jekyll t :base-directory ~/Documents/Dev/Web/org-pm-test01 :base-extension org :recursive t :publishing-directory ~/Documents/Dev/Web/org-pm-test01 :publishing-function org-html-publish-to-html :headline-levels 4 :section-numbers nil :with-toc nil :with-author t :with-creator t :with-emphasize t :with-sub-superscript nil :with-tables t :with-tags t :with-tasks t :with-todo-keywords nil :with-latex t :with-drawers nil :html-head-include-default-style nil :html-head-include-scripts nil :toc-heading Contents :static-base-directory ~/Documents/Dev/Web/octopress-pm-test-org/static :static-publishing-directory ~/Documents/Dev/Web/octopress-pm-dev-html/static :static-base-extension css\ | js\ | less\ | scss\ | php\ | rb\ | py\ | pdf\ | jpg\ | gif\ | png :static-publishing-function org-publish-attachment :static-recursive t :yaml-header ---\ntitle: address mtg andrea cohen: 01/05/14 13:10:17\nlayout: default\nauthor: Iannis Zannos\ndate: 2014-01-23 19:26:00 +0200\ntags:\n- friends\n- travel\n- paris\n- test\n---\n) | 1 |
+: org-pm-get-tag-matching-lists
 
-********* octopress_pm_test 1
+#+BEGIN_SRC elisp
+(org-pm-get-tag-matching-lists)
+#+END_SRC
 
-********* Subtree 2
+******** octopress_pm_test 1
+
+******** Subtree 2
 
 ******** Tags specifying projects enclosed in underscores
 
