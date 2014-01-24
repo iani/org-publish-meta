@@ -55,7 +55,8 @@ org-pm-project-template-plain.org" )
 
 (require 'grizzl)
 
-(defvar *org-pm-menu*)
+(defvar *org-pm-menu* nil
+  "Grizz-menu index for all commands of org-pm-menu.")
 (setq *org-pm-menu*
       (let* ((commands '(
                          org-pm-open-target-of-this-file
@@ -400,9 +401,24 @@ org-pm-section-exports, and save it to disk."
             (filename (buffer-file-name buffer)))
         (dolist (section sections-with-paths)
           (org-pm-export-1-section-to-projects section buffer))
+        ;; --- adding export with tagmatch here
+        (let ((tagmatches (org-pm-parse-tagmatches))
+              (dolist (tmatch tagmatches)
+                ;; export
+                ()
+                ;; add to sections-with-paths
+                )
+              ) (org-pm-))
+        ;; --- end export with tagmatch
         (setq org-pm-section-exports
               (assoc-replace org-pm-section-exports filename sections-with-paths)))
       (org-pm-save-project-data))))
+
+(defun org-pm-parse-tagmatches ()
+  "parse section tagged 'ORG_PM_EXPORT_TAGS'. Produce list of
+specs for matching tags and exporting."
+;; NOT YET DONE!
+)
 
 (defun org-pm-export-1-section-to-projects (section-with-paths origin-buffer)
   "Copy section to temporary buffer, then save it to all

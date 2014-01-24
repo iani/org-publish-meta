@@ -30,7 +30,7 @@ Org-pm does not require for a file to be placed inside the folder of an Org-mode
 
 With a single command, org-pm copies the sections of files to the base directories of specified projects, and optionally publishes those projects.  One may specify for a section to be copied to a subfolder of the project.
 
-Project definitions (property-lists) are written as nodes (sections) in any org-mode file, using headings as property names and contents as values of the properties.  Special org-mode properties and tags are used to indicate those sections which contain project definitions and also those files and nodes which belong to projects.
+Project definitions (property-lists) are written as nodes (sections) in any org-mode file, using headings as property names and contents as values of the properties.  Tags are used to indicate those sections which contain project definitions and also those files and nodes which belong to projects.
 
 Org-pm scans an org-mode file and adds to =org-publish-project-alist= any projects that this file may contain.  It also creates a list of the projects to which the file or any of its sections should be copied into variable =org-pm-files=.  Org-pm automatically saves =org-publish-project-alist= and =org-pm-files= to a file for use in further Emacs-sessions.
 

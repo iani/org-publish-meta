@@ -82,6 +82,10 @@ For example:
 
 * Specifying projects, folders and file-names to copy files or sections to
 
+There are two ways to indicate which sections to export, where, and how.  Both methods can be used in the same file.  The first method uses a tag enclosed in underscores (=_=) to indicate a project, folder and file where the section should be exported.  The second method uses tag matching to export separately each one section from a group of sections that match a tag-matching-string to a specified folder and with a specified layout.
+
+*** Indicating project-folder-file with tags enclosed in underscore
+
 A single string is used to specify the project, folder and file-name where a file or section should be copied to.  The project-name, folder, and file-name parts are separated by an at-mark (=@=).
 
 *IMPORTANT*: Because org-mode has problems tags that contain a dot (=.=), use hash (=#=) instead of a dot in a file or folder name when putting it in a tag.
@@ -93,6 +97,10 @@ Example: The following five strings specify five different projects and location
 - =project3@news/august= :: The sub-subdirectory =news/august/= of =project3=, using the name of the current file or the heading of the current section as file name.
 - =project4@@index= :: The root directory of =project4=, using =index.org= as file name.
 - =project5@static@style#css= :: The subdirectory =static/= of =project5=, using =style.css= as file name.
+
+*** Selecting sections to export by matching tags
+
+
 
 ** NOTE: Avoid hyphens (=-=) in project names
 

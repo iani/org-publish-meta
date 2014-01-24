@@ -766,7 +766,7 @@ Test case for =org-pm-publish-buffer-to-html=.  Shows that it works if we initia
   )
 #+END_SRC
 
-**** org-pm-export Top level: publish sections to html or source
+**** COMMENT org-pm-export Top level: publish sections to html or source
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-export ()
@@ -796,91 +796,141 @@ Test case for =org-pm-publish-buffer-to-html=.  Shows that it works if we initia
               (filename (buffer-file-name buffer)))
           (dolist (section sections-with-paths)
             (org-pm-export-1-section-to-projects section buffer))
+          ;; --- adding export with tagmatch here
+          (let ((tagmatches (org-pm-parse-tagmatches))
+                ;; each tagmatch is a list with:
+                ;; project-name tagmatch-string folder layout
+                (dolist (tmatch tagmatches)
+                  ;; export each section that matches tagmatch-string
+                  ;; get project def list
+                  ;; proceed only if project def list exists:
+                  ;; run org-scan-tags with tagmatch-string and following function:
+                  ;; for each section matched:
+                  ;; - make path using section heading, project publication-path,
+                  ;; folder from tmatch or from section property.
+                  ;; optional blogify-filename if blogify-filename property is t
+                  ;; either in project or in section plist.
+                  ;; - export section to path using section plist, current buffer,
+                  ;; project plist.
+                  ;; add (path . project-name) to sections-with-paths
+                  ;; using assoc-add2
+                  ()
+                  )
+                ) (org-pm-))
+          ;; --- end export with tagmatch
           (setq org-pm-section-exports
                 (assoc-replace org-pm-section-exports filename sections-with-paths)))
         (org-pm-save-project-data))))
 
-  (defun org-pm-export-1-section-to-projects (section-with-paths origin-buffer)
-    "Copy section to temporary buffer, then save it to all
-  paths in the rest of section-with-paths.
+  (defun org-pm-parse-tagmatches ()
+    "parse section tagged 'ORG_PM_EXPORT_TAGS'. Produce list of
+  specs for matching tags and exporting."
+  ;; NOT YET DONE!
+  )
+#+END_SRC
+  ;; New help function assoc-add2
+#+BEGIN_SRC emacs-lisp
+  (defun assoc-add2 (alist key element element2)
+    "Add element to the sublist of alist which starts with key.
+  Always skip the first element after the key, and add the new element
+  after it."
+    (let ((sublist (assoc key alist)))
+      (if sublist
+          (setcdr sublist (cons element2 (cons element (cddr sublist))))
+        (if alist
+            (setcdr alist (cons (list key element2 element) (cdr alist)))
+          (setq alist (list (list key element2 element))))))
+    alist)
+ #+END_SRC
 
-  SECTION-WITH-PATHS is list with car the starting position of the section to be
-  exported, cadr the id of the section, and cddr the list of path-project pairs
-  where the section will be exported.
+  Now let's try the new assoc-add
 
-  ORIGIN-BUFFER is the buffer containing the section to be exported.
+ #+BEGIN_SRC elisp
+   (assoc-add2 '((1 "id" ("path". "project"))) 1 '("path2" . "project2") "yes---id2")
+ #+END_SRC
 
-  SECTION-PLIST is obtained from the section to be exported, and is used
-  to create YAML front matter where required."
-    (let* ((section-begin (car section-with-paths))
-           (section-plist
-           (with-current-buffer origin-buffer
-             (goto-char section-begin)
-             (cadr (org-element-at-point))))
-          (target-buffer (org-pm-make-section-buffer origin-buffer section-begin)))
-      (dolist (path-project (cddr section-with-paths))
-        (when (car path-project)
-          (let* ((project (assoc (cdr path-project) org-publish-project-alist))
-                (plist (cdr project))
-                (path (car path-project)))
-            (if (equal (plist-get plist :publishing-function) 'org-html-publish-to-html)
-             (org-pm-publish-buffer-to-html
-              target-buffer path
-              (org-pm-make-yaml-front-matter plist section-plist))
-             (with-current-buffer target-buffer
-               (let ((dir (file-name-directory path)))
-                 (unless (file-exists-p dir) (make-directory dir t)))
-               (write-region nil nil path))))))
-      (message "exported section: %s" section-with-paths)))
+ #+BEGIN_SRC emacs-lisp
+   (defun org-pm-export-1-section-to-projects (section-with-paths origin-buffer)
+     "Copy section to temporary buffer, then save it to all
+   paths in the rest of section-with-paths.
 
-  (defun org-pm-make-section-buffer (origin-buffer position)
-    "Copy the contents of an org-mode section located at position
-  in origin-buffer to a temporary buffer, for exporting.
-  Return the temporary buffer.
-  Used by org-pm-export-1-section-to-projects.
-  Passed as argument to org-pm-export-buffer-to-html."
-    (with-current-buffer origin-buffer
-      (goto-char position)
-      (org-copy-subtree))
-    (with-current-buffer (get-buffer-create "*org-pm-copy-buf*")
-      (erase-buffer)
-      (org-mode)
-      (org-paste-subtree 1)
-      ;; TODO:
-      ;; (later: optionally remove title?)
-      ;; strip trailing date from header
-      ;; remove tags that indicate projects
-      (current-buffer)))
+   SECTION-WITH-PATHS is list with car the starting position of the section to be
+   exported, cadr the id of the section, and cddr the list of path-project pairs
+   where the section will be exported.
 
-  (defun org-pm-publish-buffer-to-html (buffer path plist)
-    "Publish an Org-mode buffer to html.
-    Adapted from org-publish-org-to.
+   ORIGIN-BUFFER is the buffer containing the section to be exported.
 
-    BUFFER is the buffer to publish.
-    PATH is the target filename of publish the buffer to.
-    PLIST is the property list for the given project."
+   SECTION-PLIST is obtained from the section to be exported, and is used
+   to create YAML front matter where required."
+     (let* ((section-begin (car section-with-paths))
+            (section-plist
+            (with-current-buffer origin-buffer
+              (goto-char section-begin)
+              (cadr (org-element-at-point))))
+           (target-buffer (org-pm-make-section-buffer origin-buffer section-begin)))
+       (dolist (path-project (cddr section-with-paths))
+         (when (car path-project)
+           (let* ((project (assoc (cdr path-project) org-publish-project-alist))
+                 (plist (cdr project))
+                 (path (car path-project)))
+             (if (equal (plist-get plist :publishing-function) 'org-html-publish-to-html)
+              (org-pm-publish-buffer-to-html
+               target-buffer path
+               (org-pm-make-yaml-front-matter plist section-plist))
+              (with-current-buffer target-buffer
+                (let ((dir (file-name-directory path)))
+                  (unless (file-exists-p dir) (make-directory dir t)))
+                (write-region nil nil path))))))
+       (message "exported section: %s" section-with-paths)))
 
-    (let* ((org-inhibit-startup t)
-           (pub-dir (file-name-directory path))
-           (body-p (plist-get plist :body-only)))
-      (unless (file-exists-p pub-dir) (make-directory pub-dir t))
-      (with-current-buffer buffer
-        (let ((output-file path))
-          (org-export-to-file 'html output-file
-            nil nil nil body-p plist)))))
+   (defun org-pm-make-section-buffer (origin-buffer position)
+     "Copy the contents of an org-mode section located at position
+   in origin-buffer to a temporary buffer, for exporting.
+   Return the temporary buffer.
+   Used by org-pm-export-1-section-to-projects.
+   Passed as argument to org-pm-export-buffer-to-html."
+     (with-current-buffer origin-buffer
+       (goto-char position)
+       (org-copy-subtree))
+     (with-current-buffer (get-buffer-create "*org-pm-copy-buf*")
+       (erase-buffer)
+       (org-mode)
+       (org-paste-subtree 1)
+       ;; TODO:
+       ;; (later: optionally remove title?)
+       ;; strip trailing date from header
+       ;; remove tags that indicate projects
+       (current-buffer)))
 
-  (defun org-pm-make-target (specs)
-    (let* ((project-name (car specs))
-           (folder (cadr specs))
-           (slash (if (string-match "/$" folder) "" "/"))
-           (project (assoc project-name org-publish-project-alist)))
-      (cond (project
-             (add-to-list '*org-pm-updated-projects* project-name)
-             (concat (plist-get (cdr project) :base-directory)
-                     folder slash (caddr specs)))
-            (t
-             (add-to-list '*org-pm-missing-projects* project-name)
-             nil))))
+   (defun org-pm-publish-buffer-to-html (buffer path plist)
+     "Publish an Org-mode buffer to html.
+     Adapted from org-publish-org-to.
+
+     BUFFER is the buffer to publish.
+     PATH is the target filename of publish the buffer to.
+     PLIST is the property list for the given project."
+
+     (let* ((org-inhibit-startup t)
+            (pub-dir (file-name-directory path))
+            (body-p (plist-get plist :body-only)))
+       (unless (file-exists-p pub-dir) (make-directory pub-dir t))
+       (with-current-buffer buffer
+         (let ((output-file path))
+           (org-export-to-file 'html output-file
+             nil nil nil body-p plist)))))
+
+   (defun org-pm-make-target (specs)
+     (let* ((project-name (car specs))
+            (folder (cadr specs))
+            (slash (if (string-match "/$" folder) "" "/"))
+            (project (assoc project-name org-publish-project-alist)))
+       (cond (project
+              (add-to-list '*org-pm-updated-projects* project-name)
+              (concat (plist-get (cdr project) :base-directory)
+                      folder slash (caddr specs)))
+             (t
+              (add-to-list '*org-pm-missing-projects* project-name)
+              nil))))
 #+END_SRC
 
 No longer used?:
@@ -1176,7 +1226,19 @@ Given the above, proceed as follows:
   - do the rest of =org-pm-export-1-section-to-projects=,
     starting from line: =(if (equal (plist-get plist :publishing...)))=
   - add the exported section to =org-pm-section-exports=,
-    using own function =assoc-add=
+    This is going to be complex:
+    The order of creating the component-list of sections/projects/paths
+    is different than that for the underscore tag matching.
+    So we could create the components list as an assoc list
+    with the point of the start of each
+    entry as key, and use =assoc-add= to add path-project pairs to it,
+    and then when all the projects have been processed,
+    we merge this components list with the one created by the
+    underscore-match export.
+    So do the tagsmatch type of export first,
+    then the underscore-match type of export.
+
+    Note: Look at own function =assoc-add=
     (""Add element to the sublist of alist which starts with key.")
     with path of file of current buffer as key.
 
