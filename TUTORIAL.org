@@ -8,13 +8,24 @@
 :DATE:     <2013-12-18 Wed 09:31>
 :END:
 
-Org-publish-meta is currently available only from github.
-After downloading and placing it in your load path
-run the following to make org-pm available to EMACS.
+Org-publish-meta is currently available from github at [[https://github.com/iani/org-publish-meta/]] and from bitbucket at [[https://bitbucket.org/iannis_zannos/org-publish-meta]]
 
-#+BEGIN_SRC elisp
-(require 'org-pm)
-#+END_SRC
+Download the source and then:
+
+Place org-pm.el in a folder that is member of the list contained in variable =load-path=,
+or add the path where =org-pm=.el is to =load-path= like this:
+
+: (add-to-list 'load-path "/path/to/org-publish-meta")
+
+Install required package =grizzl= from online repositories:
+
+: (package-install 'grizzl)
+
+Then run this to install org-pm:
+
+: (require 'org-pm)
+
+Once org-pm is installed, type H-m H-m to open a menu of commands.  (H = Hyper = the function key on Mac).  Alternatively run command =org-pm-menu=.
 
 ** The Menu
 

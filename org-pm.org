@@ -1231,7 +1231,7 @@ Given the above, proceed as follows:
     is different than that for the underscore tag matching.
     So we could create the components list as an assoc list
     with the point of the start of each
-    entry as key, and use =assoc-add= to add path-project pairs to it,
+    entry as key, and use =assoc-add2= to add path-project pairs to it,
     and then when all the projects have been processed,
     we merge this components list with the one created by the
     underscore-match export.
@@ -1246,19 +1246,57 @@ IMPORTANT: Check that assoc-add does not cause conflicts with the
 other use of the section list by the underscore-tag based export mechanism.
 
 #+BEGIN_SRC elisp
-  (defun org-pm-make-tagmatch (heading)
-  "parse a heading of the form
+  (defun org-pm-make-tagmatch-list ()
+    "Find section tagged 'ORG_PM_EXPORT_TAGS'.  For each subsection this section:
+  Parse a heading of the form
   <project> <tagmatch> <folder> <layout>
-  and produce a form (what exactly???) for matching the headings that
-  match tagmatch + constructing filename paths for them to be exported."
+  and produce data for matching the headings and then for exporting them.
 
+  The function returns a list.  Each element of that list has 4 elements:
+  1. project-alist
+  2. tagmatch-string
+  3. folder
+  4. layout
 
-      ((heading "pr"))
-  )
+  If a project named in a heading has no definition, then skip that heading."
+    (save-excursion
+      (save-restriction
+        (widen)
+        (let (entries)
+          (org-map-entries
+           '(lambda () (cadr (org-element-at-point)))
+           "ORG_PM_EXPORT_TAGS")
+
+          entries)))
+
+    )
 #+END_SRC
 
+******** COMMENT Test                                     :ORG_PM_EXPORT_TAGS:
 
+#+BEGIN_SRC elisp
+  (let (match-list)
+   (org-map-entries
+    '(lambda ()
+       (let (project deflist (plist (cadr (org-element-at-point))))
+         (cond
+          ((member "ORG_PM_EXPORT_TAGS" (plist-get plist :tags)))
+          (t
+           (setq deflist (split-string (plist-get plist :raw-value) " "))
+           (setq project (assoc (car deflist) org-publish-project-alist))
+           (setq match-list (cons (cons project (cdr deflist)) match-list))))))
+    "ORG_PM_EXPORT_TAGS"
+    'file)
+   match-list)
+#+END_SRC
 
+#+RESULTS:
+| nil                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |   2 |       |       |      |     |     |      |      |      |                                                                                                                                                                                                                                                                               |   |
+| (octopress_pm_test :project-name octopress_pm_test :node-id 5B6A6F23-AB07-4F56-BFC8-783634E3D8A9 :node-filename /Users/iani2/Dropbox/000WORKFILES/org/monitoring/log.org :project-id /Users/iani2/Dropbox/000WORKFILES/org/monitoring/log.org::#5B6A6F23-AB07-4F56-BFC8-783634E3D8A9 :last-updated [2014-01-23 Thu 19:26] :body-only t :publish-to-jekyll t :base-directory ~/Documents/Dev/Web/org-pm-test01 :base-extension org :recursive t :publishing-directory ~/Documents/Dev/Web/org-pm-test01 :publishing-function org-html-publish-to-html :headline-levels 4 :section-numbers nil :with-toc nil :with-author t :with-creator t :with-emphasize t :with-sub-superscript nil :with-tables t :with-tags t :with-tasks t :with-todo-keywords nil :with-latex t :with-drawers nil :html-head-include-default-style nil :html-head-include-scripts nil :toc-heading Contents :static-base-directory ~/Documents/Dev/Web/octopress-pm-test-org/static :static-publishing-directory ~/Documents/Dev/Web/octopress-pm-dev-html/static :static-base-extension css\ | js\ | less\ | scss\ | php\ | rb\ | py\ | pdf\ | jpg\ | gif\ | png :static-publishing-function org-publish-attachment :static-recursive t :yaml-header ---\ntitle: address mtg andrea cohen: 01/05/14 13:10:17\nlayout: default\nauthor: Iannis Zannos\ndate: 2014-01-23 19:26:00 +0200\ntags:\n- friends\n- travel\n- paris\n- test\n---\n) | 1 |
+
+********* octopress_pm_test 1
+
+********* Subtree 2
 
 ******** Tags specifying projects enclosed in underscores
 

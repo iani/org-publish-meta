@@ -403,10 +403,23 @@ org-pm-section-exports, and save it to disk."
           (org-pm-export-1-section-to-projects section buffer))
         ;; --- adding export with tagmatch here
         (let ((tagmatches (org-pm-parse-tagmatches))
+              ;; each tagmatch is a list with:
+              ;; project-name tagmatch-string folder layout
               (dolist (tmatch tagmatches)
-                ;; export
+                ;; export each section that matches tagmatch-string
+                ;; get project def list
+                ;; proceed only if project def list exists:
+                ;; run org-scan-tags with tagmatch-string and following function:
+                ;; for each section matched:
+                ;; - make path using section heading, project publication-path,
+                ;; folder from tmatch or from section property.
+                ;; optional blogify-filename if blogify-filename property is t
+                ;; either in project or in section plist.
+                ;; - export section to path using section plist, current buffer,
+                ;; project plist.
+                ;; add (path . project-name) to sections-with-paths
+                ;; using assoc-add2
                 ()
-                ;; add to sections-with-paths
                 )
               ) (org-pm-))
         ;; --- end export with tagmatch
@@ -419,6 +432,18 @@ org-pm-section-exports, and save it to disk."
 specs for matching tags and exporting."
 ;; NOT YET DONE!
 )
+
+(defun assoc-add2 (alist key element element2)
+  "Add element to the sublist of alist which starts with key.
+Always skip the first element after the key, and add the new element
+after it."
+  (let ((sublist (assoc key alist)))
+    (if sublist
+        (setcdr sublist (cons element2 (cons element (cddr sublist))))
+      (if alist
+          (setcdr alist (cons (list key element2 element) (cdr alist)))
+        (setq alist (list (list key element2 element))))))
+  alist)
 
 (defun org-pm-export-1-section-to-projects (section-with-paths origin-buffer)
   "Copy section to temporary buffer, then save it to all

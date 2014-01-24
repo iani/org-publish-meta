@@ -48,13 +48,21 @@ A (grizz-style, minibuffer-) menu plus default keyboard shortcuts give access to
 - Automatically save configurations for use in further sessions (no need to manually edit project definitions in emacs-lisp).
 - Create org-mode buffer containing list of projects, with links for opening the files that contain those definitions.
 
-* Getting started
+* Installing, getting started
 
-Run the following to install org-pm:
+Place org-pm.el in a folder that is member of the list contained in variable =load-path=,
+or add the path where org-pm.el is to the path:
 
-#+BEGIN_SRC elisp
-;; load org-pm package:
-(require 'org-pm)
-#+END_SRC
+: (add-to-list 'load-path "/path/to/org-publish-meta")
+
+Install required package =grizzl= from online repositories:
+
+: (package-install 'grizzl)
+
+Then run this to install org-pm:
+
+: (require 'org-pm)
+
+Once org-pm is installed, type H-m H-m to open a menu of commands.  (H = Hyper = the function key on Mac).  Alternatively run command =org-pm-menu=.
 
 See [[file:TUTORIAL.org][TUTORIAL]] and [[file:REFERENCE.org][REFERENCE]] for further help.
