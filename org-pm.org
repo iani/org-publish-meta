@@ -1003,8 +1003,6 @@ Test case without cache-initialization:
   If project plist has property export-to-jekyll set to true, then:
   - Copy the buffer into a new buffer in order not to affect next publications.
   - Create and insert jekyll YAML front matter at the beginning of the new buffer.
-
-
   "
     ;; Check if a buffer visiting FILENAME is already open.
     (let* ((pname (car project))
@@ -1079,6 +1077,7 @@ Get all sections marked with tags that are enclosed in underscore (=_=).  Parse 
  (section-position (project folder file) (project folder file) ...)
 ...)
 
+****** org-pm-section-project-paths version 1: using org-map-entries
 #+BEGIN_SRC emacs-lisp
 
   (defun org-pm-get-section-project-paths ()
@@ -1117,8 +1116,93 @@ Get all sections marked with tags that are enclosed in underscore (=_=).  Parse 
                    components))))))
     ;;  (message "COMPONENTS: \n%s" components)
      components))
-
 #+END_SRC
+
+****** org-pm-sectin-project-paths version 2: using org-scan-tags
+
+******* Examples of code to use
+
+#+BEGIN_SRC elisp
+(let (todo-only)
+  (org-make-tags-matcher "asdf"))
+#+END_SRC
+
+
+#+BEGIN_SRC elisp
+  (let (todo-only)
+   (org-scan-tags
+    (lambda () (plist-get (cadr (org-element-at-point)) :raw-value))
+    (cdr (org-make-tags-matcher "orgmode"))
+    nil))
+#+END_SRC
+
+#+BEGIN_SRC elisp
+;; match tags beginning with "_t"
+   (let (todo-only)
+    (org-scan-tags
+     (lambda () (plist-get (cadr (org-element-at-point)) :tags))
+     '(and (progn (setq org-cached-props nil)
+                  (-filter
+                   (lambda (tag) (string-match "^_t" tag))
+                   tags-list)) t)
+     nil))
+#+END_SRC
+
+******* Preparing the implementation
+
+******** Tags mapped to projects in org mode sections
+
+The heading of a subsection of a sectiong tagged ORG_PM_PROJECT_TAGS specifies project, tag matches that go to the project, folder, and layout:
+
+<project> <tagmatch> <folder> <layout>
+
+Given the above, proceed as follows:
+
+- Split the header string at " " and multiple-bind the variables =project-name= =tagsmatch= =folder= =layout= to the resulting values.
+- Provide defaults "" for folder and "default" for layout, if these are nil.
+- Get the project plist from =project-name=, put it in =project-plist=.
+- When =project-plist= is not nil, proceed with following:
+- Do org-scan-tags using a matcher constructed from =tagsmatch=, and a function that does the following:
+  - put (cadr (org-element-at-point)) into =section-plist=
+  - create export target path by =concat= of following:
+    - property =publishing-directory= of =project-plist=
+    - property =folder= of =section-plist= or variable =folder=
+    - filename constructed with =org-pm-make-filename=, using:
+      - property =:raw-value= of =section-plist=
+      - property =:DATE:= of =section-plist=
+  - make =target-buffer= with =org-pm-make-section-buffer=,
+    using current buffer as =origin-buffer=,
+    and current =(point)= as =section-begin=.
+  - do the rest of =org-pm-export-1-section-to-projects=,
+    starting from line: =(if (equal (plist-get plist :publishing...)))=
+  - add the exported section to =org-pm-section-exports=,
+    using own function =assoc-add=
+    (""Add element to the sublist of alist which starts with key.")
+    with path of file of current buffer as key.
+
+IMPORTANT: Check that assoc-add does not cause conflicts with the
+other use of the section list by the underscore-tag based export mechanism.
+
+#+BEGIN_SRC elisp
+  (defun org-pm-make-tagmatch (heading)
+  "parse a heading of the form
+  <project> <tagmatch> <folder> <layout>
+  and produce a form (what exactly???) for matching the headings that
+  match tagmatch + constructing filename paths for them to be exported."
+
+
+      ((heading "pr"))
+  )
+#+END_SRC
+
+
+
+
+******** Tags specifying projects enclosed in underscores
+
+A tag enclosed in underscores (=_=) specifies the project, folder, filename.
+This is the first method implemented in org-pm
+
 
 ***** org-pm-get-1-section-project-paths
 
@@ -1814,16 +1898,17 @@ Select a project interactively and post its definition.
 #+END_SRC
 
 
-* UNDERWAY Target File List Commands
-|--------------------------+---------------------------------------------|
-| Shortcut                 | Command                                     |
-|--------------------------+---------------------------------------------|
-| *TARGET FILE LISTS*      |                                             |
-|--------------------------+---------------------------------------------|
-| H-m f                    | org-pm-list-exported-files (current buffer) |
-| C-u H-m f                | org-pm-list-exported-files (all)            |
-| H-m ?????   (TODO)       | org-pm-show-target-file-list ???            |
-|--------------------------+---------------------------------------------|
+* DONE Target/Source View Commands
+|-------------------------------+---------------------------------------------|
+| Shortcut                      | Command                                     |
+|-------------------------------+---------------------------------------------|
+| *TARGET/SOURCE VIEW COMMANDS* |                                             |
+|-------------------------------+---------------------------------------------|
+| H-m s                         | org-pm-open-source-of-this-file             |
+| H-m t                         | org-pm-open-target-of-this-file             |
+| H-m f                         | org-pm-list-exported-files (current buffer) |
+| C-u H-m f                     | org-pm-list-exported-files (all)            |
+|-------------------------------+---------------------------------------------|
 
 ** UNDERWAY File menu of exported sections
 #+BEGIN_SRC emacs-lisp
