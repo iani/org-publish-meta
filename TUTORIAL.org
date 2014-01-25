@@ -29,11 +29,36 @@ Once org-pm is installed, type H-m H-m to open a menu of commands.  (H = Hyper =
 
 ** The Menu
 
-Command org-pm-menu lists all commands of org-pm, and lets you execute any selected command from a menu presented in the mini-buffer.
+Type H-m H-m (Function-key marked "fn" and m, twice) to open the command menu (=org-pm-menu=).  Command =org-pm-menu= lists all commands of org-pm, and lets you execute any selected command from a menu presented in the mini-buffer.  The commands are:
 
-** Defining a project
+|  1 | org-pm-insert-new-project              |
+|  2 | org-pm-make-projects                   |
+|  3 | org-pm-project-def-list                |
+|  4 | org-pm-add-section-to-project          |
+|  5 | org-pm-remove-section-from-project     |
+|  6 | org-pm-edit-project-tag-lists          |
+|  7 | org-pm-export                          |
+|  8 | org-pm-open-target-of-this-file        |
+|  9 | org-pm-open-source-of-this-file        |
+| 10 | org-pm-source-file-menu                |
+| 11 | org-pm-target-file-menu                |
+| 12 | org-pm-publish                         |
+| 13 | org-pm-show-project-definition-section |
+| 14 | org-pm-edit-project-template           |
+| 15 | org-pm-list-duplicate-project-defs     |
+| 16 | pm/edit-duplicate-project-def          |
+| 17 | org-pm-post-project-def                |
+| 18 | org-pm-load-project-data               |
+| 19 | org-pm-save-project-data               |
+| 20 | org-pm-reset-project-list              |
+| 21 | org-pm-edit-saved-project-data         |
+#+TBLFM: $1=@-1+1::@1$1=1
 
-Three steps are required to define a project:
+** =org-pm-insert-new-project=: Create a new project
+
+- =H-m n= (=M-x org-pm-insert-new-project=) :: Asks for name of new project, base-directory, and publishing-directory.
+
+Note: =base-directory= is no longer used in the newest version of the org-publish-meta package. =org-pm-export= publishes directly from the current buffer to =publishing-directory=.
 
 1. Insert the project definition in an org-mode buffer (=org-pm-insert-new-project=)
 2. (Optional:) Edit the project definition to customize parameters

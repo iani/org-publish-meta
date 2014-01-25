@@ -247,63 +247,64 @@ Select org-pm command interactively
 #+END_SRC
 
 #+BEGIN_SRC emacs-lisp
-  (require 'grizzl)
+    (require 'grizzl)
 
-  (defvar *org-pm-menu* nil
-    "Grizz-menu index for all commands of org-pm-menu.")
-  (setq *org-pm-menu*
-        (let* ((commands '(
-                           org-pm-open-target-of-this-file
-                           org-pm-open-source-of-this-file
-                           org-pm-source-file-menu
-                           org-pm-target-file-menu
-                           org-pm-project-def-list
-                           org-pm-insert-new-project
-                           org-pm-make-projects
-                           org-pm-add-section-to-project
-                           org-pm-remove-section-from-project
-                           org-pm-export
-                           org-pm-publish
-                           org-pm-show-project-definition-section
-                           org-pm-edit-project-template
-                           org-pm-list-duplicate-project-defs
-                           pm/edit-duplicate-project-def
-                           org-pm-post-project-def
-                           org-pm-load-project-data
-                           org-pm-save-project-data
-                           org-pm-reset-project-list
-                           org-pm-edit-saved-project-data
-                           ))
-               (index 0))
-          (grizzl-make-index
-           (-map (lambda (c)
-                   (format "%s: %s"
-                           (progn
-                             (setq index (+ 1 index))
-                             (if (> index 9)
-                                 (format "%d" index)
-                               (format ".%d" index)))
-                           (replace-regexp-in-string
-                            "-"
-                            " "
-                            (replace-regexp-in-string
-                             "^org-pm-" "" (symbol-name c)))))
-                 commands))))
+    (defvar *org-pm-menu* nil
+      "Grizz-menu index for all commands of org-pm-menu.")
+    (setq *org-pm-menu*
+          (let* ((commands '(
+                             org-pm-insert-new-project
+                             org-pm-make-projects
+                             org-pm-add-section-to-project
+                             org-pm-remove-section-from-project
+                             org-pm-edit-project-tag-lists
+                             org-pm-export
+                             org-pm-project-def-list
+                             org-pm-open-target-of-this-file
+                             org-pm-open-source-of-this-file
+                             org-pm-source-file-menu
+                             org-pm-target-file-menu
+                             org-pm-publish
+                             org-pm-show-project-definition-section
+                             org-pm-edit-project-template
+                             org-pm-list-duplicate-project-defs
+                             pm/edit-duplicate-project-def
+                             org-pm-post-project-def
+                             org-pm-load-project-data
+                             org-pm-save-project-data
+                             org-pm-reset-project-list
+                             org-pm-edit-saved-project-data
+                             ))
+                 (index 0))
+            (grizzl-make-index
+             (-map (lambda (c)
+                     (format "%s: %s"
+                             (progn
+                               (setq index (+ 1 index))
+                               (if (> index 9)
+                                   (format "%d" index)
+                                 (format ".%d" index)))
+                             (replace-regexp-in-string
+                              "-"
+                              " "
+                              (replace-regexp-in-string
+                               "^org-pm-" "" (symbol-name c)))))
+                   commands))))
 
-  (defun org-pm-menu ()
-    "Select and run an org-pm command from a grizzl-minibuffer menu list."
-    (interactive)
-    (setq  *grizzl-read-max-results* 32)
-    (let* (selection)
-      (setq selection (grizzl-completing-read "Select command: " *org-pm-menu*))
-      (eval
-       (read (concat
-              "(org-pm-"
-              (replace-regexp-in-string
-               " " "-"
-               (replace-regexp-in-string
-                "^[.0-9]+: " "" selection))
-              ")")))))
+    (defun org-pm-menu ()
+      "Select and run an org-pm command from a grizzl-minibuffer menu list."
+      (interactive)
+      (setq  *grizzl-read-max-results* 32)
+      (let* (selection)
+        (setq selection (grizzl-completing-read "Select command: " *org-pm-menu*))
+        (eval
+         (read (concat
+                "(org-pm-"
+                (replace-regexp-in-string
+                 " " "-"
+                 (replace-regexp-in-string
+                  "^[.0-9]+: " "" selection))
+                ")")))))
 #+END_SRC
 
 ** UNDERWAY Keyboard shortcuts
@@ -1168,7 +1169,32 @@ Get all sections marked with tags that are enclosed in underscore (=_=).  Parse 
      components))
 #+END_SRC
 
-****** org-pm-sectin-project-paths version 2: using org-scan-tags
+****** org-pm-section-project-paths version 2: using org-scan-tags
+
+******* Help function: org-pm-edit-project-tag-lists
+
+#+BEGIN_SRC emacs-lisp
+    (defun org-pm-edit-project-tag-lists ()
+      "Edit section that defines which tag-matching-sections are exported to which projects."
+      (interactive)
+      (let ((def-node
+              (car (org-map-entries '(cadr (org-element-at-point))
+                                    "ORG_PM_EXPORT_TAGS"))))
+        (cond
+         (def-node
+           (widen)
+           (goto-char (plist-get def-node :begin))
+           (recenter 3)
+           (message "Showing project-tag-match definition section."))
+          (t
+           (end-of-buffer)
+           (insert "\n* project export tags :ORG_PM_EXPORT_TAGS:")
+           (insert "\n** my-blog blog _blog blog" )
+           (insert "\n(Export sections tagged =blog= to project named =my-blog=, " )
+           (insert "in subfolder =_blog=, with layout =blog=.)\n" )
+           (insert "\nEdit above or add similar sections for more tags/projects. " )
+           (message "Inserted project-tag-match definition section.")))))
+#+END_SRC
 
 ******* Examples of code to use
 
@@ -1197,7 +1223,6 @@ Get all sections marked with tags that are enclosed in underscore (=_=).  Parse 
                    tags-list)) t)
      nil))
 #+END_SRC
-
 ******* Preparing the implementation
 
 ******** Tags mapped to projects in org mode sections
@@ -1272,7 +1297,7 @@ other use of the section list by the underscore-tag based export mechanism.
     )
 #+END_SRC
 
-******* org-pm-get-tag-matching-lists                    :ORG_PM_EXPORT_TAGS:
+********* org-pm-get-tag-matching-lists          :ORG_PM_EXPORT_TAGS:
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-get-tag-matching-lists ()
@@ -1299,16 +1324,15 @@ other use of the section list by the underscore-tag based export mechanism.
 (org-pm-get-tag-matching-lists)
 #+END_SRC
 
-******** octopress_pm_test 1
+********** octopress_pm_test 1
 
-******** Subtree 2
+********** Subtree 2
 
-******** Tags specifying projects enclosed in underscores
+******* Tags specifying projects enclosed in underscores
 
 A tag enclosed in underscores (=_=) specifies the project, folder, filename.
 This is the first method implemented in org-pm
-
-
+,,
 ***** org-pm-get-1-section-project-paths
 
 #+BEGIN_SRC emacs-lisp

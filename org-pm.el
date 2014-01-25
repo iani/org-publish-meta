@@ -59,16 +59,17 @@ org-pm-project-template-plain.org" )
   "Grizz-menu index for all commands of org-pm-menu.")
 (setq *org-pm-menu*
       (let* ((commands '(
-                         org-pm-open-target-of-this-file
-                         org-pm-open-source-of-this-file
-                         org-pm-source-file-menu
-                         org-pm-target-file-menu
-                         org-pm-project-def-list
                          org-pm-insert-new-project
                          org-pm-make-projects
                          org-pm-add-section-to-project
                          org-pm-remove-section-from-project
+                         org-pm-edit-project-tag-lists
                          org-pm-export
+                         org-pm-project-def-list
+                         org-pm-open-target-of-this-file
+                         org-pm-open-source-of-this-file
+                         org-pm-source-file-menu
+                         org-pm-target-file-menu
                          org-pm-publish
                          org-pm-show-project-definition-section
                          org-pm-edit-project-template
@@ -608,6 +609,43 @@ Each element in the list has the form:
                  components))))))
   ;;  (message "COMPONENTS: \n%s" components)
    components))
+
+(defun org-pm-edit-project-tag-lists ()
+  "Edit section that defines which tag-matching-sections are exported to which projects."
+  (interactive)
+  (let ((def-node
+          (car (org-map-entries '(cadr (org-element-at-point))
+                                "ORG_PM_EXPORT_TAGS"))))
+    (cond
+     (def-node
+       (widen)
+       (goto-char (plist-get def-node :begin))
+       (recenter 3)
+       (message "Showing project-tag-match definition section."))
+      (t
+       (end-of-buffer)
+       (insert "\n* project export tags :ORG_PM_EXPORT_TAGS:")
+       (insert "\n** my-blog blog _blog blog" )
+       (insert "\n(Export sections tagged =blog= to project named =my-blog=, " )
+       (insert "in subfolder =_blog=, with layout =blog=.)\n" )
+       (insert "\nEdit above or add similar sections for more tags/projects. " )
+       (message "Inserted project-tag-match definition section.")))))
+
+(defun org-pm-get-tag-matching-lists ()
+  (let (match-list)
+   (org-map-entries
+    '(lambda ()
+       (let (project deflist (plist (cadr (org-element-at-point))))
+         (cond
+          ((member "ORG_PM_EXPORT_TAGS" (plist-get plist :tags)))
+          (t
+           (setq deflist (split-string (plist-get plist :raw-value) " "))
+           (setq project (assoc (car deflist) org-publish-project-alist))
+           (when project
+             (setq match-list (cons (cons project (cdr deflist)) match-list)))))))
+    "ORG_PM_EXPORT_TAGS"
+    'file)
+   match-list))
 
 (defun org-pm-get-1-section-project-paths ()
   "Get the paths for exporting the current section, based on its tags."
