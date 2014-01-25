@@ -65,7 +65,7 @@ The template created by =org-pm-insert-new-project= gives defaults that should w
 
 Here is An example of a project definition section with one project, named =my_blog=:
 
-*** COMMENT Project Definitions                              :PROJECT_DEFS:
+*** Project Definitions                              :PROJECT_DEFS:
 **** my_blog
 :PROPERTIES:
 :ID:       793CD62E-FA1A-4F4A-827C-FCF9B8E5B844
@@ -147,7 +147,7 @@ Export sections with tag "portal" to root directory of project =portal= using th
 - org-pm-edit-saved-project-data          :: Open the automatically saved file which contains the lists of project-definitions, project definition duplicates, and exported files.
 - org-pm-export                           :: Export all sections of the current buffer which contain specifications for projects, either in the form of tags enclosed in underscores (=_=), or by tags specified in the project-tag matching section.  The export is done directly to the publishing-directory, and is ready for browsing or for rendering wity Jekyll/Octopress.
 - org-pm-list-duplicate-project-defs      :: Create a buffer listing the locations of definitions of projects that have been defined under the same name in more than one file.
-- org-pm-load-project-data                :: Load the lists of project definitions (=org-publish-project-alist), project duplicates (defined in more than one file), and exported files. This is done automatically at the startup of =org-publish-meta=
+- org-pm-load-project-data                :: Load the lists of project definitions (=org-publish-project-alist=), as well as the list of project duplicates (defined in more than one file), and list of exported files. This is done automatically at the startup of =org-publish-meta=
 - org-pm-make-projects                    :: Scan the current buffer for any project definitions and create or update the definitions of those projects.  Save the created project definitions.
 - org-pm-open-source-of-this-file         :: For a buffer whose file has been created by publishing a section with =org-publish-meta=, go to the section of the source file that created this file.
 - org-pm-open-target-of-this-section         :: Choose from a list of targets where this section or one of its super-sections has been exported, and open the selected file.
