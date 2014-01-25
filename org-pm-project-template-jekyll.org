@@ -1,10 +1,11 @@
 * PROJECTNAME
 ** body-only t
 ** publish-to-jekyll t
+** default-layout "blog"
 ** base-directory "BASEDIRECTORY"
 ** base-extension "org"
 ** recursive t
-** publishing-directory "PUBLISHINGDIRECTORY"
+** publishing-directory "PUBLISHINGDIRECTORY_posts/"
 ** publishing-function 'org-html-publish-to-html
 ** headline-levels 4
 ** section-numbers nil
@@ -20,8 +21,8 @@
 ** with-latex t
 ** with-drawers nil
 ** toc-heading "Contents"
-** static-base-directory "BASEDIRECTORY/static"
-** static-publishing-directory "PUBLISHINGDIRECTORY/static"
+** static-base-directory "BASEDIRECTORYstatic/"
+** static-publishing-directory "PUBLISHINGDIRECTORYstatic/"
 ** static-base-extension "css\\|js\\|less\\|scss\\|php\\|rb\\|py\\|pdf\\|jpg\\|gif\\|png"
 ** static-publishing-function 'org-publish-attachment
 ** static-recursive t

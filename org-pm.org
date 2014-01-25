@@ -260,11 +260,10 @@ Select org-pm command interactively
                              org-pm-edit-project-tag-lists
                              org-pm-export
                              org-pm-project-def-list
-                             org-pm-open-target-of-this-file
+                             org-pm-open-target-of-this-section
                              org-pm-open-source-of-this-file
                              org-pm-source-file-menu
                              org-pm-target-file-menu
-                             org-pm-publish
                              org-pm-show-project-definition-section
                              org-pm-edit-project-template
                              org-pm-list-duplicate-project-defs
@@ -318,7 +317,8 @@ Note: I use the Hyper-m  (= Mac fn key m) as prefix, because it is not likely to
   (global-set-key (kbd "H-m H-m") 'org-pm-menu)
   (global-set-key (kbd "H-m H-s") 'org-pm-open-source-of-this-file)
   (global-set-key (kbd "H-m t") 'org-pm-target-file-menu)
-  (global-set-key (kbd "H-m H-t") 'org-pm-open-target-of-this-file)
+  (global-set-key (kbd "H-m H-t") 'org-pm-open-target-of-this-section)
+  (global-set-key (kbd "H-m T") 'org-pm-edit-project-tag-lists)
   (global-set-key (kbd "H-m n") 'org-pm-insert-new-project)
   (global-set-key (kbd "H-m p n") 'org-pm-insert-new-project)
   (global-set-key (kbd "H-m m") 'org-pm-make-projects)
@@ -1188,7 +1188,7 @@ Get all sections marked with tags that are enclosed in underscore (=_=).  Parse 
            (message "Showing project-tag-match definition section."))
           (t
            (end-of-buffer)
-           (insert "\n* project export tags :ORG_PM_EXPORT_TAGS:")
+           (insert "\n* COMMENT project export tags :ORG_PM_EXPORT_TAGS:")
            (insert "\n** my-blog blog _blog blog" )
            (insert "\n(Export sections tagged =blog= to project named =my-blog=, " )
            (insert "in subfolder =_blog=, with layout =blog=.)\n" )
@@ -1787,8 +1787,7 @@ Note that edits may cause conflicts when updating org-pm from git.
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-target-file-menu ()
-    "Select and open a file from the list of files containing sections
-    that are exported by org-pm."
+    "Select and open a file from the list of files that have been produced by exporting sections of org-mode files with org-pm."
     (interactive)
     (let* ((paths)
            (index)
@@ -1834,7 +1833,7 @@ Note that edits may cause conflicts when updating org-pm from git.
 ** org-pm-show-target
 
 #+BEGIN_SRC emacs-lisp
-  (defun org-pm-open-target-of-this-file ()
+  (defun org-pm-open-target-of-this-section ()
     "Open a target from the list of targets of this section or
   any of its super-sections."
     (interactive)
@@ -2028,16 +2027,16 @@ Select a project interactively and post its definition.
 
 
 * DONE Target/Source View Commands
-|-------------------------------+---------------------------------------------|
-| Shortcut                      | Command                                     |
-|-------------------------------+---------------------------------------------|
-| *TARGET/SOURCE VIEW COMMANDS* |                                             |
-|-------------------------------+---------------------------------------------|
-| H-m s                         | org-pm-open-source-of-this-file             |
-| H-m t                         | org-pm-open-target-of-this-file             |
-| H-m f                         | org-pm-list-exported-files (current buffer) |
-| C-u H-m f                     | org-pm-list-exported-files (all)            |
-|-------------------------------+---------------------------------------------|
+|-------------------------------|
+| Shortcut                      |
+|-------------------------------|
+| *TARGET/SOURCE VIEW COMMANDS* |
+|-------------------------------|
+| H-m s                         |
+| H-m t                         |
+| H-m f                         |
+| C-u H-m f                     |
+|-------------------------------|
 
 ** UNDERWAY File menu of exported sections
 #+BEGIN_SRC emacs-lisp
