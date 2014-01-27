@@ -37,7 +37,7 @@ The commands are organized into 6 topics/sections:
 |--------------------------+---------------------------------------------|
 | H-m p e or H-m p s       | org-pm-show-project-definition-section      |
 | H-m p t                  | org-pm-edit-project-template                |
-| H-m p l                  | org-pm-project-def-list |
+| H-m p l                  | org-pm-list-project-definitions |
 | H-m p d                  | org-pm-list-duplicate-project-defs          |
 | C-u H-m p d              | pm/edit-duplicate-project-def               |
 | H-m p p                  | org-pm-post-project-def                     |
@@ -95,7 +95,7 @@ Project definitions are those nodes which are contained in nodes tagged as PROJE
 In the present buffer, mark all sections tagged PROJECT_DEFS.
 Additionally go to the first section tagged PROJECT_DEFS, if it exists.
 
-**** org-pm-project-def-list
+**** org-pm-list-project-definitions
 
 **** org-pm-list-dupicate-project-defs
 
@@ -193,7 +193,7 @@ CLOSED: [2013-12-21 Sat 22:07]
   See functions:
   - org-pm-check-add-project
   - org-pm-list-dupicate-project-defs
-  - org-pm-project-def-list
+  - org-pm-list-project-definitions
   - pm/edit-duplicate-project-def"
   )
 #+END_SRC
@@ -259,7 +259,7 @@ Select org-pm command interactively
                              org-pm-remove-section-from-project
                              org-pm-edit-project-tag-lists
                              org-pm-export
-                             org-pm-project-def-list
+                             org-pm-list-project-definitions
                              org-pm-open-target-of-this-section
                              org-pm-open-source-of-this-file
                              org-pm-source-file-menu
@@ -330,7 +330,7 @@ Note: I use the Hyper-m  (= Mac fn key m) as prefix, because it is not likely to
   (global-set-key (kbd "H-m p e") 'org-pm-show-project-definition-section)
   (global-set-key (kbd "H-m p s") 'org-pm-show-project-definition-section)
   (global-set-key (kbd "H-m p t") 'org-pm-edit-project-template)
-  (global-set-key (kbd "H-m p l") 'org-pm-project-def-list)
+  (global-set-key (kbd "H-m p l") 'org-pm-list-project-definitions)
   (global-set-key (kbd "H-m p d") 'org-pm-list-duplicate-project-defs)
   (global-set-key (kbd "H-m p p") 'org-pm-post-project-def)
   (global-set-key (kbd "H-m d l") 'org-pm-load-project-data)
@@ -413,7 +413,7 @@ Note: I use the Hyper-m  (= Mac fn key m) as prefix, because it is not likely to
   When a duplicate section id is found in a definition, it is replaced by a new one,
   and the new id is stored in the project."
     (interactive)
-    (unless org-publish-project-alist (org-pm-load-all-project-data))
+    (unless org-publish-project-alist (org-pm-load-project-data))
     (let (levels id ids projects)
       (org-map-entries
        '(let
@@ -427,7 +427,7 @@ Note: I use the Hyper-m  (= Mac fn key m) as prefix, because it is not likely to
               (setq id (org-id-get-create))
               (setq entry (plist-put entry :ID id)))
             (setq ids (cons id ids))
-            (setq projects (cons (org-pm-parse-project-def entry) projects))))
+            (setq projects (cons (Org-pm-parse-project-def entry) projects))))
        "PROJECT_DEFS")
       (mapcar 'org-pm-check-add-project projects)
       (unless do-not-save-now (org-pm-save-project-data))
@@ -448,7 +448,7 @@ Note: I use the Hyper-m  (= Mac fn key m) as prefix, because it is not likely to
   Argument template is a plist with additional properties,
   but may be left out if the section contains all the properties needed
   to define the project."
-    (unless org-publish-project-alist (org-pm-load-all-project-data))
+    (unless org-publish-project-alist (org-pm-load-project-data))
     (let (
           ;; (pdef (copy-sequence template))
           pdef
@@ -508,7 +508,7 @@ Note: I use the Hyper-m  (= Mac fn key m) as prefix, because it is not likely to
   Also create static and combined project components.
   Create alternate ids for the latter, by appending -static and -combined
   to the id of the main project."
-    (unless org-publish-project-alist (org-pm-load-all-project-data))
+    (unless org-publish-project-alist (org-pm-load-project-data))
     (let* ((p-name (car project))
            (p-def (cdr project))
            (prev-proj (assoc p-name org-publish-project-alist))
@@ -639,6 +639,160 @@ Remove tag naming selected project from current section (node).
         (-reject
          (lambda (p) (equal (car (org-pm-parse-tag p)) project)) tags)))))
 #+END_SRC
+** DONE org-pm-edit-project-tag-lists
+
+#+BEGIN_SRC emacs-lisp
+    (defun org-pm-edit-project-tag-lists ()
+      "Edit section that defines which tag-matching-sections are exported to which projects."
+      (interactive)
+      (let ((def-node
+              (car (org-map-entries '(cadr (org-element-at-point))
+                                    "ORG_PM_EXPORT_TAGS"))))
+        (cond
+         (def-node
+           (widen)
+           (goto-char (plist-get def-node :begin))
+           (recenter 3)
+           (message "Showing project-tag-match definition section."))
+          (t
+           (end-of-buffer)
+           (insert "\n* COMMENT project export tags :ORG_PM_EXPORT_TAGS:")
+           (insert "\n** my-blog blog _blog blog" )
+           (insert "\n(Export sections tagged =blog= to project named =my-blog=, " )
+           (insert "in subfolder =_blog=, with layout =blog=.)\n" )
+           (insert "\nEdit above or add similar sections for more tags/projects. " )
+           (message "Inserted project-tag-match definition section.")))))
+#+END_SRC
+
+** exporting sections that match tags
+
+*** DONE org-pm-get-tag-matching-lists                 :ORG_PM_EXPORT_TAGS:
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-pm-get-tag-matching-lists ()
+    (let (match-list)
+     (org-map-entries
+      '(lambda ()
+         (let (project deflist (plist (cadr (org-element-at-point))))
+           (cond
+            ((member "ORG_PM_EXPORT_TAGS" (plist-get plist :tags)))
+            (t
+             (setq deflist (split-string (plist-get plist :raw-value) " "))
+             (setq project (assoc (car deflist) org-publish-project-alist))
+             (when project
+               (setq match-list (cons (cons project (cdr deflist)) match-list)))))))
+      "ORG_PM_EXPORT_TAGS"
+      'file)
+     match-list))
+#+END_SRC
+
+#+RESULTS:
+: org-pm-get-tag-matching-lists
+
+#+BEGIN_SRC elisp
+(org-pm-get-tag-matching-lists)
+#+END_SRC
+
+**** octopress_pm_test 1
+
+**** Subtree 2
+
+
+
+*** Examples of code to use
+
+#+BEGIN_SRC elisp
+(let (todo-only)
+  (org-make-tags-matcher "asdf"))
+#+END_SRC
+
+
+#+BEGIN_SRC elisp
+  (let (todo-only)
+   (org-scan-tags
+    (lambda () (plist-get (cadr (org-element-at-point)) :raw-value))
+    (cdr (org-make-tags-matcher "orgmode"))
+    nil))
+#+END_SRC
+
+#+BEGIN_SRC elisp
+;; match tags beginning with "_t"
+   (let (todo-only)
+    (org-scan-tags
+     (lambda () (plist-get (cadr (org-element-at-point)) :tags))
+     '(and (progn (setq org-cached-props nil)
+                  (-filter
+                   (lambda (tag) (string-match "^_t" tag))
+                   tags-list)) t)
+     nil))
+#+END_SRC
+*** Preparing the implementation
+
+**** Tags mapped to projects in org mode sections
+
+The heading of a subsection of a sectiong tagged ORG_PM_PROJECT_TAGS specifies project, tag matches that go to the project, folder, and layout:
+
+<project> <tagmatch> <folder> <layout>
+
+Given the above, proceed as follows:
+
+- DONE: See org-pm-get-tag-matching-lists: Split the header string at " " and multiple-bind the variables =project= =tagsmatch= =folder= =layout= to the resulting values.
+- ONLY THE NON-NIL LISTS ARE RETURNED BY org-pm-get-tag-matching-lists.  SO OK: When =project-plist= is not nil, proceed with following:
+- For each of the tag-match project specification lists do the following:
+- Provide defaults "" for folder and "default" for layout, if these are nil.
+- Do org-scan-tags using a matcher constructed from =tagsmatch=, and a function that does the following:
+  - put (cadr (org-element-at-point)) into =section-plist=
+  - create export target path by =concat= of following:
+    - property =publishing-directory= of =project-plist=
+    - property =folder= of =section-plist= or variable =folder=
+    - construct filename with =org-pm-make-filename=, using:
+      - property =:raw-value= of =section-plist=
+      - property =:DATE:= of =section-plist=
+  - make =target-buffer= with =org-pm-make-section-buffer=,
+    using current buffer as =origin-buffer=,
+    and current =(point)= as =section-begin=.
+  - do the rest of =org-pm-export-1-section-to-projects=,
+    starting from line: =(if (equal (plist-get plist :publishing...)))=
+  - add the exported section to =sections-with-paths=, which was
+    started by the first part of =org-pm-export=
+    This has now been tested with custom function =assoc-add2=
+    ("Add element to the sublist of alist which starts with key, but insert element2 between key and the rest of the list.")
+  - Since the export of both underscore matched and tag-match matched section is now completed, adding to =sections-with-paths= does not interfere at this stage.
+  - Add =sections-with-paths= to the global variable =org-pm-section-exports=.
+  - Save org-pm data (which also saves the updated =org-pm-section-exports=).
+
+#+BEGIN_SRC elisp
+  (defun org-pm-make-tagmatch-list ()
+    "Find section tagged 'ORG_PM_EXPORT_TAGS'.  For each subsection this section:
+  Parse a heading of the form
+  <project> <tagmatch> <folder> <layout>
+  and produce data for matching the headings and then for exporting them.
+
+  The function returns a list.  Each element of that list has 4 elements:
+  1. project-alist
+  2. tagmatch-string
+  3. folder
+  4. layout
+
+  If a project named in a heading has no definition, then skip that heading."
+    (save-excursion
+      (save-restriction
+        (widen)
+        (let (entries)
+          (org-map-entries
+           '(lambda () (cadr (org-element-at-point)))
+           "ORG_PM_EXPORT_TAGS")
+
+          entries)))
+
+    )
+#+END_SRC
+
+*** Tags specifying projects enclosed in underscores
+
+A tag enclosed in underscores (=_=) specifies the project, folder, filename.
+This is the first method implemented in org-pm
+,,
 
 ** UNDERWAY org-pm-export
 
@@ -767,7 +921,7 @@ Test case for =org-pm-publish-buffer-to-html=.  Shows that it works if we initia
   )
 #+END_SRC
 
-**** COMMENT org-pm-export Top level: publish sections to html or source
+**** org-pm-export Top level: publish sections to html or source
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-export ()
@@ -797,28 +951,6 @@ Test case for =org-pm-publish-buffer-to-html=.  Shows that it works if we initia
               (filename (buffer-file-name buffer)))
           (dolist (section sections-with-paths)
             (org-pm-export-1-section-to-projects section buffer))
-          ;; --- adding export with tagmatch here
-          (let ((tagmatches (org-pm-parse-tagmatches))
-                ;; each tagmatch is a list with:
-                ;; project-name tagmatch-string folder layout
-                (dolist (tmatch tagmatches)
-                  ;; export each section that matches tagmatch-string
-                  ;; get project def list
-                  ;; proceed only if project def list exists:
-                  ;; run org-scan-tags with tagmatch-string and following function:
-                  ;; for each section matched:
-                  ;; - make path using section heading, project publication-path,
-                  ;; folder from tmatch or from section property.
-                  ;; optional blogify-filename if blogify-filename property is t
-                  ;; either in project or in section plist.
-                  ;; - export section to path using section plist, current buffer,
-                  ;; project plist.
-                  ;; add (path . project-name) to sections-with-paths
-                  ;; using assoc-add2
-                  ()
-                  )
-                ) (org-pm-))
-          ;; --- end export with tagmatch
           (setq org-pm-section-exports
                 (assoc-replace org-pm-section-exports filename sections-with-paths)))
         (org-pm-save-project-data))))
@@ -832,9 +964,8 @@ Test case for =org-pm-publish-buffer-to-html=.  Shows that it works if we initia
   ;; New help function assoc-add2
 #+BEGIN_SRC emacs-lisp
   (defun assoc-add2 (alist key element element2)
-    "Add element to the sublist of alist which starts with key.
-  Always skip the first element after the key, and add the new element
-  after it."
+    "Add element to the sublist of alist which starts with key,
+  but insert element2 between key and the rest of the list."
     (let ((sublist (assoc key alist)))
       (if sublist
           (setcdr sublist (cons element2 (cons element (cddr sublist))))
@@ -884,14 +1015,54 @@ Test case for =org-pm-publish-buffer-to-html=.  Shows that it works if we initia
                 (write-region nil nil path))))))
        (message "exported section: %s" section-with-paths)))
 
-   (defun org-pm-make-section-buffer (origin-buffer position)
+   (defun org-pm-export-1-section-to-projects-with-layout (specs)
+     "export section with specs from path-match.
+   Variant of org-pm-export-1-section-to-projects
+   To be called from org-scan-tags, which will be placing the point at the
+   start of the section to be published.
+   Specs is an element of the list produced by org-pm-get-tag-matching-lists.
+   It contains at most 4 elements:
+   - project
+   - tagmatch-string (not needed here)
+   - optionally: folder.
+   - optionally: layout."
+     (let* ((section (cadr (org-element-at-point)))
+           (target-buffer (org-pm-make-section-buffer (current-buffer)))
+           (project (cdr (car specs)))
+           (folder (or (caddr specs) (plist-get section :folder) ""))
+           (layout (or (cadddr specs)
+                       (plist-get section :layout)
+                       (plist-get project :layout)
+                       "default"))
+           (path (concat
+                  (file-name-as-directory (plist-get project :publishing-directory))
+                  (if (equal (length folder) 0)
+                      ""
+                    (file-name-as-directory folder))
+                  (org-pm-make-filename
+                   (plist-get section :raw-value)
+                   (plist-get section :DATE)))))
+       (if (equal (plist-get plist :publishing-function) 'org-html-publish-to-html)
+           (org-pm-publish-buffer-to-html
+            target-buffer path
+            (org-pm-make-yaml-front-matter project section layout))
+         (with-current-buffer target-buffer
+           (let ((dir (file-name-directory path)))
+             (unless (file-exists-p dir) (make-directory dir t)))
+           (write-region nil nil path)))
+       (message "exported section: %s" (plist-get section :raw-value))
+       ;; return section-id-path-project for storing in file section export list.
+       ())
+     )
+
+   (defun org-pm-make-section-buffer (origin-buffer &optional position)
      "Copy the contents of an org-mode section located at position
    in origin-buffer to a temporary buffer, for exporting.
    Return the temporary buffer.
    Used by org-pm-export-1-section-to-projects.
    Passed as argument to org-pm-export-buffer-to-html."
      (with-current-buffer origin-buffer
-       (goto-char position)
+       (when position (goto-char position))
        (org-copy-subtree))
      (with-current-buffer (get-buffer-create "*org-pm-copy-buf*")
        (erase-buffer)
@@ -1171,168 +1342,6 @@ Get all sections marked with tags that are enclosed in underscore (=_=).  Parse 
 
 ****** org-pm-section-project-paths version 2: using org-scan-tags
 
-******* Help function: org-pm-edit-project-tag-lists
-
-#+BEGIN_SRC emacs-lisp
-    (defun org-pm-edit-project-tag-lists ()
-      "Edit section that defines which tag-matching-sections are exported to which projects."
-      (interactive)
-      (let ((def-node
-              (car (org-map-entries '(cadr (org-element-at-point))
-                                    "ORG_PM_EXPORT_TAGS"))))
-        (cond
-         (def-node
-           (widen)
-           (goto-char (plist-get def-node :begin))
-           (recenter 3)
-           (message "Showing project-tag-match definition section."))
-          (t
-           (end-of-buffer)
-           (insert "\n* COMMENT project export tags :ORG_PM_EXPORT_TAGS:")
-           (insert "\n** my-blog blog _blog blog" )
-           (insert "\n(Export sections tagged =blog= to project named =my-blog=, " )
-           (insert "in subfolder =_blog=, with layout =blog=.)\n" )
-           (insert "\nEdit above or add similar sections for more tags/projects. " )
-           (message "Inserted project-tag-match definition section.")))))
-#+END_SRC
-
-******* Examples of code to use
-
-#+BEGIN_SRC elisp
-(let (todo-only)
-  (org-make-tags-matcher "asdf"))
-#+END_SRC
-
-
-#+BEGIN_SRC elisp
-  (let (todo-only)
-   (org-scan-tags
-    (lambda () (plist-get (cadr (org-element-at-point)) :raw-value))
-    (cdr (org-make-tags-matcher "orgmode"))
-    nil))
-#+END_SRC
-
-#+BEGIN_SRC elisp
-;; match tags beginning with "_t"
-   (let (todo-only)
-    (org-scan-tags
-     (lambda () (plist-get (cadr (org-element-at-point)) :tags))
-     '(and (progn (setq org-cached-props nil)
-                  (-filter
-                   (lambda (tag) (string-match "^_t" tag))
-                   tags-list)) t)
-     nil))
-#+END_SRC
-******* Preparing the implementation
-
-******** Tags mapped to projects in org mode sections
-
-The heading of a subsection of a sectiong tagged ORG_PM_PROJECT_TAGS specifies project, tag matches that go to the project, folder, and layout:
-
-<project> <tagmatch> <folder> <layout>
-
-Given the above, proceed as follows:
-
-- Split the header string at " " and multiple-bind the variables =project-name= =tagsmatch= =folder= =layout= to the resulting values.
-- Provide defaults "" for folder and "default" for layout, if these are nil.
-- Get the project plist from =project-name=, put it in =project-plist=.
-- When =project-plist= is not nil, proceed with following:
-- Do org-scan-tags using a matcher constructed from =tagsmatch=, and a function that does the following:
-  - put (cadr (org-element-at-point)) into =section-plist=
-  - create export target path by =concat= of following:
-    - property =publishing-directory= of =project-plist=
-    - property =folder= of =section-plist= or variable =folder=
-    - filename constructed with =org-pm-make-filename=, using:
-      - property =:raw-value= of =section-plist=
-      - property =:DATE:= of =section-plist=
-  - make =target-buffer= with =org-pm-make-section-buffer=,
-    using current buffer as =origin-buffer=,
-    and current =(point)= as =section-begin=.
-  - do the rest of =org-pm-export-1-section-to-projects=,
-    starting from line: =(if (equal (plist-get plist :publishing...)))=
-  - add the exported section to =org-pm-section-exports=,
-    This is going to be complex:
-    The order of creating the component-list of sections/projects/paths
-    is different than that for the underscore tag matching.
-    So we could create the components list as an assoc list
-    with the point of the start of each
-    entry as key, and use =assoc-add2= to add path-project pairs to it,
-    and then when all the projects have been processed,
-    we merge this components list with the one created by the
-    underscore-match export.
-    So do the tagsmatch type of export first,
-    then the underscore-match type of export.
-
-    Note: Look at own function =assoc-add=
-    (""Add element to the sublist of alist which starts with key.")
-    with path of file of current buffer as key.
-
-IMPORTANT: Check that assoc-add does not cause conflicts with the
-other use of the section list by the underscore-tag based export mechanism.
-
-#+BEGIN_SRC elisp
-  (defun org-pm-make-tagmatch-list ()
-    "Find section tagged 'ORG_PM_EXPORT_TAGS'.  For each subsection this section:
-  Parse a heading of the form
-  <project> <tagmatch> <folder> <layout>
-  and produce data for matching the headings and then for exporting them.
-
-  The function returns a list.  Each element of that list has 4 elements:
-  1. project-alist
-  2. tagmatch-string
-  3. folder
-  4. layout
-
-  If a project named in a heading has no definition, then skip that heading."
-    (save-excursion
-      (save-restriction
-        (widen)
-        (let (entries)
-          (org-map-entries
-           '(lambda () (cadr (org-element-at-point)))
-           "ORG_PM_EXPORT_TAGS")
-
-          entries)))
-
-    )
-#+END_SRC
-
-********* org-pm-get-tag-matching-lists          :ORG_PM_EXPORT_TAGS:
-
-#+BEGIN_SRC emacs-lisp
-  (defun org-pm-get-tag-matching-lists ()
-    (let (match-list)
-     (org-map-entries
-      '(lambda ()
-         (let (project deflist (plist (cadr (org-element-at-point))))
-           (cond
-            ((member "ORG_PM_EXPORT_TAGS" (plist-get plist :tags)))
-            (t
-             (setq deflist (split-string (plist-get plist :raw-value) " "))
-             (setq project (assoc (car deflist) org-publish-project-alist))
-             (when project
-               (setq match-list (cons (cons project (cdr deflist)) match-list)))))))
-      "ORG_PM_EXPORT_TAGS"
-      'file)
-     match-list))
-#+END_SRC
-
-#+RESULTS:
-: org-pm-get-tag-matching-lists
-
-#+BEGIN_SRC elisp
-(org-pm-get-tag-matching-lists)
-#+END_SRC
-
-********** octopress_pm_test 1
-
-********** Subtree 2
-
-******* Tags specifying projects enclosed in underscores
-
-A tag enclosed in underscores (=_=) specifies the project, folder, filename.
-This is the first method implemented in org-pm
-,,
 ***** org-pm-get-1-section-project-paths
 
 #+BEGIN_SRC emacs-lisp
@@ -1434,6 +1443,7 @@ Called by org-get-section-components.  Converts the title of a section to a file
       (setq filename (concat (substring date 1 11) "-" filename)))
     ;; return project, folder, new filename as list
     (setcdr (cdr tag) (list filename))
+    (message "org-pm-parse-tag completed successfully")
     tag)
 
   ;; Create final path to copy file, from list (project folder file)
@@ -1447,17 +1457,20 @@ Called by org-get-section-components.  Converts the title of a section to a file
   Combine base directory + folder + file from list proj-folder-file
   to make target-path.
   Return (path . project-name)
-  The car of the res:ult is used to copy the component to the path.
+  The car of the result is used to copy the component to the path.
   The cdr of the result (project-name) is used for display and debugging."
+
     (let* ((pname (car proj-folder-file))
            (project (cdr (assoc pname org-publish-project-alist)))
+           ;; Publishing directly to publishing directory!
+           (base (plist-get project :publishing-directory))
            (folder (cadr proj-folder-file))
-           (slash (if (string-match "/$" folder) "" "/"))
            (target-path
             (if project
-                ;; Publishing directly to publishing directory!
-                (concat (plist-get project :publishing-directory)
-                        folder slash (caddr proj-folder-file)))))
+                (concat (file-name-as-directory base)
+                        (if (equal (length folder) 0)
+                            "" (file-name-as-directory folder))
+                        (caddr proj-folder-file)))))
       (cons target-path pname)))
 
   ;; Convert title of org-mode section entry into filename
@@ -1478,6 +1491,7 @@ Called by org-get-section-components.  Converts the title of a section to a file
            (string-match
             ": [[:digit:]]\\{2\\}/[[:digit:]]\\{2\\}/[[:digit:]]\\{2\\}"
             title)))
+   ;;   (message "filename: title-date-pos %s, date: %s" title-date-pos date)
       (if title-date-pos
           (setq filename (substring title 0 title-date-pos))
         (setq filename title))
@@ -1493,6 +1507,7 @@ Called by org-get-section-components.  Converts the title of a section to a file
                   "^[<\[]\\([[:digit:]]\\{4\\}-[[:digit:]]\\{2\\}-[[:digit:]]\\{2\\}\\)"
                   date))
         (setq filename (concat (substring date 1 11) "-" filename)))
+    ;;  (message "org-pm-make-filename completed successfully")
       filename))
 #+END_SRC
 
@@ -1596,7 +1611,7 @@ categories:
 **** org-pm-make-yaml-front-matter
 
 #+BEGIN_SRC emacs-lisp
-  (defun org-pm-make-yaml-front-matter (project-plist section-plist)
+  (defun org-pm-make-yaml-front-matter (project-plist section-plist &optional layout)
     "Make YAML front matter for Jekyll or Octopress.
 
   If the value of property body-only in the project-plist is t, then add YAML
@@ -1627,6 +1642,9 @@ categories:
   - footer :: from property FOOTER
 
   If :body-only is nil, then the yaml-header string is the empty string."
+
+    (setq layout  (or layout (plist-get section-plist :LAYOUT)
+                      (if date "blog" "default")))
     (let (yaml-header)
       (if (plist-get project-plist :body-only)
           (let*
@@ -1639,8 +1657,6 @@ categories:
                (comments (plist-get section-plist :COMMENTS))
                (date (plist-get section-plist :DATE))
                (external-url (plist-get section-plist :EXTERNAL-URL))
-               (layout (or (plist-get section-plist :LAYOUT)
-                           (if date "blog" "default")))
                (permalink (plist-get section-plist :PERMALINK))
                (published (plist-get section-plist :PUBLISHED))
                (sharing (plist-get section-plist :SHARING))
@@ -1736,7 +1752,7 @@ Since a file containing org-pm tags can be anywhere outside an org-mode project 
 |-----------------------+----------------------------------------|
 | H-m p e or H-m p s    | org-pm-show-project-definition-section |
 | H-m p t               | org-pm-edit-project-template           |
-| H-m p l               | org-pm-project-def-list |
+| H-m p l               | org-pm-list-project-definitions |
 | H-m p d               | org-pm-list-duplicate-project-defs     |
 | C-u H-m p d           | pm/edit-duplicate-project-def          |
 |-----------------------+----------------------------------------|
@@ -1854,11 +1870,11 @@ Note that edits may cause conflicts when updating org-pm from git.
             (t (message "No targets found for %s" (org-get-heading))))))
 #+END_SRC
 
-** DONE org-pm-project-def-list
+** DONE org-pm-list-project-definitions
 CLOSED: [2013-12-22 Sun 14:30]
 
 #+BEGIN_SRC emacs-lisp
-  (defun org-pm-project-def-list ()
+  (defun org-pm-list-project-definitions ()
     "Build list of projects with links to file and node containing the project definition,
   in a separate org-mode buffer, and provide links to both file and section.
   Also list duplicate project definitions,
@@ -1913,12 +1929,12 @@ CLOSED: [2013-12-22 Sun 14:30]
 #+END_SRC
 
 #+RESULTS:
-: org-pm-project-def-list
+: org-pm-list-project-definitions
 
 *** DONE org-pm-search-link
 CLOSED: [2013-12-22 Sun 18:45]
 
-Currently, links to IDs that are not in org-link-locations are not found by org-mode.  =org-pm-search-link= finds such links by going to the file and then searching for the property with the id of the link.  It is used in org-pm-project-def-list to enable jumping to links of duplicate project defs.  It can also be used for the same purpose in lists of components.
+Currently, links to IDs that are not in org-link-locations are not found by org-mode.  =org-pm-search-link= finds such links by going to the file and then searching for the property with the id of the link.  It is used in org-pm-list-project-definitions to enable jumping to links of duplicate project defs.  It can also be used for the same purpose in lists of components.
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-search-link (link)
@@ -2019,10 +2035,13 @@ Select a project interactively and post its definition.
     (let ((project-name
            (grizzl-completing-read
             "Which project? "
-            (grizzl-make-index (mapcar 'car org-publish-project-alist)))))
-      (message "THIS IS THE DEFINITION OF PROJECT %s:\n%s"
-               project-name
-               (assoc project-name org-publish-project-alist))))
+            (grizzl-make-index (mapcar 'car org-publish-project-alist))))
+          buffer)
+      (setq buffer (get-buffer-create
+                    (format "*org-pm-project-definition:%s*" project-name)))
+      (switch-to-buffer buffer)
+      (erase-buffer)
+      (pprint (assoc project-name org-publish-project-alist) buffer)))
 #+END_SRC
 
 
@@ -2089,7 +2108,7 @@ Select a project interactively and post its definition.
 #+END_SRC
 
 #+RESULTS:
-: org-pm-load-all-project-data
+: org-pm-load-project-data
 
 ** DONE org-pm-save-project-data
 

@@ -33,7 +33,7 @@ Type H-m H-m (Function-key marked "fn" and m, twice) to open the command menu (=
 
 |  1 | org-pm-insert-new-project              |
 |  2 | org-pm-make-projects                   |
-|  3 | org-pm-project-def-list                |
+|  3 | org-pm-list-project-definitions                |
 |  4 | org-pm-add-section-to-project          |
 |  5 | org-pm-remove-section-from-project     |
 |  6 | org-pm-edit-project-tag-lists          |
@@ -52,6 +52,8 @@ Type H-m H-m (Function-key marked "fn" and m, twice) to open the command menu (=
 | 19 | org-pm-reset-project-list              |
 | 20 | org-pm-edit-saved-project-data         |
 #+TBLFM: $1=@-1+1::@1$1=1
+
+See the end of this tutorial for a short description of each command.
 
 ** =org-pm-insert-new-project=: Create a new project
 
@@ -152,7 +154,7 @@ Export sections with tag "portal" to root directory of project =portal= using th
 - org-pm-open-source-of-this-file         :: For a buffer whose file has been created by publishing a section with =org-publish-meta=, go to the section of the source file that created this file.
 - org-pm-open-target-of-this-section         :: Choose from a list of targets where this section or one of its super-sections has been exported, and open the selected file.
 - org-pm-post-project-def                 :: Choose a project from menu and post its definition as lisp code.
-- org-pm-project-def-list                 :: Create a new org-mode buffer and insert in it a list of all projects that have been created =org-publish-meta=.
+- org-pm-list-project-definitions                 :: Create a new org-mode buffer and insert in it a list of all projects that have been created =org-publish-meta=.
   - For each project, provide a link links to following locations:
     - The org-mode section where the project is defined
     - The project's =base-directory=
