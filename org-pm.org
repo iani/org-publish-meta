@@ -797,7 +797,7 @@ This is the first method implemented in org-pm
 ** UNDERWAY org-pm-export
 
 *** Notes
-STATUS: Focus on =org-pm-export-1-section-to-projects=
+STATUS Wed, 29 Jan 2014 14:23:30: =org-pm-export-1-section-to-projects= done.  Working on org-pm-export-1-section-to-projects-with-layout
 
 First thing to do:
 
