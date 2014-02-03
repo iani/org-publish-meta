@@ -470,10 +470,24 @@ org-pm-section-exports, and save it to disk."
       (widen)
       (let* ((sections-with-paths (org-pm-get-section-project-paths))
              (buffer (current-buffer))
-            (filename (buffer-file-name buffer)))
+             (filename (buffer-file-name buffer))
+             todo-only) ;; required by org-make-tags-matcher!
+        ;; Part 1: export sections marked with tags of type: _tag_
         (dolist (section sections-with-paths)
           (org-pm-export-1-section-to-projects section buffer))
-        (org-pm-test-dynamic-binding-of-sections-with-paths)
+        ;; Part 2: export sections matching tags specified in special section
+        (dolist (tag-match-spec (org-pm-get-tag-matching-lists))
+          (org-scan-tags
+           (lambda ()
+             (setq section
+                   (org-pm-export-1-section-to-projects-with-layout tag-match-spec))
+             (setq sections-with-paths
+                   (assoc-add2 sections-with-paths
+                               (car section)
+                               (cddr section)
+                               (cadr section))))
+           (cdr (org-make-tags-matcher (cadr tag-match-spec)))))
+        ;; Part 3: add section info to global section export list and save.
         (setq org-pm-section-exports
               (assoc-replace org-pm-section-exports filename sections-with-paths)))
       (org-pm-save-project-data))))
@@ -484,8 +498,10 @@ specs for matching tags and exporting."
 ;; NOT YET DONE!
 )
 
-(defun org-pm-test-dynamic-binding-of-sections-with-paths ()
+(defun org-pm-test-lexical-binding-of-sections-with-paths ()
   (message "org-pm-test-dynamic-binding-of-sections-with-paths !!!!!")
+  (message "sections with paths is: %s" sections-with-paths)
+  (setq sections-with-paths '("asdfasdf" "asdfasdfasdf" (1 2 3)))
 )
 
 (defun assoc-add2 (alist key element element2)
