@@ -726,6 +726,7 @@ org-pm-make-filename, which is called by org-pm-get-section-project-components."
     (setq filename (concat (substring date 1 11) "-" filename)))
   ;; return project, folder, new filename as list
   (setcdr (cdr tag) (list filename))
+  (message "org-pm-parse-tag completed successfully")
   tag)
 
 ;; Create final path to copy file, from list (project folder file)
@@ -739,16 +740,17 @@ org-pm-make-filename, which is called by org-pm-get-section-project-components."
 Combine base directory + folder + file from list proj-folder-file
 to make target-path.
 Return (path . project-name)
-The car of the res:ult is used to copy the component to the path.
+The car of the result is used to copy the component to the path.
 The cdr of the result (project-name) is used for display and debugging."
+
   (let* ((pname (car proj-folder-file))
          (project (cdr (assoc pname org-publish-project-alist)))
          ;; Publishing directly to publishing directory!
-         (base (file-name-as-directory (plist-get project :publishing-directory)))
+         (base (plist-get project :publishing-directory))
          (folder (cadr proj-folder-file))
          (target-path
           (if project
-              (concat path
+              (concat (file-name-as-directory base)
                       (if (equal (length folder) 0)
                           "" (file-name-as-directory folder))
                       (caddr proj-folder-file)))))
@@ -772,6 +774,7 @@ Becomes:
          (string-match
           ": [[:digit:]]\\{2\\}/[[:digit:]]\\{2\\}/[[:digit:]]\\{2\\}"
           title)))
+ ;;   (message "filename: title-date-pos %s, date: %s" title-date-pos date)
     (if title-date-pos
         (setq filename (substring title 0 title-date-pos))
       (setq filename title))
@@ -787,6 +790,7 @@ Becomes:
                 "^[<\[]\\([[:digit:]]\\{4\\}-[[:digit:]]\\{2\\}-[[:digit:]]\\{2\\}\\)"
                 date))
       (setq filename (concat (substring date 1 11) "-" filename)))
+  ;;  (message "org-pm-make-filename completed successfully")
     filename))
 
 (defun org-pm-make-yaml-front-matter (project-plist section-plist &optional layout)

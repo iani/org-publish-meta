@@ -670,6 +670,40 @@ Remove tag naming selected project from current section (node).
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-get-tag-matching-lists ()
+    "Scan all sections tagged ORG_PM_EXPORT_TAGS and return a list of lists
+  that define which tags should be matched to export sections to projects.
+  Each sublist has the following form:
+  <project-name-and-properties> <tag-match-string> &optional <folder> <layout>.
+
+  <project-name-and-properties> is a full project definition obtained from
+  org-publish-project-alist.
+
+  <tag-match-string> is a string that defines how to match sections through tags.
+  The syntax for tag match strings is described in:
+  http://orgmode.org/manual/Matching-tags-and-properties.html
+
+  <folder> is an optional string giving a subfolder of the publishing-directory
+  to publish the matched sections in.
+
+  <layout> is an optional string defining the layout to be used when publishing
+  in Jekyll or Octopress.
+
+  Alternative description:
+
+  Find section tagged 'ORG_PM_EXPORT_TAGS'.  For each subsection this section:
+  Parse a heading of the form
+  <project> <tagmatch> <folder> <layout>
+  and produce data for matching the headings and then for exporting them.
+
+  The function returns a list.  Each element of that list has 4 elements:
+  1. project-alist
+  2. tagmatch-string
+  3. folder
+  4. layout
+
+  If a project named in a heading has no definition, then skip that heading.
+
+  "
     (let (match-list)
      (org-map-entries
       '(lambda ()
@@ -684,13 +718,6 @@ Remove tag naming selected project from current section (node).
       "ORG_PM_EXPORT_TAGS"
       'file)
      match-list))
-#+END_SRC
-
-#+RESULTS:
-: org-pm-get-tag-matching-lists
-
-#+BEGIN_SRC elisp
-(org-pm-get-tag-matching-lists)
 #+END_SRC
 
 **** octopress_pm_test 1
@@ -760,33 +787,6 @@ Given the above, proceed as follows:
   - Since the export of both underscore matched and tag-match matched section is now completed, adding to =sections-with-paths= does not interfere at this stage.
   - Add =sections-with-paths= to the global variable =org-pm-section-exports=.
   - Save org-pm data (which also saves the updated =org-pm-section-exports=).
-
-#+BEGIN_SRC elisp
-  (defun org-pm-make-tagmatch-list ()
-    "Find section tagged 'ORG_PM_EXPORT_TAGS'.  For each subsection this section:
-  Parse a heading of the form
-  <project> <tagmatch> <folder> <layout>
-  and produce data for matching the headings and then for exporting them.
-
-  The function returns a list.  Each element of that list has 4 elements:
-  1. project-alist
-  2. tagmatch-string
-  3. folder
-  4. layout
-
-  If a project named in a heading has no definition, then skip that heading."
-    (save-excursion
-      (save-restriction
-        (widen)
-        (let (entries)
-          (org-map-entries
-           '(lambda () (cadr (org-element-at-point)))
-           "ORG_PM_EXPORT_TAGS")
-
-          entries)))
-
-    )
-#+END_SRC
 
 *** Tags specifying projects enclosed in underscores
 
