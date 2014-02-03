@@ -787,7 +787,30 @@ Given the above, proceed as follows:
   - Since the export of both underscore matched and tag-match matched section is now completed, adding to =sections-with-paths= does not interfere at this stage.
   - Add =sections-with-paths= to the global variable =org-pm-section-exports=.
   - Save org-pm data (which also saves the updated =org-pm-section-exports=).
+  (defun org-pm-make-tagmatch-list ()
+    "Find section tagged 'ORG_PM_EXPORT_TAGS'.  For each subsection this section:
+  Parse a heading of the form
+  <project> <tagmatch> <folder> <layout>
+  and produce data for matching the headings and then for exporting them.
 
+  The function returns a list.  Each element of that list has 4 elements:
+  1. project-alist
+  2. tagmatch-string
+  3. folder
+  4. layout
+
+  If a project named in a heading has no definition, then skip that heading."
+    (save-excursion
+      (save-restriction
+        (widen)
+        (let (entries)
+          (org-map-entries
+           '(lambda () (cadr (org-element-at-point)))
+           "ORG_PM_EXPORT_TAGS")
+
+          entries)))
+
+    )
 *** Tags specifying projects enclosed in underscores
 
 A tag enclosed in underscores (=_=) specifies the project, folder, filename.
@@ -796,7 +819,7 @@ This is the first method implemented in org-pm
 
 ** UNDERWAY org-pm-export
 
-*** Notes
+*** DONE Notes
 STATUS Wed, 29 Jan 2014 14:23:30: =org-pm-export-1-section-to-projects= done.  Working on org-pm-export-1-section-to-projects-with-layout
 
 First thing to do:
@@ -815,7 +838,7 @@ Decide which category this section belongs to:
 
 Note that both the yaml header construction and the conversion to html is done again for each project.  This is because differences in project property values may require differt renderings.
 
-**** non-html export
+**** TODO non-html export
 
 Copy the contents of the section to the buffer, but leave out the heading.  To get the contents, use this:
 
@@ -921,7 +944,7 @@ Test case for =org-pm-publish-buffer-to-html=.  Shows that it works if we initia
   )
 #+END_SRC
 
-**** org-pm-export Top level: publish sections to html or source
+*** org-pm-export Top level: publish sections to html or source
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-export ()
@@ -951,6 +974,9 @@ Test case for =org-pm-publish-buffer-to-html=.  Shows that it works if we initia
               (filename (buffer-file-name buffer)))
           (dolist (section sections-with-paths)
             (org-pm-export-1-section-to-projects section buffer))
+          ;; below test worked. we can proceed to call org-pm-export-tag-matched-sections
+          ;; using sections-with-paths available through lexical binding
+          ;; (org-pm-test-lexical-binding-of-sections-with-paths)
           (setq org-pm-section-exports
                 (assoc-replace org-pm-section-exports filename sections-with-paths)))
         (org-pm-save-project-data))))
@@ -959,6 +985,12 @@ Test case for =org-pm-publish-buffer-to-html=.  Shows that it works if we initia
     "parse section tagged 'ORG_PM_EXPORT_TAGS'. Produce list of
   specs for matching tags and exporting."
   ;; NOT YET DONE!
+  )
+
+  (defun org-pm-test-lexical-binding-of-sections-with-paths ()
+    (message "org-pm-test-dynamic-binding-of-sections-with-paths !!!!!")
+    (message "sections with paths is: %s" sections-with-paths)
+    (setq sections-with-paths '("asdfasdf" "asdfasdfasdf" (1 2 3)))
   )
 #+END_SRC
   ;; New help function assoc-add2
@@ -1123,7 +1155,7 @@ No longer used?:
     (write-region nil nil target-path)))
 #+END_SRC
 
-***** org-pm-get-non-project-tags
+**** org-pm-get-non-project-tags
 
 Get those tags which are not enclosed in dash (=-=).
 Function org-pm-make-yaml-matter inserts these tags as part of the YAML matter in the file header for use by Jekyll/Octopress.
@@ -1643,8 +1675,6 @@ categories:
 
   If :body-only is nil, then the yaml-header string is the empty string."
 
-    (setq layout  (or layout (plist-get section-plist :LAYOUT)
-                      (if date "blog" "default")))
     (let (yaml-header)
       (if (plist-get project-plist :body-only)
           (let*
@@ -1661,6 +1691,8 @@ categories:
                (published (plist-get section-plist :PUBLISHED))
                (sharing (plist-get section-plist :SHARING))
                (footer (plist-get section-plist :FOOTER)))
+            (setq layout  (or layout (plist-get section-plist :LAYOUT)
+                              (if date "blog" "default")))
             (if date
                 (setq date (format-time-string
                             time-format-string

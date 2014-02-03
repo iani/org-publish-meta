@@ -397,6 +397,40 @@ Add selected project as tag to current section."
        (message "Inserted project-tag-match definition section.")))))
 
 (defun org-pm-get-tag-matching-lists ()
+  "Scan all sections tagged ORG_PM_EXPORT_TAGS and return a list of lists
+that define which tags should be matched to export sections to projects.
+Each sublist has the following form:
+<project-name-and-properties> <tag-match-string> &optional <folder> <layout>.
+
+<project-name-and-properties> is a full project definition obtained from
+org-publish-project-alist.
+
+<tag-match-string> is a string that defines how to match sections through tags.
+The syntax for tag match strings is described in:
+http://orgmode.org/manual/Matching-tags-and-properties.html
+
+<folder> is an optional string giving a subfolder of the publishing-directory
+to publish the matched sections in.
+
+<layout> is an optional string defining the layout to be used when publishing
+in Jekyll or Octopress.
+
+Alternative description:
+
+Find section tagged 'ORG_PM_EXPORT_TAGS'.  For each subsection this section:
+Parse a heading of the form
+<project> <tagmatch> <folder> <layout>
+and produce data for matching the headings and then for exporting them.
+
+The function returns a list.  Each element of that list has 4 elements:
+1. project-alist
+2. tagmatch-string
+3. folder
+4. layout
+
+If a project named in a heading has no definition, then skip that heading.
+
+"
   (let (match-list)
    (org-map-entries
     '(lambda ()
@@ -439,6 +473,7 @@ org-pm-section-exports, and save it to disk."
             (filename (buffer-file-name buffer)))
         (dolist (section sections-with-paths)
           (org-pm-export-1-section-to-projects section buffer))
+        (org-pm-test-dynamic-binding-of-sections-with-paths)
         (setq org-pm-section-exports
               (assoc-replace org-pm-section-exports filename sections-with-paths)))
       (org-pm-save-project-data))))
@@ -447,6 +482,10 @@ org-pm-section-exports, and save it to disk."
   "parse section tagged 'ORG_PM_EXPORT_TAGS'. Produce list of
 specs for matching tags and exporting."
 ;; NOT YET DONE!
+)
+
+(defun org-pm-test-dynamic-binding-of-sections-with-paths ()
+  (message "org-pm-test-dynamic-binding-of-sections-with-paths !!!!!")
 )
 
 (defun assoc-add2 (alist key element element2)
@@ -825,8 +864,6 @@ or the section's tags:
 
 If :body-only is nil, then the yaml-header string is the empty string."
 
-  (setq layout  (or layout (plist-get section-plist :LAYOUT)
-                    (if date "blog" "default")))
   (let (yaml-header)
     (if (plist-get project-plist :body-only)
         (let*
@@ -843,6 +880,8 @@ If :body-only is nil, then the yaml-header string is the empty string."
              (published (plist-get section-plist :PUBLISHED))
              (sharing (plist-get section-plist :SHARING))
              (footer (plist-get section-plist :FOOTER)))
+          (setq layout  (or layout (plist-get section-plist :LAYOUT)
+                            (if date "blog" "default")))
           (if date
               (setq date (format-time-string
                           time-format-string
