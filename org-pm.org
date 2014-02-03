@@ -726,7 +726,7 @@ Remove tag naming selected project from current section (node).
 
 
 
-*** Examples of code to use
+*** Examples of code to use                                       :orgmode:
 
 #+BEGIN_SRC elisp
 (let (todo-only)
@@ -741,6 +741,9 @@ Remove tag naming selected project from current section (node).
     (cdr (org-make-tags-matcher "orgmode"))
     nil))
 #+END_SRC
+
+#+RESULTS:
+| Examples of code to use |
 
 #+BEGIN_SRC elisp
 ;; match tags beginning with "_t"
@@ -971,12 +974,24 @@ Test case for =org-pm-publish-buffer-to-html=.  Shows that it works if we initia
         (widen)
         (let* ((sections-with-paths (org-pm-get-section-project-paths))
                (buffer (current-buffer))
-              (filename (buffer-file-name buffer)))
+               (filename (buffer-file-name buffer))
+               todo-only) ;; required by org-make-tags-matcher!
+          ;; Part 1: export sections marked with tags of type: _tag_
           (dolist (section sections-with-paths)
             (org-pm-export-1-section-to-projects section buffer))
-          ;; below test worked. we can proceed to call org-pm-export-tag-matched-sections
-          ;; using sections-with-paths available through lexical binding
-          ;; (org-pm-test-lexical-binding-of-sections-with-paths)
+          ;; Part 2: export sections matching tags specified in special section
+          (dolist (tag-match-spec (org-pm-get-tag-matching-lists))
+            (org-scan-tags
+             (lambda ()
+               (setq section
+                     (org-pm-export-1-section-to-projects-with-layout tag-match-spec))
+               (setq sections-with-paths
+                     (assoc-add2 sections-with-paths
+                                 (car section)
+                                 (cddr section)
+                                 (cadr section))))
+             (cdr (org-make-tags-matcher (cadr tag-match-spec)))))
+          ;; Part 3: add section info to global section export list and save.
           (setq org-pm-section-exports
                 (assoc-replace org-pm-section-exports filename sections-with-paths)))
         (org-pm-save-project-data))))
@@ -1009,11 +1024,11 @@ Test case for =org-pm-publish-buffer-to-html=.  Shows that it works if we initia
 
   Now let's try the new assoc-add
 
- #+BEGIN_SRC elisp
+#+BEGIN_SRC elisp
    (assoc-add2 '((1 "id" ("path". "project"))) 1 '("path2" . "project2") "yes---id2")
- #+END_SRC
+#+END_SRC
 
- #+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp
    (defun org-pm-export-1-section-to-projects (section-with-paths origin-buffer)
      "Copy section to temporary buffer, then save it to all
    paths in the rest of section-with-paths.
