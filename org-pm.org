@@ -236,77 +236,69 @@ CLOSED: [2013-12-21 Sat 22:07]
 
 ** DONE org-pm-menu
 
-Select org-pm command interactively
-
-#+BEGIN_SRC elisp
-  (defun debug-org-pm-menu ()
-    (interactive)
-    (let* ((commands '("a" "b"))
-           (menu (grizzl-make-index commands)))
-      (grizzl-completing-read "select command: " menu)))
-#+END_SRC
+Make menu for selecting and runing an org-pm command.
 
 #+BEGIN_SRC emacs-lisp
-    (require 'grizzl)
+  (require 'grizzl)
 
-    (defvar *org-pm-menu* nil
-      "Grizz-menu index for all commands of org-pm-menu.")
-    (setq *org-pm-menu*
-          (let* ((commands '(
-                             org-pm-insert-new-project
-                             org-pm-make-projects
-                             org-pm-add-section-to-project
-                             org-pm-remove-section-from-project
-                             org-pm-edit-project-tag-lists
-                             org-pm-export
-                             org-pm-list-project-definitions
-                             org-pm-open-target-of-this-section
-                             org-pm-open-source-of-this-file
-                             org-pm-source-file-menu
-                             org-pm-target-file-menu
-                             org-pm-show-project-definition-section
-                             org-pm-edit-project-template
-                             org-pm-list-duplicate-project-defs
-                             pm/edit-duplicate-project-def
-                             org-pm-post-project-def
-                             org-pm-load-project-data
-                             org-pm-save-project-data
-                             org-pm-reset-project-list
-                             org-pm-edit-saved-project-data
-                             ))
-                 (index 0))
-            (grizzl-make-index
-             (-map (lambda (c)
-                     (format "%s: %s"
-                             (progn
-                               (setq index (+ 1 index))
-                               (if (> index 9)
-                                   (format "%d" index)
-                                 (format ".%d" index)))
-                             (replace-regexp-in-string
-                              "-"
-                              " "
-                              (replace-regexp-in-string
-                               "^org-pm-" "" (symbol-name c)))))
-                   commands))))
+  (defvar *org-pm-menu* nil
+    "Grizz-menu index for all commands of org-pm-menu.")
+  (setq *org-pm-menu*
+        (let* ((commands '(
+                           org-pm-insert-new-project
+                           org-pm-make-projects
+                           org-pm-add-section-to-project
+                           org-pm-remove-section-from-project
+                           org-pm-edit-project-tag-lists
+                           org-pm-export
+                           org-pm-list-project-definitions
+                           org-pm-open-target-of-this-section
+                           org-pm-open-source-of-this-file
+                           org-pm-source-file-menu
+                           org-pm-target-file-menu
+                           org-pm-show-project-definition-section
+                           org-pm-edit-project-template
+                           org-pm-list-duplicate-project-defs
+                           pm/edit-duplicate-project-def
+                           org-pm-post-project-def
+                           org-pm-load-project-data
+                           org-pm-save-project-data
+                           org-pm-reset-project-list
+                           org-pm-edit-saved-project-data
+                           ))
+               (index 0))
+          (grizzl-make-index
+           (-map (lambda (c)
+                   (format "%s: %s"
+                           (progn
+                             (setq index (+ 1 index))
+                             (if (> index 9)
+                                 (format "%d" index)
+                               (format ".%d" index)))
+                           (replace-regexp-in-string
+                            "-"
+                            " "
+                            (replace-regexp-in-string
+                             "^org-pm-" "" (symbol-name c)))))
+                 commands))))
 
-    (defun org-pm-menu ()
-      "Select and run an org-pm command from a grizzl-minibuffer menu list."
-      (interactive)
-      (setq  *grizzl-read-max-results* 32)
-      (let* (selection)
-        (setq selection (grizzl-completing-read "Select command: " *org-pm-menu*))
-        (eval
-         (read (concat
-                "(org-pm-"
-                (replace-regexp-in-string
-                 " " "-"
-                 (replace-regexp-in-string
-                  "^[.0-9]+: " "" selection))
-                ")")))))
+  (defun org-pm-menu ()
+    "Select and run an org-pm command from a grizzl-minibuffer menu list."
+    (interactive)
+    (setq  *grizzl-read-max-results* 32)
+    (let* (selection)
+      (setq selection (grizzl-completing-read "Select command: " *org-pm-menu*))
+      (eval
+       (read (concat
+              "(org-pm-"
+              (replace-regexp-in-string
+               " " "-"
+               (replace-regexp-in-string
+                "^[.0-9]+: " "" selection))
+              ")")))))
 #+END_SRC
 
-** UNDERWAY Keyboard shortcuts
+** DONE Keyboard shortcuts
 
 Note: I use the Hyper-m  (= Mac fn key m) as prefix, because it is not likely to be occupied by other packages.  Users can easily remap.
 
@@ -756,71 +748,7 @@ Remove tag naming selected project from current section (node).
                    tags-list)) t)
      nil))
 #+END_SRC
-*** Preparing the implementation
-
-**** Tags mapped to projects in org mode sections
-
-The heading of a subsection of a sectiong tagged ORG_PM_PROJECT_TAGS specifies project, tag matches that go to the project, folder, and layout:
-
-<project> <tagmatch> <folder> <layout>
-
-Given the above, proceed as follows:
-
-- DONE: See org-pm-get-tag-matching-lists: Split the header string at " " and multiple-bind the variables =project= =tagsmatch= =folder= =layout= to the resulting values.
-- ONLY THE NON-NIL LISTS ARE RETURNED BY org-pm-get-tag-matching-lists.  SO OK: When =project-plist= is not nil, proceed with following:
-- For each of the tag-match project specification lists do the following:
-- Provide defaults "" for folder and "default" for layout, if these are nil.
-- Do org-scan-tags using a matcher constructed from =tagsmatch=, and a function that does the following:
-  - put (cadr (org-element-at-point)) into =section-plist=
-  - create export target path by =concat= of following:
-    - property =publishing-directory= of =project-plist=
-    - property =folder= of =section-plist= or variable =folder=
-    - construct filename with =org-pm-make-filename=, using:
-      - property =:raw-value= of =section-plist=
-      - property =:DATE:= of =section-plist=
-  - make =target-buffer= with =org-pm-make-section-buffer=,
-    using current buffer as =origin-buffer=,
-    and current =(point)= as =section-begin=.
-  - do the rest of =org-pm-export-1-section-to-projects=,
-    starting from line: =(if (equal (plist-get plist :publishing...)))=
-  - add the exported section to =sections-with-paths=, which was
-    started by the first part of =org-pm-export=
-    This has now been tested with custom function =assoc-add2=
-    ("Add element to the sublist of alist which starts with key, but insert element2 between key and the rest of the list.")
-  - Since the export of both underscore matched and tag-match matched section is now completed, adding to =sections-with-paths= does not interfere at this stage.
-  - Add =sections-with-paths= to the global variable =org-pm-section-exports=.
-  - Save org-pm data (which also saves the updated =org-pm-section-exports=).
-  (defun org-pm-make-tagmatch-list ()
-    "Find section tagged 'ORG_PM_EXPORT_TAGS'.  For each subsection this section:
-  Parse a heading of the form
-  <project> <tagmatch> <folder> <layout>
-  and produce data for matching the headings and then for exporting them.
-
-  The function returns a list.  Each element of that list has 4 elements:
-  1. project-alist
-  2. tagmatch-string
-  3. folder
-  4. layout
-
-  If a project named in a heading has no definition, then skip that heading."
-    (save-excursion
-      (save-restriction
-        (widen)
-        (let (entries)
-          (org-map-entries
-           '(lambda () (cadr (org-element-at-point)))
-           "ORG_PM_EXPORT_TAGS")
-
-          entries)))
-
-    )
-*** Tags specifying projects enclosed in underscores
-
-A tag enclosed in underscores (=_=) specifies the project, folder, filename.
-This is the first method implemented in org-pm
-,,
-
-** UNDERWAY org-pm-export
+** DONE org-pm-export
 
 *** DONE Notes
 STATUS Wed, 29 Jan 2014 14:23:30: =org-pm-export-1-section-to-projects= done.  Working on org-pm-export-1-section-to-projects-with-layout
@@ -947,7 +875,7 @@ Test case for =org-pm-publish-buffer-to-html=.  Shows that it works if we initia
   )
 #+END_SRC
 
-*** org-pm-export Top level: publish sections to html or source
+*** org-pm-export publish sections to html or source
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-export ()
@@ -996,20 +924,9 @@ Test case for =org-pm-publish-buffer-to-html=.  Shows that it works if we initia
           (setq org-pm-section-exports
                 (assoc-replace org-pm-section-exports filename sections-with-paths)))
         (org-pm-save-project-data))))
-
-  (defun org-pm-parse-tagmatches ()
-    "parse section tagged 'ORG_PM_EXPORT_TAGS'. Produce list of
-  specs for matching tags and exporting."
-  ;; NOT YET DONE!
-  )
-
-  (defun org-pm-test-lexical-binding-of-sections-with-paths ()
-    (message "org-pm-test-dynamic-binding-of-sections-with-paths !!!!!")
-    (message "sections with paths is: %s" sections-with-paths)
-    (setq sections-with-paths '("asdfasdf" "asdfasdfasdf" (1 2 3)))
-  )
 #+END_SRC
-  ;; New help function assoc-add2
+
+*** Help function assoc-add2
 #+BEGIN_SRC emacs-lisp
   (defun assoc-add2 (alist key element element2)
     "Add element to the sublist of alist which starts with key,
@@ -1023,12 +940,7 @@ Test case for =org-pm-publish-buffer-to-html=.  Shows that it works if we initia
     alist)
  #+END_SRC
 
-  Now let's try the new assoc-add
-
-#+BEGIN_SRC elisp
-   (assoc-add2 '((1 "id" ("path". "project"))) 1 '("path2" . "project2") "yes---id2")
-#+END_SRC
-
+*** org-pm-export-1-section-to-projects (+ with-layout)
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-export-1-section-to-projects (section-with-paths origin-buffer)
     "Copy section to temporary buffer, then save it to all
@@ -1173,14 +1085,15 @@ No longer used?:
     (write-region nil nil target-path)))
 #+END_SRC
 
+*** Making YAML front matter for Jekyll/Octopress
 **** org-pm-get-non-project-tags
 
-Get those tags which are not enclosed in dash (=-=).
+Get those tags which are not enclosed in underscore (=_=).
 Function org-pm-make-yaml-matter inserts these tags as part of the YAML matter in the file header for use by Jekyll/Octopress.
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-get-non-project-tags (section-plist)
-    "Get those tags which are not enclosed in dash (=-=).
+    "Get those tags which are not enclosed in underscore (=_=).
   Function org-pm-make-yaml-matter inserts these tags as part of the YAML matter
   in the file header for use by Jekyll/Octopress."
     (-reject (lambda (tag) (string-match "^_.*_$" tag)) (plist-get section-plist :tags)))
@@ -1193,135 +1106,6 @@ When headlines are present in an org buffer, org-export-as encloses the entire b
 ***** Providing relative paths to root of published project
 
 This makes sure that when a file is copied to a subfolder of the publishing directory, the paths pointing to includes such as css, images, etc. will be converted to show to the root of the project, so that links work.  Such links must be marked using the string ={{.}}= to denote the relative root to the published project, that is, the =publishing-directory=.
-
-****** Original example.
-#+BEGIN_SRC emacs-lisp
-  (defun org-html-provide-relative-path (string backend info)
-    "Provide relative path for link."
-    (when (org-export-derived-backend-p backend 'html)
-      (let ((base-dir (plist-get info :base-directory))
-            (input-file (plist-get info :input-file)))
-        (when (and base-dir input-file)
-          (replace-regexp-in-string
-           "{{.}}"
-           (org-make-relpath-string
-            (plist-get info :base-directory)
-            ;; distance of input file from base-directory = relative path!
-            (plist-get info ':input-file))
-           string)))))
-
-    ;;; Add relative path filter to export final output functions
-  (add-to-list 'org-export-filter-final-output-functions
-               'org-html-provide-relative-path)
-
-  (defun org-make-relpath-string (base-path file-path)
-    "create a relative path for reaching base-path from file-path ('./../..' etc)"
-    (let (
-          (path ".")
-          (depth (-
-                  (length (split-string (file-name-directory file-path) "/"))
-                  (length (split-string base-path "/")))))
-      (dotimes (number
-                (- depth 1)
-                path)
-        (setq path (concat path "/..")))))
-
-#+END_SRC
-
-#+RESULTS:
-: org-make-relpath-string
-
-******* Version to use: Remove cache-requiring filters
-
-UPDATE: The YAML stuff must be done in a filter.  This is the only way.
-See preparation in section above.
-
-Transfer the YAML stuff from the version in the next section to the present version.
-
-Test case without cache-initialization:
-
-#+BEGIN_SRC elisp
-  (let* ((project (assoc "octopress_pm_test"  org-publish-project-alist))
-         (pname (car project))
-         (plist (cdr project))
-        (root (plist-get plist :publishing-directory))
-        (path (concat root "/test.html")))
-  ;;   (org-publish-initialize-cache pname)
-    (with-current-buffer (get-buffer "test")
-      (let ((section-plist (cadr (org-element-at-point))))
-        ;;  (org-pm-make-yaml-front-matter plist section-plist)
-        (org-pm-publish-buffer-to (current-buffer) path project)
-        )))
-
-#+END_SRC
-
-#+RESULTS:
-: ~/Documents/Dev/Web/octopress-pm-test-html/test.html
-
-******* With Yaml: Transfer this to above
-
-#+BEGIN_SRC elisp
-  ;;; TODO: Adapt this to work with buffer instead of file
-  ;;; Original function: org-publish-org-to
-  (defun org-pm-publish-buffer-to (buffer path project section-plist)
-    "Publish a buffer to html.
-  Adapted from org-publish-org-to.
-
-  BUFFER is the buffer containing the text to be converted to html.
-  PATH is the full path to write the file to.
-  PROJECT is the project-name + property list for the given project.
-  SECTION-PLIST is the plist of the section that is copied to buffer.
-
-  If project plist has property export-to-jekyll set to true, then:
-  - Copy the buffer into a new buffer in order not to affect next publications.
-  - Create and insert jekyll YAML front matter at the beginning of the new buffer.
-  "
-    ;; Check if a buffer visiting FILENAME is already open.
-    (let* ((pname (car project))
-           (plist (cdr project))
-           must-kill-buffer
-           work-buffer
-           (pub-dir (file-name-directory path))
-           (org-inhibit-startup t))
-      (unless (file-exists-p pub-dir) (make-directory pub-dir t))
-      (cond ((plist-get plist :export-to-jekyll)
-             (setq must-kill-buffer t)
-             (setq work-buffer (get-buffer-create "*org-pm-copy-yaml-buf*"))
-             ... first make yaml front matter based on plist, section-plist
-             ... and put it in work-buffer
-             ... then copy/append buffer to work-buffer
-             ... use append-to-buffer for this.  Description:
-             (append-to-buffer BUFFER START END)
-
-             Append to specified buffer the text of the region.
-             It is inserted into that buffer before its point.
-
-             When calling from a program, give three arguments:
-             BUFFER (or buffer name), START and END.
-             START and END specify the portion of the current buffer to be copied.
-            ;; ()
-             )
-        (t (setq work-buffer buffer)))
-      ;;; initialize cache - otherwise error occurs.
-      ;;; ALTERNATIVELY REMOVE THE org-combine-plists call below!!!
-      (org-publish-initialize-cache pname)
-      ;; can be progn instead of prog1:
-      (prog1 (with-current-buffer work-buffer
-               (let ((body-p (plist-get plist :body-only)))
-                   (org-export-to-file 'html path nil nil nil body-p
-                   ;; Add `org-publish-collect-numbering' and
-                   ;; `org-publish-collect-index' to final output
-                   ;; filters.  The latter isn't dependent on
-                   ;; `:makeindex', since we want to keep it up-to-date
-                   ;; in cache anyway.
-                   (org-combine-plists
-                    plist
-                    `(:filter-final-output
-                      ,(cons 'org-publish-collect-numbering
-                             (cons 'org-publish-collect-index
-                                   (plist-get plist :filter-final-output)))))))))
-      (when must-kill-buffer (kill-buffer work-buffer))))
-#+END_SRC
 
 ****** YAML filter
 
@@ -1336,20 +1120,16 @@ Test case without cache-initialization:
                'org-pm-add-yaml-front-matter)
 #+END_SRC
 
-#+RESULTS:
-| org-pm-add-yaml-front-matter | org-html-provide-relative-path |
+*** Get list of file components to be copied to projects
 
-
-**** Get list of file components to be copied to projects
-
-***** org-pm-get-section-project-paths
+**** org-pm-get-section-project-paths
 
 Get all sections marked with tags that are enclosed in underscore (=_=).  Parse each value and return a list of lists:
 ((section-position (project folder file) (project folder file) ...)
  (section-position (project folder file) (project folder file) ...)
 ...)
 
-****** org-pm-section-project-paths version 1: using org-map-entries
+***** org-pm-section-project-paths version 1: using org-map-entries
 #+BEGIN_SRC emacs-lisp
 
   (defun org-pm-get-section-project-paths ()
@@ -1390,9 +1170,9 @@ Get all sections marked with tags that are enclosed in underscore (=_=).  Parse 
      components))
 #+END_SRC
 
-****** org-pm-section-project-paths version 2: using org-scan-tags
+***** org-pm-section-project-paths version 2: using org-scan-tags
 
-***** org-pm-get-1-section-project-paths
+**** org-pm-get-1-section-project-paths
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-get-1-section-project-paths ()
@@ -1563,7 +1343,7 @@ Called by org-get-section-components.  Converts the title of a section to a file
 
 
 
-**** Create Jekyll/Octopress Headers ("YAML Front Matter")
+**** Notes on  Jekyll/Octopress Headers ("YAML Front Matter")
 
 If the value of property =body-only= in the project-plist is =t=, then org-pm adds YAML front matter at the beginning of the file when exporting.  This makes the file to be processed by Jekyll or Octopress.  The following items are provided, if their values are set:
 

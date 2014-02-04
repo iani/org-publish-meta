@@ -27,33 +27,37 @@ Then run this to install org-pm:
 
 Once org-pm is installed, type H-m H-m to open a menu of commands.  (H = Hyper = the function key on Mac).  Alternatively run command =org-pm-menu=.
 
-** The Menu
+
+** Overview: The Menu
 
 Type H-m H-m (Function-key marked "fn" and m, twice) to open the command menu (=org-pm-menu=).  Command =org-pm-menu= lists all commands of org-pm, and lets you execute any selected command from a menu presented in the mini-buffer.  The commands are:
 
-|  1 | org-pm-insert-new-project              |
-|  2 | org-pm-make-projects                   |
-|  3 | org-pm-list-project-definitions                |
-|  4 | org-pm-add-section-to-project          |
-|  5 | org-pm-remove-section-from-project     |
-|  6 | org-pm-edit-project-tag-lists          |
-|  7 | org-pm-export                          |
-|  8 | org-pm-open-target-of-this-section        |
-|  9 | org-pm-open-source-of-this-file        |
-| 10 | org-pm-source-file-menu                |
-| 11 | org-pm-target-file-menu                |
-| 12 | org-pm-show-project-definition-section |
-| 13 | org-pm-edit-project-template           |
-| 14 | org-pm-list-duplicate-project-defs     |
-| 15 | pm/edit-duplicate-project-def          |
-| 16 | org-pm-post-project-def                |
-| 17 | org-pm-load-project-data               |
-| 18 | org-pm-save-project-data               |
-| 19 | org-pm-reset-project-list              |
-| 20 | org-pm-edit-saved-project-data         |
-#+TBLFM: $1=@-1+1::@1$1=1
-
-See the end of this tutorial for a short description of each command.
+- org-pm-insert-new-project :: Insert a template for a project definition in the current org-mode buffer.
+- org-pm-make-projects                    :: Scan the current buffer for any project definitions and create or update the definitions of those projects.  Save the created project definitions.
+- org-pm-add-section-to-project           :: Select an existing project and add its name enclosed in =_= as tag to the current section.  This causes the current section to be exported to the specified project.
+- org-pm-remove-section-from-project      :: Choose from a list of projects named by the current section's tags, and remove the tag for the selected project from the section.
+- org-pm-edit-project-tag-lists           :: Create or go to the section in the current buffer which defines the tags to be matched for exporting sections to projects.
+- org-pm-export                           :: Export all sections of the current buffer which contain specifications for projects, either in the form of tags enclosed in underscores (=_=), or by tags specified in the project-tag matching section.  The export is done directly to the publishing-directory, and is ready for browsing or for rendering wity Jekyll/Octopress.
+- org-pm-list-project-definitions                 :: Create a new org-mode buffer and insert in it a list of all projects that have been created =org-publish-meta=.
+  - For each project, provide a link links to following locations:
+    - The org-mode section where the project is defined
+    - The project's =base-directory=
+    - The project's =publishing-directory=
+  - If a project is defined in more than one location, then also give links to the locations of the alternative definitions.
+- org-pm-open-target-of-this-section         :: Choose from a list of targets where this section or one of its super-sections has been exported, and open the selected file.
+- org-pm-open-source-of-this-file         :: For a buffer whose file has been created by publishing a section with =org-publish-meta=, go to the section of the source file that created this file.
+- org-pm-source-file-menu                 :: Select and open a file from a list of files containing sections that have been exported by org-pm.
+- org-pm-target-file-menu                 :: Select and open a file from a list of files that have been produced by exporting sections of org-mode files with org-pm.
+- org-pm-show-project-definition-section  :: Go to the section of the current buffer which contains project definitions, if such a section exists.
+- org-pm-edit-project-template :: Open file containing default project definition template for editing.
+- org-pm-list-duplicate-project-defs      :: Create a buffer listing the locations of definitions of projects that have been defined under the same name in more than one file.
+- pm/edit-duplicate-project-def           :: Select and edit a project definition from the list of projects that have been defined in more than one location.
+- org-pm-post-project-def                 :: Choose a project from menu and post its definition as lisp code.
+- org-pm-reset-project-list               :: Set the global list of project defininitions (=org-publish-project-alist=) to nil.
+- org-pm-load-project-data                :: Load the lists of project definitions (=org-publish-project-alist=), as well as the list of project duplicates (defined in more than one file), and list of exported files. This is done automatically at the startup of =org-publish-meta=
+- org-pm-save-project-data                :: Save the project definition list, the list of duplicate project definitions and the list of files with exported sections to disk.  This is also done automatically after each export.
+- org-pm-reset-project-list            :: Set org-publish-project-alist to nil.
+- org-pm-edit-saved-project-data          :: Open the automatically saved file which contains the lists of project-definitions, project definition duplicates, and exported files.
 
 ** =org-pm-insert-new-project=: Create a new project
 
@@ -142,28 +146,3 @@ Export sections with tag =other= to project named =my-blog=, under directory =_o
 Export sections with tag "portal" to root directory of project =portal= using the layout specified by this project or the global default of =org-pm= (=default=).
 
 * List of =org-publish-meta= user commands
-
-- org-pm-add-section-to-project           :: Select an existing project and add its name enclosed in =_= as tag to the current section.  This causes the current section to be exported to the specified project.
-- org-pm-edit-project-tag-lists           :: Create or go to the section in the current buffer which defines the tags to be matched for exporting sections to projects.
-- org-pm-edit-project-template            :: Edit the file containing the default template for definition of projects
-- org-pm-edit-saved-project-data          :: Open the automatically saved file which contains the lists of project-definitions, project definition duplicates, and exported files.
-- org-pm-export                           :: Export all sections of the current buffer which contain specifications for projects, either in the form of tags enclosed in underscores (=_=), or by tags specified in the project-tag matching section.  The export is done directly to the publishing-directory, and is ready for browsing or for rendering wity Jekyll/Octopress.
-- org-pm-list-duplicate-project-defs      :: Create a buffer listing the locations of definitions of projects that have been defined under the same name in more than one file.
-- org-pm-load-project-data                :: Load the lists of project definitions (=org-publish-project-alist=), as well as the list of project duplicates (defined in more than one file), and list of exported files. This is done automatically at the startup of =org-publish-meta=
-- org-pm-make-projects                    :: Scan the current buffer for any project definitions and create or update the definitions of those projects.  Save the created project definitions.
-- org-pm-open-source-of-this-file         :: For a buffer whose file has been created by publishing a section with =org-publish-meta=, go to the section of the source file that created this file.
-- org-pm-open-target-of-this-section         :: Choose from a list of targets where this section or one of its super-sections has been exported, and open the selected file.
-- org-pm-post-project-def                 :: Choose a project from menu and post its definition as lisp code.
-- org-pm-list-project-definitions                 :: Create a new org-mode buffer and insert in it a list of all projects that have been created =org-publish-meta=.
-  - For each project, provide a link links to following locations:
-    - The org-mode section where the project is defined
-    - The project's =base-directory=
-    - The project's =publishing-directory=
-  - If a project is defined in more than one location, then also give links to the locations of the alternative definitions.
-- org-pm-remove-section-from-project      :: Choose from a list of projects named by the current section's tags, and remove the tag for the selected project from the section.
-- org-pm-reset-project-list               :: Set the global list of project defininitions (=org-publish-project-alist=) to nil.
-- org-pm-save-project-data                :: Save the project definition list, the list of duplicate project definitions and the list of files with exported sections to disk.  This is also done automatically after each export.
-- org-pm-show-project-definition-section  :: Go to the section of the current buffer which contains project definitions, if such a section exists.
-- org-pm-source-file-menu                 :: Select and open a file from a list of files containing sections that have been exported by org-pm.
-- org-pm-target-file-menu                 :: Select and open a file from a list of files that have been produced by exporting sections of org-mode files with org-pm.
-- pm/edit-duplicate-project-def           :: Select and edit a project definition from the list of projects that have been defined in more than one location.

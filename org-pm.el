@@ -493,18 +493,6 @@ org-pm-section-exports, and save it to disk."
               (assoc-replace org-pm-section-exports filename sections-with-paths)))
       (org-pm-save-project-data))))
 
-(defun org-pm-parse-tagmatches ()
-  "parse section tagged 'ORG_PM_EXPORT_TAGS'. Produce list of
-specs for matching tags and exporting."
-;; NOT YET DONE!
-)
-
-(defun org-pm-test-lexical-binding-of-sections-with-paths ()
-  (message "org-pm-test-dynamic-binding-of-sections-with-paths !!!!!")
-  (message "sections with paths is: %s" sections-with-paths)
-  (setq sections-with-paths '("asdfasdf" "asdfasdfasdf" (1 2 3)))
-)
-
 (defun assoc-add2 (alist key element element2)
   "Add element to the sublist of alist which starts with key,
 but insert element2 between key and the rest of the list."
@@ -641,40 +629,10 @@ but insert element2 between key and the rest of the list."
            nil))))
 
 (defun org-pm-get-non-project-tags (section-plist)
-  "Get those tags which are not enclosed in dash (=-=).
+  "Get those tags which are not enclosed in underscore (=_=).
 Function org-pm-make-yaml-matter inserts these tags as part of the YAML matter
 in the file header for use by Jekyll/Octopress."
   (-reject (lambda (tag) (string-match "^_.*_$" tag)) (plist-get section-plist :tags)))
-
-(defun org-html-provide-relative-path (string backend info)
-  "Provide relative path for link."
-  (when (org-export-derived-backend-p backend 'html)
-    (let ((base-dir (plist-get info :base-directory))
-          (input-file (plist-get info :input-file)))
-      (when (and base-dir input-file)
-        (replace-regexp-in-string
-         "{{.}}"
-         (org-make-relpath-string
-          (plist-get info :base-directory)
-          ;; distance of input file from base-directory = relative path!
-          (plist-get info ':input-file))
-         string)))))
-
-  ;;; Add relative path filter to export final output functions
-(add-to-list 'org-export-filter-final-output-functions
-             'org-html-provide-relative-path)
-
-(defun org-make-relpath-string (base-path file-path)
-  "create a relative path for reaching base-path from file-path ('./../..' etc)"
-  (let (
-        (path ".")
-        (depth (-
-                (length (split-string (file-name-directory file-path) "/"))
-                (length (split-string base-path "/")))))
-    (dotimes (number
-              (- depth 1)
-              path)
-      (setq path (concat path "/..")))))
 
 (defun org-pm-add-yaml-front-matter (string backend info)
   "Add yaml front matter header to export string before writing file."
