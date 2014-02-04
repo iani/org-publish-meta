@@ -1836,7 +1836,7 @@ Note that edits may cause conflicts when updating org-pm from git.
     (find-file org-pm-project-template-file-name))
 #+END_SRC
 
-** org-pm-source-file-menu
+** DONE org-pm-source-file-menu
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-source-file-menu ()
@@ -1849,7 +1849,7 @@ Note that edits may cause conflicts when updating org-pm from git.
         (find-file answer)))
 #+END_SRC
 
-** org-pm-target-file-menu
+** DONE org-pm-target-file-menu
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-target-file-menu ()
@@ -1866,7 +1866,7 @@ Note that edits may cause conflicts when updating org-pm from git.
       (find-file answer)))
 #+END_SRC
 
-** org-pm-show-source
+** DONE org-pm-show-source
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-open-source-of-this-file ()
@@ -1896,7 +1896,7 @@ Note that edits may cause conflicts when updating org-pm from git.
 
 #+END_SRC
 
-** org-pm-show-target
+** DONE org-pm-show-target
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-open-target-of-this-section ()
@@ -1909,7 +1909,7 @@ Note that edits may cause conflicts when updating org-pm from git.
           (widen)
           (org-back-to-heading)
           (while (and (not (setq paths (org-pm-get-1-section-project-paths)))
-                      (org-current-level > 1))
+                      (> (org-current-level) 1))
            (org-up-heading-safe))))
       (cond (paths
              (cond ((> (length paths) 1)

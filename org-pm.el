@@ -484,9 +484,10 @@ org-pm-section-exports, and save it to disk."
              (setq sections-with-paths
                    (assoc-add2 sections-with-paths
                                (car section)
-                               (cddr section)
+                               (caddr section)
                                (cadr section))))
-           (cdr (org-make-tags-matcher (cadr tag-match-spec)))))
+           (cdr (org-make-tags-matcher (cadr tag-match-spec)))
+           nil))
         ;; Part 3: add section info to global section export list and save.
         (setq org-pm-section-exports
               (assoc-replace org-pm-section-exports filename sections-with-paths)))
@@ -517,65 +518,65 @@ but insert element2 between key and the rest of the list."
 
 (defun org-pm-export-1-section-to-projects (section-with-paths origin-buffer)
   "Copy section to temporary buffer, then save it to all
-paths in the rest of section-with-paths.
+   paths in the rest of section-with-paths.
 
-SECTION-WITH-PATHS is list with car the starting position of the section to be
-exported, cadr the id of the section, and cddr the list of path-project pairs
-where the section will be exported.
+   SECTION-WITH-PATHS is list with car the starting position of the section to be
+   exported, cadr the id of the section, and cddr the list of path-project pairs
+   where the section will be exported.
 
-ORIGIN-BUFFER is the buffer containing the section to be exported.
+   ORIGIN-BUFFER is the buffer containing the section to be exported.
 
-SECTION-PLIST is obtained from the section to be exported, and is used
-to create YAML front matter where required."
+   SECTION-PLIST is obtained from the section to be exported, and is used
+   to create YAML front matter where required."
   (let* ((section-begin (car section-with-paths))
          (section-plist
-         (with-current-buffer origin-buffer
-           (goto-char section-begin)
-           (cadr (org-element-at-point))))
-        (target-buffer (org-pm-make-section-buffer origin-buffer section-begin)))
+          (with-current-buffer origin-buffer
+            (goto-char section-begin)
+            (cadr (org-element-at-point))))
+         (target-buffer (org-pm-make-section-buffer origin-buffer section-begin)))
     (dolist (path-project (cddr section-with-paths))
       (when (car path-project)
         (let* ((project (assoc (cdr path-project) org-publish-project-alist))
-              (plist (cdr project))
-              (path (car path-project)))
+               (plist (cdr project))
+               (path (car path-project)))
           (if (equal (plist-get plist :publishing-function) 'org-html-publish-to-html)
-           (org-pm-publish-buffer-to-html
-            target-buffer path
-            (org-pm-make-yaml-front-matter plist section-plist))
-           (with-current-buffer target-buffer
-             (let ((dir (file-name-directory path)))
-               (unless (file-exists-p dir) (make-directory dir t)))
-             (write-region nil nil path))))))
+              (org-pm-publish-buffer-to-html
+               target-buffer path
+               (org-pm-make-yaml-front-matter plist section-plist))
+            (with-current-buffer target-buffer
+              (let ((dir (file-name-directory path)))
+                (unless (file-exists-p dir) (make-directory dir t)))
+              (write-region nil nil path))))))
     (message "exported section: %s" section-with-paths)))
 
 (defun org-pm-export-1-section-to-projects-with-layout (specs)
   "export section with specs from path-match.
-Variant of org-pm-export-1-section-to-projects
-To be called from org-scan-tags, which will be placing the point at the
-start of the section to be published.
-Specs is an element of the list produced by org-pm-get-tag-matching-lists.
-It contains at most 4 elements:
-- project
-- tagmatch-string (not needed here)
-- optionally: folder.
-- optionally: layout."
+   Variant of org-pm-export-1-section-to-projects
+   To be called from org-scan-tags, which will be placing the point at the
+   start of the section to be published.
+   Specs is an element of the list produced by org-pm-get-tag-matching-lists.
+   It contains at most 4 elements:
+   - project
+   - tagmatch-string (not needed here)
+   - optionally: folder.
+   - optionally: layout."
   (let* ((section (cadr (org-element-at-point)))
-        (target-buffer (org-pm-make-section-buffer (current-buffer)))
-        (project (cdr (car specs)))
-        (folder (or (caddr specs) (plist-get section :folder) ""))
-        (layout (or (cadddr specs)
-                    (plist-get section :layout)
-                    (plist-get project :layout)
-                    "default"))
-        (path (concat
-               (file-name-as-directory (plist-get project :publishing-directory))
-               (if (equal (length folder) 0)
-                   ""
-                 (file-name-as-directory folder))
-               (org-pm-make-filename
-                (plist-get section :raw-value)
-                (plist-get section :DATE)))))
-    (if (equal (plist-get plist :publishing-function) 'org-html-publish-to-html)
+         (target-buffer (org-pm-make-section-buffer (current-buffer)))
+         (project (cdr (car specs))) ;; cdar specs
+         (folder (or (caddr specs) (plist-get section :folder) ""))
+         (layout (or (cadddr specs)
+                     (plist-get section :layout)
+                     (plist-get project :layout)
+                     "default"))
+         (path (concat
+                (file-name-as-directory (plist-get project :publishing-directory))
+                (if (equal (length folder) 0)
+                    ""
+                  (file-name-as-directory folder))
+                (org-pm-make-filename
+                 (plist-get section :raw-value)
+                 (plist-get section :DATE)))))
+    (if (equal (plist-get project :publishing-function) 'org-html-publish-to-html)
         (org-pm-publish-buffer-to-html
          target-buffer path
          (org-pm-make-yaml-front-matter project section layout))
@@ -583,17 +584,19 @@ It contains at most 4 elements:
         (let ((dir (file-name-directory path)))
           (unless (file-exists-p dir) (make-directory dir t)))
         (write-region nil nil path)))
-    (message "exported section: %s" (plist-get section :raw-value))
-    ;; return section-id-path-project for storing in file section export list.
-    ())
-  )
+    (message "exported section with layout: %s" (plist-get section :raw-value))
+    ;; return section-id-path-project for storing in file section export list
+    (list (plist-get section :begin)
+          (org-id-get-create)
+          (cons path (caar specs)))
+    ))
 
 (defun org-pm-make-section-buffer (origin-buffer &optional position)
   "Copy the contents of an org-mode section located at position
-in origin-buffer to a temporary buffer, for exporting.
-Return the temporary buffer.
-Used by org-pm-export-1-section-to-projects.
-Passed as argument to org-pm-export-buffer-to-html."
+   in origin-buffer to a temporary buffer, for exporting.
+   Return the temporary buffer.
+   Used by org-pm-export-1-section-to-projects.
+   Passed as argument to org-pm-export-buffer-to-html."
   (with-current-buffer origin-buffer
     (when position (goto-char position))
     (org-copy-subtree))
@@ -609,11 +612,11 @@ Passed as argument to org-pm-export-buffer-to-html."
 
 (defun org-pm-publish-buffer-to-html (buffer path plist)
   "Publish an Org-mode buffer to html.
-  Adapted from org-publish-org-to.
+     Adapted from org-publish-org-to.
 
-  BUFFER is the buffer to publish.
-  PATH is the target filename of publish the buffer to.
-  PLIST is the property list for the given project."
+     BUFFER is the buffer to publish.
+     PATH is the target filename of publish the buffer to.
+     PLIST is the property list for the given project."
 
   (let* ((org-inhibit-startup t)
          (pub-dir (file-name-directory path))
@@ -1040,7 +1043,7 @@ any of its super-sections."
         (widen)
         (org-back-to-heading)
         (while (and (not (setq paths (org-pm-get-1-section-project-paths)))
-                    (org-current-level > 1))
+                    (> (org-current-level) 1))
          (org-up-heading-safe))))
     (cond (paths
            (cond ((> (length paths) 1)
