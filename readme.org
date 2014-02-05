@@ -22,13 +22,13 @@ Org-mode is an Emacs library "for keeping notes, maintaining TODO lists, plannin
 
 Org-pm simplifies the definition of org-mode publishing projects, by coding project publishing options as org-mode sections instead of as emacs-lisp code.  It thus virtually eliminates the need to use emacs-lisp code for the definition of projects.  Furthermore, project definitions as well as css and scripts can be included in the same org-mode files that hold the text contents to be published.
 
-Org-pm makes it possible to publish a any node (section) of a file to any number of different projects.  It also saves the contents of =org-publish-projects-alist= as well as the list of copied sections of files between sessions.  It can also automatically insert YAML front matter of files for use with Jekyll or Octopress.
+Org-pm makes it possible to publish a any node (section) of a file to any number of different projects.  It saves the contents of =org-publish-projects-alist= as well as the list of copied sections of files whenever a project is defined or sections of a file are exported.  It can also automatically create and add YAML front matter of files for use with Jekyll or Octopress, based on project or section (subtree) properties, or configurations saved in org-mode file sections.
 
 * How it works
 
 Org-pm does not require for a file to be placed inside the folder of an Org-mode (publishing) project.  Instead, one specifies in a section (node) of a file, the projects to which it belongs through properties or tags.
 
-With a single command, org-pm copies the sections of files to the base directories of specified projects, and optionally publishes those projects.  One may specify for a section to be copied to a subfolder of the project.
+With a single command, org-pm copies or exports as html the sections of files to the publishing directories of specified projects.
 
 Project definitions (property-lists) are written as nodes (sections) in any org-mode file, using headings as property names and contents as values of the properties.  Tags are used to indicate those sections which contain project definitions and also those files and nodes which belong to projects.
 
