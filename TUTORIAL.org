@@ -54,7 +54,7 @@ Type H-m H-m (Function-key marked "fn" and m, twice) to open the command menu (=
 - org-pm-add-section-to-project           :: Select an existing project and add its name enclosed in =_= as tag to the current section.  This causes the current section to be exported to the specified project.
 - org-pm-remove-section-from-project      :: Choose from a list of projects named by the current section's tags, and remove the tag for the selected project from the section.
 - org-pm-edit-project-tag-lists           :: Create or go to the section in the current buffer which defines the tags to be matched for exporting sections to projects.
-- org-pm-export                           :: Export all sections of the current buffer which contain specifications for projects, either in the form of tags enclosed in underscores (=_=), or by tags specified in the project-tag matching section.  The export is done directly to the publishing-directory, and is ready for browsing or for rendering wity Jekyll/Octopress.
+- org-pm-export                           :: Export all sections of the current buffer which contain specifications for projects, either in the form of tags enclosed in underscores (=_=), or by tags specified in the project-tag matching section.  The export is done directly to the publishing-directory, and is ready for browsing or for rendering with Jekyll/Octopress.
 - org-pm-list-project-definitions                 :: Create a new org-mode buffer and insert in it a list of all projects that have been created =org-publish-meta=.
   - For each project, provide a link links to following locations:
     - The org-mode section where the project is defined
