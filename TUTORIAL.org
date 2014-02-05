@@ -2,6 +2,23 @@
 :PROPERTIES:
 :DATE:     <2013-12-18 Wed 09:30>
 :END:
+** What It Does
+
+Org-publish-meta is an add-on to the Org-mode publish functions.  It adds some features to org-publish which make it easier to publish org-mode files to html websites.  It adds the following 3 features to org-publish:
+
+1. It defines org-publish projects as well as rules for publishing org file contents to them entirely through plain-text in any org-mode file.  No need to write these specifications separately in emacs-lisp files.
+2. It makes it possible to export any section (i.e. subtree) of any org-mode file to any number of projects, either converting it to html or as plain text.  To specify which section goes to which folder of which project, one uses tags.
+3. It optionally creates and adds YAML front matter header to the exported files, which is needed when publishing these with Jekyll or Octopress.  The contents of the header are extracted from project properties as well as tags and properties of subtrees.
+
+** How It Works
+
+To create a project definition, one writes a subtree under a section that has the tag =PROJECT_DEFS=.  The heading of the subtree is the name of the project, and the headings of the subtrees of the subtree are the properties of the project.  One runs command =org-pm-make-projects= to compile and add the projects of any sections of a file to the =org-publish-project-alist=.
+
+To specify that a single section should be exported to a project, one adds to that section a tag with the name of the project enclosed in underscores (=_=).  For example a tag =_my_blog_= specifies that the section should be exported to project named =my_blog=.  Further components may be added to specify the folder and filename for exporting (see below).
+
+Additionally, one may specify that any section in a file whose tags match a tag string should be exported to a specific project, in a specific folder, with a specific Jekyll =layout=.   The match string can specify any combination of tags following the method described in http://orgmode.org/manual/Matching-tags-and-properties.html.  The rules for matching tags to projects, folders and layouts are written in a section of the file which they concern.  The section is marked with tag =ORG_PM_EXPORT_TAGS=.
+
+A menu of commands aids the use of =org-publish-meta=.  There are commands for listing and accessing project definitions, files that have been exported, and the source section from which a file has been exported.
 
 ** Installation
 :PROPERTIES:
@@ -104,6 +121,7 @@ Here is An example of a project definition section with one project, named =my_b
 ***** static-publishing-function 'org-publish-attachment
 ***** static-recursive t
 
+
 ** =org-pm-make-projects=: Update project definitions
 
 Once a project definition has been created or edited, run command =org-pm-make-projects= (=H-m m=) to parse the definitions in the current buffer and update the contents of =org-publish-project-alist=.
@@ -144,5 +162,3 @@ Export sections with tag =other= to project named =my-blog=, under directory =_o
 
 **** portal portal
 Export sections with tag "portal" to root directory of project =portal= using the layout specified by this project or the global default of =org-pm= (=default=).
-
-* List of =org-publish-meta= user commands
