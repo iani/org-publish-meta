@@ -16,7 +16,7 @@ To create a project definition, one writes a subtree under a section that has th
 
 To specify that a single section should be exported to a project, one adds to that section a tag with the name of the project enclosed in underscores (=_=).  For example a tag =_my_blog_= specifies that the section should be exported to project named =my_blog=.  Further components may be added to specify the folder and filename for exporting (see below).
 
-Additionally, one may specify that any section in a file whose tags match a tag string should be exported to a specific project, in a specific folder, with a specific Jekyll =layout=.   The match string can specify any combination of tags following the method described in http://orgmode.org/manual/Matching-tags-and-properties.html.  The rules for matching tags to projects, folders and layouts are written in a section of the file which they concern.  The section is marked with tag =ORG_PM_EXPORT_TAGS=.
+Additionally, one may specify that any section in a file whose tags match a tag string should be exported to a specific project, in a specific folder, optionally with a YAML header and specified Jekyll =layout=.   The match string can specify any combination of tags following the method described in http://orgmode.org/manual/Matching-tags-and-properties.html.  The rules for matching tags to projects, folders and layouts are written in a section of the file which they concern.  The section is marked with tag =ORG_PM_EXPORT_TAGS=.
 
 A menu of commands aids the use of =org-publish-meta=.  There are commands for listing and accessing project definitions, files that have been exported, and the source section from which a file has been exported.
 
