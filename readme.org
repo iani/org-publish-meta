@@ -7,7 +7,7 @@ Date: December 2013
 
 *Simplify and extend org-publish in Emacs Org-mode.*
 
-The project is still in alpha.
+The project is how ih early beta testing phase.
 
 * What it is
 
@@ -34,7 +34,7 @@ Project definitions (property-lists) are written as nodes (sections) in any org-
 
 Org-pm scans an org-mode file and adds to =org-publish-project-alist= any projects that this file may contain.  It also creates a list of the projects to which the file or any of its sections should be copied into variable =org-pm-files=.  Org-pm automatically saves =org-publish-project-alist= and =org-pm-files= to a file for use in further Emacs-sessions.
 
-A (grizz-style, minibuffer-) menu plus default keyboard shortcuts give access to the commands needed to copy sections to files and publish the relevant projects.
+A minibuffer-menu plus default keyboard shortcuts give access to the commands needed to copy sections to files and publish the relevant projects.
 
 * Features
 
