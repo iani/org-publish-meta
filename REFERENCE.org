@@ -1,5 +1,7 @@
 #+OPTIONS: ^:{} H:5
 
+This reference is out of date. Please see Tutorial instead.
+
 * Overview
 
 Org-pm is a kind or pre-processor for org-publish.  It does following things:
