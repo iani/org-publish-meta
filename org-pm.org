@@ -1,6 +1,12 @@
 #+TODO: TODO UNDERWAY | DONE CANCELLED
 #+TITLE: Org-publish-meta: Easy projects for Org-mode
 
+* emacs-lisp file preamble
+
+#+BEGIN_SRC emacs-lisp
+  ;;; org-pm.el --- Publish sections from org-mode to html and Jekyll
+#+END_SRC
+
 
 * DONE Overview: List of Commands
 

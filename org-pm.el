@@ -1,4 +1,6 @@
 
+;;; org-pm.el --- Publish sections from org-mode to html and Jekyll
+
 (defvar org-pm-project-data-file-path
   (let ((home (file-truename "~/.emacs.d")))
       (cond
