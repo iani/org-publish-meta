@@ -392,24 +392,26 @@ Add selected project as tag to current section."
       (t
        (end-of-buffer)
        (insert "\n* COMMENT project export tags :ORG_PM_EXPORT_TAGS:")
-       (insert "\n** my-blog blog _blog blog" )
+       (insert "\n** page my-blog" )
+       (insert "\nExport sections tagged =page= to project named =my-blog=, " )
+       (insert "in root publishing directory with default layout (=page=).\n" )
+       (insert "\n** blog my-blog _posts blog" )
        (insert "\n(Export sections tagged =blog= to project named =my-blog=, " )
-       (insert "in subfolder =_blog=, with layout =blog=.)\n" )
+       (insert "in subfolder =_posts=, with layout =blog=.)\n" )
        (insert "\nEdit above or add similar sections for more tags/projects. " )
        (message "Inserted project-tag-match definition section.")))))
 
 (defun org-pm-get-tag-matching-lists ()
   "Scan all sections tagged ORG_PM_EXPORT_TAGS and return a list of lists
 that define which tags should be matched to export sections to projects.
-Each sublist has the following form:
-<project-name-and-properties> <tag-match-string> &optional <folder> <layout>.
-
-<project-name-and-properties> is a full project definition obtained from
-org-publish-project-alist.
-
+The sub-sections of these sections define the projects, folders and layouts
+where a section should be exported when its tags match a <tag-match-string>.
 <tag-match-string> is a string that defines how to match sections through tags.
 The syntax for tag match strings is described in:
 http://orgmode.org/manual/Matching-tags-and-properties.html
+
+Each sub-section must specify the above elements in this order:
+<tag-match-string> <project-name> &optional <folder> <layout>.
 
 <folder> is an optional string giving a subfolder of the publishing-directory
 to publish the matched sections in.
@@ -417,15 +419,15 @@ to publish the matched sections in.
 <layout> is an optional string defining the layout to be used when publishing
 in Jekyll or Octopress.
 
-Alternative description:
+Details:
 
 Find section tagged 'ORG_PM_EXPORT_TAGS'.  For each subsection this section:
 Parse a heading of the form
-<project> <tagmatch> <folder> <layout>
+<tagmatch> <project> <folder> <layout>
 and produce data for matching the headings and then for exporting them.
 
 The function returns a list.  Each element of that list has 4 elements:
-1. project-alist
+1. project-alist (full project name and properties from org-publish-project-alist)
 2. tagmatch-string
 3. folder
 4. layout
@@ -436,14 +438,16 @@ If a project named in a heading has no definition, then skip that heading.
   (let (match-list)
    (org-map-entries
     '(lambda ()
-       (let (project deflist (plist (cadr (org-element-at-point))))
+       (let (project matchstring deflist (plist (cadr (org-element-at-point))))
          (cond
           ((member "ORG_PM_EXPORT_TAGS" (plist-get plist :tags)))
           (t
            (setq deflist (split-string (plist-get plist :raw-value) " "))
-           (setq project (assoc (car deflist) org-publish-project-alist))
+           (setq project (assoc (cadr deflist) org-publish-project-alist))
            (when project
-             (setq match-list (cons (cons project (cdr deflist)) match-list)))))))
+             (setq match-list (cons (append (list project matchstring)
+                                            (cddr deflist))
+                                    match-list)))))))
     "ORG_PM_EXPORT_TAGS"
     'file)
    match-list))
@@ -557,7 +561,7 @@ but insert element2 between key and the rest of the list."
          (layout (or (cadddr specs)
                      (plist-get section :layout)
                      (plist-get project :layout)
-                     "default"))
+                     "page"))
          (path (concat
                 (file-name-as-directory (plist-get project :publishing-directory))
                 (if (equal (length folder) 0)
