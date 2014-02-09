@@ -220,7 +220,7 @@ and the new id is stored in the project."
             (setq id (org-id-get-create))
             (setq entry (plist-put entry :ID id)))
           (setq ids (cons id ids))
-          (setq projects (cons (Org-pm-parse-project-def entry) projects))))
+          (setq projects (cons (org-pm-parse-project-def entry) projects))))
      "PROJECT_DEFS")
     (mapcar 'org-pm-check-add-project projects)
     (unless do-not-save-now (org-pm-save-project-data))
