@@ -2223,3 +2223,8 @@ This function is derived by modifying org-toggle-comment.
 *** static_base-extension "css\\|js\\|less\\|scss\\|php\\|rb\\|py\\|pdf\\|jpg\\|gif\\|png"
 *** static_publishing-function 'org-publish-attachment
 *** static_recursive t
+* emacs-lisp file postbamle
+
+#+BEGIN_SRC emacs-lisp
+  ;;; org-pm.el ends here
+#+END_SRC

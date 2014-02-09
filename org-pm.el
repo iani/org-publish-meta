@@ -1323,3 +1323,5 @@ This function is derived from org-toggle-coment."
 (eval-after-load "org-pm" '(org-pm-load-project-data))
 
 (provide 'org-pm)
+
+;;; org-pm.el ends here
