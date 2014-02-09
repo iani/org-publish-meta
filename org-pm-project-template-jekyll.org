@@ -1,11 +1,11 @@
 * PROJECTNAME
 ** body-only t
 ** publish-to-jekyll t
-** default-layout "blog"
+** default-layout "page"
 ** base-directory "BASEDIRECTORY"
 ** base-extension "org"
 ** recursive t
-** publishing-directory "PUBLISHINGDIRECTORY_posts/"
+** publishing-directory "PUBLISHINGDIRECTORY"
 ** publishing-function 'org-html-publish-to-html
 ** headline-levels 4
 ** section-numbers nil
