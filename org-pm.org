@@ -707,15 +707,15 @@ Remove tag naming selected project from current section (node).
     (let (match-list)
      (org-map-entries
       '(lambda ()
-         (let (project matchstring deflist (plist (cadr (org-element-at-point))))
+         (let (project deflist (plist (cadr (org-element-at-point))))
            (cond
             ((member "ORG_PM_EXPORT_TAGS" (plist-get plist :tags)))
             (t
              (setq deflist (split-string (plist-get plist :raw-value) " "))
              (setq project (assoc (cadr deflist) org-publish-project-alist))
              (when project
-               (setq match-list (cons (append (list project matchstring)
-                                              (cddr deflist))
+               (setq match-list
+                     (cons (append (list project (car deflist)) (cddr deflist))
                                       match-list)))))))
       "ORG_PM_EXPORT_TAGS"
       'file)
@@ -1011,7 +1011,9 @@ Test case for =org-pm-publish-buffer-to-html=.  Shows that it works if we initia
                     (file-name-as-directory folder))
                   (org-pm-make-filename
                    (plist-get section :raw-value)
-                   (plist-get section :DATE)))))
+                   (plist-get section :DATE))
+                  ".html")))
+
       (if (equal (plist-get project :publishing-function) 'org-html-publish-to-html)
           (org-pm-publish-buffer-to-html
            target-buffer path
@@ -1040,9 +1042,12 @@ Test case for =org-pm-publish-buffer-to-html=.  Shows that it works if we initia
       (erase-buffer)
       (org-mode)
       (org-paste-subtree 1)
+      ;; Remove top level section because it is inserted by Jekyll title
+      (goto-char (point-min))
+      (kill-line)
       ;; TODO:
-      ;; (later: optionally remove title?)
-      ;; strip trailing date from header
+      ;; (later: optionally do not remove top-level section?)
+      ;; strip trailing date from header?
       ;; remove tags that indicate projects
       (current-buffer)))
 
@@ -1488,7 +1493,9 @@ categories:
           (let*
               ((buffer (get-buffer-create "*yaml-header*"))
                (time-format-string  "%Y-%m-%d %T %z")
-               (title (plist-get section-plist :raw-value))
+               (title (or
+                       (plist-get section-plist :TITLE)
+                       (plist-get section-plist :raw-value)))
                (tags (org-pm-get-non-project-tags section-plist))
                (author (plist-get section-plist :AUTHOR))
                (categories (plist-get section-plist :CATEGORIES))

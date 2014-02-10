@@ -438,15 +438,15 @@ If a project named in a heading has no definition, then skip that heading.
   (let (match-list)
    (org-map-entries
     '(lambda ()
-       (let (project matchstring deflist (plist (cadr (org-element-at-point))))
+       (let (project deflist (plist (cadr (org-element-at-point))))
          (cond
           ((member "ORG_PM_EXPORT_TAGS" (plist-get plist :tags)))
           (t
            (setq deflist (split-string (plist-get plist :raw-value) " "))
            (setq project (assoc (cadr deflist) org-publish-project-alist))
            (when project
-             (setq match-list (cons (append (list project matchstring)
-                                            (cddr deflist))
+             (setq match-list
+                   (cons (append (list project (car deflist)) (cddr deflist))
                                     match-list)))))))
     "ORG_PM_EXPORT_TAGS"
     'file)
@@ -569,7 +569,9 @@ but insert element2 between key and the rest of the list."
                   (file-name-as-directory folder))
                 (org-pm-make-filename
                  (plist-get section :raw-value)
-                 (plist-get section :DATE)))))
+                 (plist-get section :DATE))
+                ".html")))
+
     (if (equal (plist-get project :publishing-function) 'org-html-publish-to-html)
         (org-pm-publish-buffer-to-html
          target-buffer path
@@ -852,7 +854,9 @@ If :body-only is nil, then the yaml-header string is the empty string."
         (let*
             ((buffer (get-buffer-create "*yaml-header*"))
              (time-format-string  "%Y-%m-%d %T %z")
-             (title (plist-get section-plist :raw-value))
+             (title (or
+                     (plist-get section-plist :TITLE)
+                     (plist-get section-plist :raw-value)))
              (tags (org-pm-get-non-project-tags section-plist))
              (author (plist-get section-plist :AUTHOR))
              (categories (plist-get section-plist :CATEGORIES))
