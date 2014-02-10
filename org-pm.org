@@ -913,6 +913,7 @@ Test case for =org-pm-publish-buffer-to-html=.  Shows that it works if we initia
         (let* ((sections-with-paths (org-pm-get-section-project-paths))
                (buffer (current-buffer))
                (filename (buffer-file-name buffer))
+               (section-end 0) candidate-section section-specs new-end
                todo-only) ;; required by org-make-tags-matcher!
           ;; Part 1: export sections marked with tags of type: _tag_
           (dolist (section sections-with-paths)
@@ -921,19 +922,37 @@ Test case for =org-pm-publish-buffer-to-html=.  Shows that it works if we initia
           (dolist (tag-match-spec (org-pm-get-tag-matching-lists))
             (org-scan-tags
              (lambda ()
-               (setq section
-                     (org-pm-export-1-section-to-projects-with-layout tag-match-spec))
-               (setq sections-with-paths
-                     (assoc-add2 sections-with-paths
-                                 (car section)
-                                 (caddr section)
-                                 (cadr section))))
+               ;; skip subsections of matched section
+               (setq candidate-section (cadr (org-element-at-point)))
+               (setq new-end (plist-get candidate-section :end))
+               (when (> new-end section-end)
+                 (setq section-end new-end)
+                 (setq section-specs
+                       (org-pm-export-1-section-to-projects-with-layout tag-match-spec))
+                 (setq sections-with-paths
+                       (assoc-add2 sections-with-paths
+                                   (car section-specs)
+                                   (caddr section-specs)
+                                   (cadr section-specs)))))
              (cdr (org-make-tags-matcher (cadr tag-match-spec)))
              nil))
           ;; Part 3: add section info to global section export list and save.
           (setq org-pm-section-exports
                 (assoc-replace org-pm-section-exports filename sections-with-paths)))
         (org-pm-save-project-data))))
+
+  (dolist (tag-match-spec (org-pm-get-tag-matching-lists))
+    (org-scan-tags
+     (lambda ()
+       (setq section
+             (org-pm-export-1-section-to-projects-with-layout tag-match-spec))
+       (setq sections-with-paths
+             (assoc-add2 sections-with-paths
+                         (car section)
+                         (caddr section)
+                         (cadr section))))
+     (cdr (org-make-tags-matcher (cadr tag-match-spec)))
+     nil))
 #+END_SRC
 
 *** Help function assoc-add2
@@ -996,6 +1015,7 @@ Test case for =org-pm-publish-buffer-to-html=.  Shows that it works if we initia
      - tagmatch-string (not needed here)
      - optionally: folder.
      - optionally: layout."
+
     (let* ((section (cadr (org-element-at-point)))
            (target-buffer (org-pm-make-section-buffer (current-buffer)))
            (project (cdr (car specs))) ;; cdar specs
@@ -1022,7 +1042,7 @@ Test case for =org-pm-publish-buffer-to-html=.  Shows that it works if we initia
           (let ((dir (file-name-directory path)))
             (unless (file-exists-p dir) (make-directory dir t)))
           (write-region nil nil path)))
-      (message "exported section with layout: %s" (plist-get section :raw-value))
+
       ;; return section-id-path-project for storing in file section export list
       (list (plist-get section :begin)
             (org-id-get-create)
