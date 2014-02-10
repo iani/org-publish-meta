@@ -1693,28 +1693,40 @@ Note that edits may cause conflicts when updating org-pm from git.
 
 #+END_SRC
 
-** DONE org-pm-show-target
+** UNDERWAY org-pm-open-target-of-this-section
+
+Needs rewriting to include tag match stuff.
+
+Testing using file section lists
+#+BEGIN_SRC elisp
+
+#+END_SRC
+
 
 #+BEGIN_SRC emacs-lisp
   (defun org-pm-open-target-of-this-section ()
     "Open a target from the list of targets of this section or
   any of its super-sections."
     (interactive)
-    (let (paths path index)
-      (save-excursion
-        (save-restriction
-          (widen)
-          (org-back-to-heading)
-          (while (and (not (setq paths (org-pm-get-1-section-project-paths)))
-                      (> (org-current-level) 1))
-           (org-up-heading-safe))))
-      (cond (paths
-             (cond ((> (length paths) 1)
-                    (setq index (grizzl-make-index paths))
-                    (setq path (grizzl-completing-read "Select target: " index)))
-                   (t (setq path (car paths))))
-             (find-file path))
-            (t (message "No targets found for %s" (org-get-heading))))))
+    (save-excursion
+      (save-restriction
+        (widen)
+        (org-back-to-heading)
+        (let (targets begin end menu selection
+                      (pos (point))
+                      (sections
+                       (cdr (assoc (buffer-file-name (current-buffer)) org-pm-section-exports))))
+          (dolist (section sections)
+            (setq begin (car section))
+            (when (>= pos begin)
+              (goto-char begin)
+              (if (<= pos (plist-get (cadr (org-element-at-point)) :end))
+                  (setq targets (mapcar 'car (cddr section))))))
+          (cond (targets
+                 (setq menu (grizzl-make-index targets))
+                 (setq selection (grizzl-completing-read "Select a file: " menu))
+                 (find-file selection))
+                (t (message "No exported files were found for this section.")))))))
 #+END_SRC
 
 ** DONE org-pm-list-project-definitions
