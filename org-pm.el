@@ -600,9 +600,12 @@ but insert element2 between key and the rest of the list."
     (erase-buffer)
     (org-mode)
     (org-paste-subtree 1)
+    ;; Remove top level section because it is inserted by Jekyll title
+    (goto-char (point-min))
+    (kill-line)
     ;; TODO:
-    ;; (later: optionally remove title?)
-    ;; strip trailing date from header
+    ;; (later: optionally do not remove top-level section?)
+    ;; strip trailing date from header?
     ;; remove tags that indicate projects
     (current-buffer)))
 
