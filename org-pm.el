@@ -477,6 +477,7 @@ org-pm-section-exports, and save it to disk."
       (let* ((sections-with-paths (org-pm-get-section-project-paths))
              (buffer (current-buffer))
              (filename (buffer-file-name buffer))
+             (section-end 0) candidate-section section-specs new-end
              todo-only) ;; required by org-make-tags-matcher!
         ;; Part 1: export sections marked with tags of type: _tag_
         (dolist (section sections-with-paths)
@@ -485,19 +486,37 @@ org-pm-section-exports, and save it to disk."
         (dolist (tag-match-spec (org-pm-get-tag-matching-lists))
           (org-scan-tags
            (lambda ()
-             (setq section
-                   (org-pm-export-1-section-to-projects-with-layout tag-match-spec))
-             (setq sections-with-paths
-                   (assoc-add2 sections-with-paths
-                               (car section)
-                               (caddr section)
-                               (cadr section))))
+             ;; skip subsections of matched section
+             (setq candidate-section (cadr (org-element-at-point)))
+             (setq new-end (plist-get candidate-section :end))
+             (when (> new-end section-end)
+               (setq section-end new-end)
+               (setq section-specs
+                     (org-pm-export-1-section-to-projects-with-layout tag-match-spec))
+               (setq sections-with-paths
+                     (assoc-add2 sections-with-paths
+                                 (car section-specs)
+                                 (caddr section-specs)
+                                 (cadr section-specs)))))
            (cdr (org-make-tags-matcher (cadr tag-match-spec)))
            nil))
         ;; Part 3: add section info to global section export list and save.
         (setq org-pm-section-exports
               (assoc-replace org-pm-section-exports filename sections-with-paths)))
       (org-pm-save-project-data))))
+
+(dolist (tag-match-spec (org-pm-get-tag-matching-lists))
+  (org-scan-tags
+   (lambda ()
+     (setq section
+           (org-pm-export-1-section-to-projects-with-layout tag-match-spec))
+     (setq sections-with-paths
+           (assoc-add2 sections-with-paths
+                       (car section)
+                       (caddr section)
+                       (cadr section))))
+   (cdr (org-make-tags-matcher (cadr tag-match-spec)))
+   nil))
 
 (defun assoc-add2 (alist key element element2)
   "Add element to the sublist of alist which starts with key,
@@ -554,6 +573,7 @@ but insert element2 between key and the rest of the list."
    - tagmatch-string (not needed here)
    - optionally: folder.
    - optionally: layout."
+
   (let* ((section (cadr (org-element-at-point)))
          (target-buffer (org-pm-make-section-buffer (current-buffer)))
          (project (cdr (car specs))) ;; cdar specs
@@ -580,7 +600,7 @@ but insert element2 between key and the rest of the list."
         (let ((dir (file-name-directory path)))
           (unless (file-exists-p dir) (make-directory dir t)))
         (write-region nil nil path)))
-    (message "exported section with layout: %s" (plist-get section :raw-value))
+
     ;; return section-id-path-project for storing in file section export list
     (list (plist-get section :begin)
           (org-id-get-create)
@@ -1008,21 +1028,25 @@ present buffer's file was exported, and go to that section"
   "Open a target from the list of targets of this section or
 any of its super-sections."
   (interactive)
-  (let (paths path index)
-    (save-excursion
-      (save-restriction
-        (widen)
-        (org-back-to-heading)
-        (while (and (not (setq paths (org-pm-get-1-section-project-paths)))
-                    (> (org-current-level) 1))
-         (org-up-heading-safe))))
-    (cond (paths
-           (cond ((> (length paths) 1)
-                  (setq index (grizzl-make-index paths))
-                  (setq path (grizzl-completing-read "Select target: " index)))
-                 (t (setq path (car paths))))
-           (find-file path))
-          (t (message "No targets found for %s" (org-get-heading))))))
+  (save-excursion
+    (save-restriction
+      (widen)
+      (org-back-to-heading)
+      (let (targets begin end menu selection
+                    (pos (point))
+                    (sections
+                     (cdr (assoc (buffer-file-name (current-buffer)) org-pm-section-exports))))
+        (dolist (section sections)
+          (setq begin (car section))
+          (when (>= pos begin)
+            (goto-char begin)
+            (if (<= pos (plist-get (cadr (org-element-at-point)) :end))
+                (setq targets (mapcar 'car (cddr section))))))
+        (cond (targets
+               (setq menu (grizzl-make-index targets))
+               (setq selection (grizzl-completing-read "Select a file: " menu))
+               (find-file selection))
+              (t (message "No exported files were found for this section.")))))))
 
 (defun org-pm-list-project-definitions ()
   "Build list of projects with links to file and node containing the project definition,
