@@ -779,29 +779,7 @@ Decide which category this section belongs to:
 
 Note that both the yaml header construction and the conversion to html is done again for each project.  This is because differences in project property values may require differt renderings.
 
-**** TODO non-html export
-
-Copy the contents of the section to the buffer, but leave out the heading.  To get the contents, use this:
-
-: (plist-get section-plist :contents-begin) ;; beginning of contents
-; (plist-get section-plist :contents-end) ;; end of contents
-
-Note: P
-
-See for example section-plist of the present section here:
-
-#+BEGIN_SRC elisp
-  (save-excursion
-    (org-back-to-heading)
-    (cadr (org-element-at-point)))
-#+END_SRC
-
-#+RESULTS:
-| :raw-value | non-html export | :begin | 26972 | :end | 27255 | :pre-blank | 1 | :hiddenp | nil | :contents-begin | 26994 | :contents-end | 27253 | :level | 4 | :priority | nil | :tags | nil | :todo-keyword | nil | :todo-type | nil | :post-blank | 1 | :footnote-section-p | nil | :archivedp | nil | :commentedp | nil | :quotedp | nil | :CATEGORY | org-pm | :title | non-html export |
-
 **** html export
-
-For the present, do not strip the section title, but include it in the buffer to be exported.
 
 Test formatting with section title, and if needed, rewrite to omit the section title, possibly using the =:contents-begin= and =:contents-end= markers as with non-html export.
 
