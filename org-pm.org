@@ -146,6 +146,23 @@ Set org-publish-project-alist to nil.  Save.
 :DATE:     <2013-12-18 Wed 11:52>
 :END:
 
+** UNDERWAY org-pm-auto-export-p
+
+#+BEGIN_SRC emacs-lisp
+  ;;;
+  (defgroup org-pm
+    nil
+    "Group for org-pm org publish extension package"
+  )
+
+  (defcustom org-pm-auto-export-p nil
+    "If true, then org-pm will update project definitions
+  and export any sections of an org-file when it is saved."
+    :type 'boolean
+    :group 'org-pm
+  )
+#+END_SRC
+
 ** DONE org-pm-project-data-file-path
 CLOSED: [2013-12-18 Wed 15:23]
 :PROPERTIES:
@@ -1970,6 +1987,22 @@ Edit the file containing the auto-saved data for org-pom.
     (interactive)
     (find-file org-pm-project-data-file-path))
 #+END_SRC
+
+* TODO auto-export on save
+
+#+BEGIN_SRC elisp
+  (defun org-pm-auto-export ()
+    "Function run after saving a buffer.
+  If the main buffer mode is org-mode, and org-pm-auto-save is t, then
+  make projects and export this file."
+    (when (and org-pm-auto-export-p (equal major-mode 'org-mode))
+      (org-pm-make-projects)
+      (org-pm-export)))
+  (add-to-list 'after-save-hook 'org-pm-auto-export)
+#+END_SRC
+
+#+RESULTS:
+| org-pm-auto-export | helm-swoop--clear-cache | executable-make-buffer-file-executable-if-script-p |
 
 
 * Auxiliary functions + Fixes
