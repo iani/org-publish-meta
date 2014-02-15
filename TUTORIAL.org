@@ -4,11 +4,11 @@
 :END:
 ** What It Does
 
-Org-publish-meta is an add-on to the Org-mode publish functions.  It adds some features to org-publish which make it easier to publish org-mode files to html websites.  It adds the following 3 features to org-publish:
+Org-publish-meta is an add-on to the Org-mode publish functions.  It adds the following 3 features to org-publish, which make it easier to publish org-mode files to html websites:
 
-1. It defines org-publish projects as well as rules for publishing org file contents to them entirely through plain-text in any org-mode file.  No need to write these specifications separately in emacs-lisp files.
-2. It makes it possible to export any section (i.e. subtree) of any org-mode file to any number of projects, either converting it to html or as plain text.  To specify which section goes to which folder of which project, one uses tags.
-3. It optionally creates and adds YAML front matter header to the exported files, which is needed when publishing these with Jekyll or Octopress.  The contents of the header are extracted from project properties as well as tags and properties of subtrees.
+1. Define org-publish projects as well as rules for publishing org file contents to them entirely through plain-text in any org-mode file.  No need to write these specifications separately in emacs-lisp files.
+2. Export any section (i.e. subtree) of any org-mode file to any number of projects, either converting it to html or as plain text.  To specify which section goes to which folder of which project, one uses tags.
+3. Create and add YAML front matter header to the exported files, which is needed when publishing these with Jekyll or Octopress.  The contents of the header are extracted from project properties as well as tags and properties of subtrees.
 
 ** How It Works
 
