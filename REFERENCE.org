@@ -108,7 +108,7 @@ Example: The following five strings specify five different projects and location
 
 Org-mode cannot use hyphens (=-=) in tags.  If you create a project whose name contains a hyphen, you will not be able to specify that project as a target using a tag to a heading.  Therefore, project names should not contain hyphens.
 
-** Copying an entire file to one or more projects
+** NOT IMPLEMENTED Copying an entire file to one or more projects
 
 To specify that the whole file should be copied to a project, add the project specification string as value of property =PROJECT=.  More than one project can be specified in the same file in this way. For example:
 

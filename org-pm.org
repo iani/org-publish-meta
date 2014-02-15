@@ -160,7 +160,6 @@ Set org-publish-project-alist to nil.  Save.
   and export any sections of an org-file when it is saved."
     :type 'boolean
     :group 'org-pm
-  )
 #+END_SRC
 
 ** DONE org-pm-project-data-file-path
