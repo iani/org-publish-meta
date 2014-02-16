@@ -65,4 +65,14 @@ Then run this to install org-pm:
 
 Once org-pm is installed, type H-m H-m to open a menu of commands.  (H = Hyper = the function key on Mac).  Alternatively run command =org-pm-menu=.
 
-See [[file:TUTORIAL.org][TUTORIAL]] and [[file:REFERENCE.org][REFERENCE]] for further help.
+* About the files of this package
+
+- file:./org-pm.org :: Contains all released code of the package.  Org-babel-load-file to compile this file in order to produce an updated version of =org-pm.el=.
+- file:./org-pm.el :: Contains all released code of the package.  Produced by running org-babel-load-file on org-pm.org.
+- file:./readme.org :: This file.
+- file:./tutorial.org :: Essential introduction to using org-pm.
+- file:./dash.el :: Dash.el package by Magnar Sven.  Used here.
+- file:./REFERENCE.org :: Outdated reference draft.  For later.
+- file:./org-pm-extensions.org :: Some ideas from early code, for consideration later.
+- file:./pretty-print.el :: Pretty-print package.  Used?
+- file:./roadmap.org :: Ideas for future extensions.
