@@ -71,8 +71,10 @@ Once org-pm is installed, type H-m H-m to open a menu of commands.  (H = Hyper =
 - file:./org-pm.el :: Contains all released code of the package.  Produced by running org-babel-load-file on org-pm.org.
 - file:./readme.org :: This file.
 - file:./tutorial.org :: Essential introduction to using org-pm.
-- file:./dash.el :: Dash.el package by Magnar Sven.  Used here.
+- file:./dash.el :: Dash.el package by Magnar Sven.  Used by org-pm.
 - file:./REFERENCE.org :: Outdated reference draft.  For later.
 - file:./org-pm-extensions.org :: Some ideas from early code, for consideration later.
-- file:./pretty-print.el :: Pretty-print package.  Used?
+- file:./pretty-print.el :: Pretty-print package.  (currently not used)
 - file:./roadmap.org :: Ideas for future extensions.
+- file:./org-pm-project-template-jekyll.org :: Template for projects that export to Jekyll. Currently set as default.
+- file:./org-pm-project-template-plain.org :: Template for projects that export to html using default org-mode headers.  Not tested recently.
