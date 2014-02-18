@@ -1,18 +1,19 @@
-Ideas for further development.
+Ideas for further development
 
-* Further Features: Link Resolution, Templates
+=o-blog= https://github.com/renard/o-blog is an alternative package for creating an html site from =org-mode=.  Both =o-blog= and =org-pm= export sections of an org-mode file to separate html-files.  Here are some thoughts about porting some of the functionality of o-blog to org-pm.
+
+=o-blog= implements a mechanism for including templates in the export file and for executing lisp code in those templates, by marking the code with tag =<lisp>=.
+
+* Further Features: Link Resolution, Templates, Bootstrap?
 
 - =org-mode= style links to org-files or sections will break when exporting with =org-pm=, because sections are exported to different files.  It is possible to use custom id's to sections in order to re-map links to the correct files (see =org-id=).
 
 - It would be handy to define templates of content inside an org-mode file, which could then be inserted at any point in the file for export, and would furthermore be able to execute lisp code for dynamic content.
 
-The overall approach is to port some of the functionality of o-blog to org-pm.
+- Including lisp in the source code:
+  Text enclosed in markers like this ={lisp}lisp code here{lisp}= or =<lisp>lisp code here</lisp>= or =[lisp]lisp code here[/lisp]= is evaluated as lisp code, and the resulting string is included in the rendered html file.
 
-https://github.com/renard/o-blog
-
-Both =o-blog= and =org-pm= export sections of an org-mode file to separate html-files.
-
-=o-blog= implements a mechanism for including templates in the export file and for executing lisp code in those templates, by marking the code with tag =<lisp>=.
+- Bootstrap-style row-column regions?
 
 Another feature that
 

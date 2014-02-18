@@ -7,7 +7,7 @@ Date: December 2013
 
 *Simplify and extend org-publish in Emacs Org-mode.*
 
-The project is how ih early beta testing phase.
+The project is how in early beta testing phase.
 
 * What it is
 
