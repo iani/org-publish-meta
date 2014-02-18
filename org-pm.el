@@ -1,6 +1,19 @@
 
 ;;; org-pm.el --- Publish sections from org-mode to html and Jekyll
 
+;;;
+(defgroup org-pm
+  nil
+  "Group for org-pm org publish extension package"
+  )
+
+(defcustom org-pm-auto-export-p nil
+  "If true, then org-pm will update project definitions
+  and export any sections of an org-file when it is saved."
+  :type 'boolean
+  :group 'org-pm
+  )
+
 (defvar org-pm-project-data-file-path
   (let ((home (file-truename "~/.emacs.d")))
       (cond

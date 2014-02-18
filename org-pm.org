@@ -149,17 +149,18 @@ Set org-publish-project-alist to nil.  Save.
 ** UNDERWAY org-pm-auto-export-p
 
 #+BEGIN_SRC emacs-lisp
-  ;;;
+    ;;;
   (defgroup org-pm
     nil
     "Group for org-pm org publish extension package"
-  )
+    )
 
   (defcustom org-pm-auto-export-p nil
     "If true, then org-pm will update project definitions
-  and export any sections of an org-file when it is saved."
+    and export any sections of an org-file when it is saved."
     :type 'boolean
     :group 'org-pm
+    )
 #+END_SRC
 
 ** DONE org-pm-project-data-file-path
