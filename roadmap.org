@@ -2,7 +2,16 @@ Ideas for further development
 
 =o-blog= https://github.com/renard/o-blog is an alternative package for creating an html site from =org-mode=.  Both =o-blog= and =org-pm= export sections of an org-mode file to separate html-files.  Here are some thoughts about porting some of the functionality of o-blog to org-pm.
 
-=o-blog= implements a mechanism for including templates in the export file and for executing lisp code in those templates, by marking the code with tag =<lisp>=.
+=o-blog= implements three extra features, besides the splitting of sections of a file into separate html files:
+
+1. A mechanism for including templates, by using shortcut-keywords such as =#+begin_o_blog_row=. The templates are stored as separate files, and imported into the file to be rendered in the location indicated by keywords.
+2. A mechanism for inserting snippets defined inside the same org-mode files as sections, and including them in the export code at indicated locations.
+3. A mechanism for executing lisp code in those templates, by marking the code with tag =<lisp>=.
+
+There are two types of templates in o-blog:
+
+1. Separate files stored in a template directory, and included by
+2. Snippets
 
 * Further Features: Link Resolution, Templates, Bootstrap?
 
@@ -14,8 +23,6 @@ Ideas for further development
   Text enclosed in markers like this ={lisp}lisp code here{lisp}= or =<lisp>lisp code here</lisp>= or =[lisp]lisp code here[/lisp]= is evaluated as lisp code, and the resulting string is included in the rendered html file.
 
 - Bootstrap-style row-column regions?
-
-Another feature that
 
 * Templates
 :PROPERTIES:
