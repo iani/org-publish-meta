@@ -6,12 +6,14 @@ Ideas for further development
 
 1. A mechanism for including templates, by using shortcut-keywords such as =#+begin_o_blog_row=. The templates are stored as separate files, and imported into the file to be rendered in the location indicated by keywords.
 2. A mechanism for inserting snippets defined inside the same org-mode files as sections, and including them in the export code at indicated locations.
-3. A mechanism for executing lisp code in those templates, by marking the code with tag =<lisp>=.
+3. A mechanism   for executing lisp code in those templates, by enclosing the code in =<lisp>= or ={lisp}= or =[lisp]=.
+
+Of these, the snippet mechanism is particularly handy for creating custom menus that appear in subsets of pages.  This doubles the native mechanism of Jekyll with layouts.  However this feature has the advantage that one can define the menus in the same org-mode file, instead of having to edit layout files in the Jekyll templates folder.
 
 There are two types of templates in o-blog:
 
-1. Separate files stored in a template directory, and included by
-2. Snippets
+1. Separate files stored in a template directory.
+2. Snippets stored in sections of an org-mode file, marked by property "SNIPPET".
 
 * Further Features: Link Resolution, Templates, Bootstrap?
 
