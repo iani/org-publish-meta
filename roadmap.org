@@ -38,3 +38,16 @@ http://orgmode.org/manual/Include-files.html
 
 ** o-blog <lisp> mechanism
 See function =ob-eval-lisp= in file =o-blog.el= of =o-blog=.
+
+** ways to include templates
+
+1. Standard org-mode include
+2. o-blog include?
+
+** About o-blog templates
+
+See files sample.org and oblog-min.org
+
+It is not clear how everything hangs together - despite the documentation and examples.
+
+Some notes:
