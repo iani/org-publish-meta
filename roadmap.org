@@ -51,3 +51,9 @@ See files sample.org and oblog-min.org
 It is not clear how everything hangs together - despite the documentation and examples.
 
 Some notes:
+
+In file oblog-min.org:
+
+A templates is written as a number subsections inside a section with the property :tangle: set to the path of an html file.
+
+The the contents of the subsections of the template definition are all html source code, enclosed in begin_src html
