@@ -8,6 +8,11 @@ Features considered here are:
 
 The functionality of these features is already present in o-blog and Jekyll.  However, it may be possible to design more convenient ways to use these, for example by writing all required parts in the same file that contains the org-mode source of the site.  o-blog does this only partly.  It may be possible to provide methods that are simpler than those of o-blog.
 
+* usage analysis, "workflow" considerations
+
+
+
+* o-blog features
 
 =o-blog= https://github.com/renard/o-blog is an alternative package for creating an html site from =org-mode=.  Both =o-blog= and =org-pm= export sections of an org-mode file to separate html-files.  Here are some thoughts about porting some of the functionality of o-blog to org-pm.
 
