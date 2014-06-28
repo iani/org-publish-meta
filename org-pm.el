@@ -178,8 +178,12 @@ Save updated project, file and duplicate lists to disk."
     (unless no-name-query
       (setq project-name (read-string "Enter project name: " project-name)))
     (unless no-query
-      (setq base-directory (query-make-folder base-directory))
-      (setq publishing-directory (query-make-folder publishing-directory)))
+      ;; (setq base-directory
+      ;;       (query-make-folder base-directory
+      ;;                          "choose/make base org directory"))
+      (setq publishing-directory
+            (query-make-folder publishing-directory
+                               "choose/make html publishing directory")))
     (save-excursion
       (set-buffer buffer)
       (insert-file-contents org-pm-project-template-file-name)
