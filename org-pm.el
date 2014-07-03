@@ -75,18 +75,18 @@ org-pm-project-template-plain.org" )
 (setq *org-pm-menu*
       (let* ((commands '(
                          org-pm-insert-new-project
-                         org-pm-make-projects
                          org-pm-add-section-to-project
-                         org-pm-remove-section-from-project
-                         org-pm-edit-project-tag-lists
                          org-pm-export
+                         org-pm-edit-project-template
                          org-pm-list-project-definitions
                          org-pm-open-target-of-this-section
                          org-pm-open-source-of-this-file
+                         org-pm-remove-section-from-project
+                         org-pm-make-projects
+                         org-pm-edit-project-tag-lists
                          org-pm-source-file-menu
                          org-pm-target-file-menu
                          org-pm-show-project-definition-section
-                         org-pm-edit-project-template
                          org-pm-list-duplicate-project-defs
                          pm/edit-duplicate-project-def
                          org-pm-post-project-def
