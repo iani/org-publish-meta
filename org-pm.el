@@ -1,6 +1,9 @@
 
 ;;; org-pm.el --- Publish sections from org-mode to html and Jekyll
 
+(unless (boundp 'org-publish-project-alist)
+  (setq org-publish-project-alist nil))
+
 ;;;
 (defgroup org-pm
   nil
@@ -688,6 +691,11 @@ in the file header for use by Jekyll/Octopress."
     (concat (or (plist-get info :yaml-header) "") string)))
 
 ;;; Add yaml front matter for jekyll / octopress files
+
+;; first ensure that filter functions list has been initialized:
+(unless (boundp 'org-export-filter-final-output-functions)
+    (setq org-export-filter-final-output-functions nil))
+
 (add-to-list 'org-export-filter-final-output-functions
              'org-pm-add-yaml-front-matter)
 
