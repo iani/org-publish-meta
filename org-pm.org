@@ -146,6 +146,13 @@ Set org-publish-project-alist to nil.  Save.
 :DATE:     <2013-12-18 Wed 11:52>
 :END:
 
+** Ensure that org-publish-project-alist is defined
+
+#+BEGIN_SRC emacs-lisp
+  (unless (boundp 'org-publish-project-alist)
+    (setq org-publish-project-alist nil))
+#+END_SRC
+
 ** UNDERWAY org-pm-auto-export-p
 
 #+BEGIN_SRC emacs-lisp
@@ -1099,6 +1106,11 @@ This makes sure that when a file is copied to a subfolder of the publishing dire
       (concat (or (plist-get info :yaml-header) "") string)))
 
   ;;; Add yaml front matter for jekyll / octopress files
+
+  ;; first ensure that filter functions list has been initialized:
+  (unless (boundp 'org-export-filter-final-output-functions)
+      (setq org-export-filter-final-output-functions nil))
+
   (add-to-list 'org-export-filter-final-output-functions
                'org-pm-add-yaml-front-matter)
 #+END_SRC
